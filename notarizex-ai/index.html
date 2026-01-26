@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotarizeX AI - Automação Inteligente para WhatsApp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <style>
+        :root { --bg-dark: #050816; --bg-card: rgba(15, 23, 42, 0.7 ); --primary-cyan: #22d3ee; --primary-cyan-dark: #0891b2; --text-light: #cbd5e1; --text-heading: #f8fafc; --border-glow: rgba(34, 211, 238, 0.2); }
+        body { background-color: var(--bg-dark); color: var(--text-light); font-family: 'Inter', sans-serif; background-image: radial-gradient(circle at 1px 1px, rgba(203, 213, 225, 0.1) 1px, transparent 0); background-size: 20px 20px; }
+        .glow-effect { box-shadow: 0 0 20px rgba(34, 211, 238, 0.3), 0 0 40px rgba(34, 211, 238, 0.1); }
+        .btn-primary { background: linear-gradient(45deg, var(--primary-cyan), var(--primary-cyan-dark)); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(34, 211, 238, 0.25); }
+        .glass-card { background: var(--bg-card); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--border-glow); border-radius: 1rem; }
+        .step-card::before { content: attr(data-step); position: absolute; top: -1.5rem; left: -1.5rem; width: 4rem; height: 4rem; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; color: var(--bg-dark); background: var(--primary-cyan); border-radius: 50%; border: 4px solid var(--bg-dark); z-index: 10; }
+        .modal-enter { opacity: 0; transform: scale(0.95); } .modal-leave { opacity: 1; transform: scale(1); } .modal-transition { transition: all 0.2s ease-out; }
+    </style>
+</head>
+<body class="antialiased">
+    <!-- Header, Hero, Como Funciona, Preços (código omitido para brevidade, mas é o mesmo da resposta anterior) -->
+    <header class="fixed top-0 left-0 w-full z-50 glass-card !rounded-none border-b border-t-0 border-x-0"><div class="container mx-auto px-6 py-4 flex justify-between items-center"><a href="#" class="text-2xl font-black text-white">Notarize<span class="text-cyan-400">X</span><span class="text-base font-bold">.AI</span></a><nav class="hidden md:flex items-center space-x-6 text-sm"><a href="#how-it-works" class="hover:text-cyan-400 transition-colors">Como Funciona</a><a href="#pricing" class="hover:text-cyan-400 transition-colors">Planos</a><button data-action="open-modal" class="bg-slate-700/50 hover:bg-slate-600/50 text-white font-medium py-2 px-4 rounded-lg transition-colors">Começar Agora</button></nav><button data-action="open-modal" class="md:hidden text-white"><ion-icon name="grid-outline" class="text-3xl"></ion-icon></button></div></header>
+    <main><section class="relative min-h-screen flex items-center justify-center text-center overflow-hidden pt-20"><div class="absolute inset-0 -z-10"><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] max-w-3xl max-h-3xl bg-cyan-500/20 rounded-full blur-3xl"></div></div><div class="container mx-auto px-6 z-10"><h1 class="text-4xl md:text-6xl font-black text-heading leading-tight mb-4 animate-fade-in-down">Transforme seu WhatsApp em uma Máquina de Vendas 24h</h1><p class="text-lg md:text-xl text-slate-300 mb-10 max-w-3xl mx-auto animate-fade-in-up">Nossa IA treina com seu material, responde clientes, qualifica leads e fecha vendas. Tudo no automático, direto no seu WhatsApp.</p><button data-action="open-modal" class="btn-primary font-bold text-lg text-slate-900 py-4 px-10 rounded-full glow-effect">Criar meu Robô Agora</button></div></section><section id="how-it-works" class="py-24"><div class="container mx-auto px-6"><div class="text-center mb-16"><h2 class="text-3xl md:text-4xl font-bold text-heading">Ativação em 3 Passos. Simples assim.</h2><p class="text-slate-400 mt-2">Seu atendente de IA fica pronto em menos de 5 minutos.</p></div><div class="grid md:grid-cols-3 gap-12 md:gap-8"><div data-step="1" class="relative step-card glass-card p-8 pt-12"><h3 class="text-xl font-bold text-heading mb-2">Escolha seu Plano</h3><p>Selecione o plano ideal para sua demanda e inicie o onboarding.</p></div><div data-step="2" class="relative step-card glass-card p-8 pt-12"><h3 class="text-xl font-bold text-heading mb-2">Envie seu Manual</h3><p>Faça o upload do PDF com as informações que o robô deve saber.</p></div><div data-step="3" class="relative step-card glass-card p-8 pt-12"><h3 class="text-xl font-bold text-heading mb-2">Conecte e Ative</h3><p>Escaneie o QR Code para conectar seu WhatsApp e veja a mágica acontecer.</p></div></div></div></section><section id="pricing" class="py-24"><div class="container mx-auto px-6"><div class="text-center mb-16"><h2 class="text-3xl md:text-4xl font-bold text-heading">Planos transparentes, sem surpresas.</h2><p class="text-slate-400 mt-2">Escolha o plano que impulsionará seu negócio.</p></div><div class="flex flex-col lg:flex-row justify-center items-center gap-8"><div class="glass-card p-8 w-full max-w-sm"><h3 class="text-xl font-bold text-cyan-400">Plano Básico</h3><p class="text-5xl font-black text-heading my-4">R$ 297<span class="text-lg font-medium text-slate-400">/mês</span></p><ul class="space-y-3 text-slate-300 mb-8"><li class="flex items-center"><ion-icon name="checkmark-circle-outline" class="text-cyan-400 mr-2"></ion-icon>1 Atendente IA</li><li class="flex items-center"><ion-icon name="checkmark-circle-outline" class="text-cyan-400 mr-2"></ion-icon>1.000 conversas/mês</li><li class="flex items-center"><ion-icon name="checkmark-circle-outline" class="text-cyan-400 mr-2"></ion-icon>Treinamento com até 10 PDFs</li><li class="flex items-center"><ion-icon name="checkmark-circle-outline" class="text-cyan-400 mr-2"></ion-icon>Suporte via Chat</li></ul><button data-action="open-modal" class="w-full bg-slate-700/50 hover:bg-slate-600/50 text-white font-bold py-3 rounded-lg transition-colors">Começar com Básico</button></div><div class="glass-card p-8 w-full max-w-sm border-2 border-cyan-400 relative glow-effect"><p class="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-cyan-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">MAIS POPULAR</p><h3 class="text-xl font-bold text-heading">Plano Pro</h3><p class="text-5xl font-black text-heading my-4">R$ 497<span class="text-lg font-medium text-slate-400">/mês</span></p><ul class="space-y-3 text-slate-300 mb-8"><li class="flex items-center"><ion-icon name="checkmark-circle-outline" class="text-cyan-400 mr-2"></ion-icon>3 Atendentes IA</li><li class="flex items-center"><ion-icon name="checkmark-circle-outline" class="text-cyan-400 mr-2"></ion-icon>5.000 conversas/mês</li><li class="flex items-center"><ion-icon name="checkmark-circle-outline" class="text-cyan-400 mr-2"></ion-icon>Treinamento com PDFs ilimitados</li><li class="flex items-center"><ion-icon name="checkmark-circle-outline" class="text-cyan-400 mr-2"></ion-icon>Integração com sistemas (API)</li><li class="flex items-center"><ion-icon name="checkmark-circle-outline" class="text-cyan-400 mr-2"></ion-icon>Suporte Prioritário</li></ul><button data-action="open-modal" class="w-full btn-primary font-bold text-slate-900 py-3 rounded-lg">Começar com Pro</button></div></div></div></section></main>
+    <div id="onboarding-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 opacity-0 pointer-events-none modal-transition modal-enter"><div id="modal-container" class="glass-card w-full max-w-md p-8 modal-transition modal-enter"><div id="form-view"><div class="flex justify-between items-start mb-6"><h2 class="text-2xl font-bold text-heading">Crie seu Robô Agora</h2><button data-action="close-modal" class="text-slate-400 hover:text-white transition-colors -mt-2 -mr-2 p-2 rounded-full"><ion-icon name="close-outline" class="text-3xl"></ion-icon></button></div><form id="onboarding-form" class="space-y-4"><div><label for="name" class="text-sm font-medium text-slate-300">Nome</label><input type="text" id="name" name="name" required class="mt-1 w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none transition"></div><div><label for="whatsapp" class="text-sm font-medium text-slate-300">WhatsApp (com DDD)</label><input type="tel" id="whatsapp" name="whatsapp" required placeholder="11999998888" class="mt-1 w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none transition"></div><div><label for="email" class="text-sm font-medium text-slate-300">E-mail</label><input type="email" id="email" name="email" required class="mt-1 w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none transition"></div><div><label class="block text-sm font-medium text-slate-300">Manual da Empresa (PDF)</label><label for="file-upload" class="mt-1 w-full flex items-center justify-center bg-slate-900/70 border-2 border-dashed border-slate-700 rounded-lg px-3 py-4 cursor-pointer hover:border-cyan-400 transition"><ion-icon name="cloud-upload-outline" class="text-cyan-400 mr-2 text-xl"></ion-icon><span id="file-label-text" class="text-slate-400">Clique para escolher o arquivo</span><input id="file-upload" name="file-upload" type="file" class="hidden" accept=".pdf" required></label></div><button type="submit" id="submit-button" class="w-full !mt-6 btn-primary font-bold text-slate-900 py-3 rounded-lg">Enviar e Ativar Robô</button></form></div><div id="processing-view" class="hidden text-center py-8"><div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cyan-400 mx-auto"></div><h3 class="text-xl font-semibold text-heading mt-6">Processando seu manual...</h3><p class="text-slate-300 mt-2">Nossa IA está lendo e aprendendo. Isso pode levar alguns segundos.</p></div><div id="success-view" class="hidden text-center py-8"><ion-icon name="checkmark-done-circle-outline" class="text-7xl text-green-400 mx-auto"></ion-icon><h3 class="text-xl font-semibold text-green-400 mt-4">Tudo Certo!</h3><p class="text-slate-300 mt-2">Recebemos seus dados! Em instantes você receberá o link de pagamento e o QR Code no seu WhatsApp.</p><button data-action="close-modal" class="mt-6 bg-slate-700/50 hover:bg-slate-600/50 text-white font-bold py-2 px-6 rounded-lg transition-colors">Fechar</button></div></div></div>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('onboarding-modal');
+        const modalContainer = document.getElementById('modal-container');
+        const openModalButtons = document.querySelectorAll('[data-action="open-modal"]');
+        const closeModalButtons = document.querySelectorAll('[data-action="close-modal"]');
+        const formView = document.getElementById('form-view');
+        const processingView = document.getElementById('processing-view');
+        const successView = document.getElementById('success-view');
+        const form = document.getElementById('onboarding-form');
+        const fileInput = document.getElementById('file-upload');
+        const fileLabel = document.getElementById('file-label-text');
+        const submitButton = document.getElementById('submit-button');
+
+        const openModal = () => {
+            form.reset();
+            fileLabel.textContent = 'Clique para escolher o arquivo';
+            fileLabel.classList.remove('text-cyan-400');
+            submitButton.disabled = false;
+            submitButton.textContent = 'Enviar e Ativar Robô';
+            formView.style.display = 'block';
+            processingView.style.display = 'none';
+            successView.style.display = 'none';
+            modal.classList.remove('opacity-0', 'pointer-events-none', 'modal-enter');
+            modalContainer.classList.remove('modal-enter');
+        };
+        const closeModal = () => {
+            modal.classList.add('opacity-0', 'modal-enter');
+            modalContainer.classList.add('modal-enter');
+            setTimeout(() => modal.classList.add('pointer-events-none'), 200);
+        };
+
+        openModalButtons.forEach(btn => btn.addEventListener('click', openModal));
+        closeModalButtons.forEach(btn => btn.addEventListener('click', closeModal));
+        modal.addEventListener('click', e => e.target === modal && closeModal());
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileLabel.textContent = fileInput.files[0].name;
+                fileLabel.classList.add('text-cyan-400');
+            } else {
+                fileLabel.textContent = 'Clique para escolher o arquivo';
+                fileLabel.classList.remove('text-cyan-400');
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitButton.disabled = true;
+            submitButton.textContent = 'Processando...';
+            formView.style.display = 'none';
+            processingView.style.display = 'block';
+
+            const formData = new FormData(form);
+            const file = formData.get('file-upload');
+
+            const toBase64 = file => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+
+            try {
+                const fileData = await toBase64(file);
+                const response = await fetch('/.netlify/functions/onboarding', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: formData.get('name'),
+                        whatsapp: formData.get('whatsapp'),
+                        email: formData.get('email'),
+                        fileData: fileData,
+                        fileName: file.name
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorResult = await response.json();
+                    throw new Error(errorResult.error || 'Falha no processamento. Tente novamente.');
+                }
+                
+                processingView.style.display = 'none';
+                successView.style.display = 'block';
+            } catch (error) {
+                console.error('Erro ao enviar formulário:', error);
+                processingView.style.display = 'none';
+                formView.style.display = 'block';
+                alert(`Erro: ${error.message}`);
+                submitButton.disabled = false;
+                submitButton.textContent = 'Enviar e Ativar Robô';
+            }
+        });
+    });
+    </script>
+</body>
+</html>
