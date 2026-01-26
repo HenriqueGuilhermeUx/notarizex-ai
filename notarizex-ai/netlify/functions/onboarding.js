@@ -6,7 +6,7 @@ exports.handler = async (event) => {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
 
-    const { OPENAI_API_KEY, AIRTABLE_API_KEY, AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME } = process.env;
+    const { OPENAI_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
 
     try {
         const fields = JSON.parse(event.body);
@@ -17,6 +17,7 @@ exports.handler = async (event) => {
         }
 
         // ETAPA 1: Upload do arquivo para a OpenAI
+        console.log('Iniciando upload do arquivo para OpenAI...');
         const fileBuffer = Buffer.from(fileData, 'base64');
         const form = new FormData();
         form.append('purpose', 'assistants');
@@ -28,10 +29,16 @@ exports.handler = async (event) => {
             body: form
         });
 
-        if (!fileUploadResponse.ok) throw new Error(`Erro no upload para OpenAI: ${await fileUploadResponse.text()}`);
+        if (!fileUploadResponse.ok) {
+            const errorText = await fileUploadResponse.text();
+            console.error('Erro no upload para OpenAI:', errorText);
+            throw new Error(`Erro no upload para OpenAI: ${errorText}`);
+        }
         const fileObject = await fileUploadResponse.json();
+        console.log('Arquivo enviado com sucesso. File ID:', fileObject.id);
         
         // ETAPA 2: Criar o Assistente de IA
+        console.log('Criando assistente na OpenAI...');
         const assistantResponse = await fetch('https://api.openai.com/v1/assistants', {
             method: 'POST',
             headers: {
@@ -48,36 +55,49 @@ exports.handler = async (event) => {
             } )
         });
 
-        if (!assistantResponse.ok) throw new Error(`Erro ao criar assistente: ${await assistantResponse.text()}`);
+        if (!assistantResponse.ok) {
+            const errorText = await assistantResponse.text();
+            console.error('Erro ao criar assistente:', errorText);
+            throw new Error(`Erro ao criar assistente: ${errorText}`);
+        }
         const assistantObject = await assistantResponse.json();
+        console.log('Assistente criado com sucesso. Assistant ID:', assistantObject.id);
 
-        // ETAPA 3: Salvar os dados no Airtable
-        const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME )}`;
-        const airtableResponse = await fetch(airtableUrl, {
+        // ETAPA 3: Salvar os dados no Supabase
+        console.log('Salvando dados no Supabase...');
+        const supabaseResponse = await fetch(`${SUPABASE_URL}/rest/v1/clientes`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Prefer': 'return=representation'
             },
             body: JSON.stringify({
-                records: [{
-                    fields: {
-                        "Nome": name,
-                        "WhatsApp": whatsapp,
-                        "Email": email,
-                        "Assistant ID": assistantObject.id,
-                        "Status": "1. Aguardando Pagamento"
-                    }
-                }]
+                nome: name,
+                whatsapp: whatsapp,
+                email: email,
+                assistant_id: assistantObject.id,
+                status: "1. Aguardando Pagamento"
             })
         });
 
-        if (!airtableResponse.ok) throw new Error(`Erro ao salvar no Airtable: ${await airtableResponse.text()}`);
+        if (!supabaseResponse.ok) {
+            const errorText = await supabaseResponse.text();
+            console.error('Erro ao salvar no Supabase:', errorText);
+            throw new Error(`Erro ao salvar no Supabase: ${errorText}`);
+        }
+        
+        const savedData = await supabaseResponse.json();
+        console.log('Dados salvos com sucesso no Supabase:', savedData);
 
         // ETAPA 4: Retornar sucesso
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: "Processo concluído com sucesso!", assistantId: assistantObject.id })
+            body: JSON.stringify({ 
+                message: "Processo concluído com sucesso!", 
+                assistantId: assistantObject.id 
+            })
         };
 
     } catch (error) {
