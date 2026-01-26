@@ -2,15 +2,16 @@ const fetch = require('node-fetch');
 const FormData = require('form-data');
 
 exports.handler = async (event) => {
-    if (event.httpMethod !== 'POST' ) {
+    if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
 
-    const { OPENAI_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
+    const { OPENAI_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, RESEND_API_KEY } = process.env;
+    const RECIPIENT_EMAIL = 'henriquecampos66@gmail.com';
 
     try {
         const fields = JSON.parse(event.body);
-        const { name, whatsapp, email, fileData, fileName } = fields;
+        const { name, whatsapp, email, plan, fileData, fileName } = fields;
 
         if (!name || !whatsapp || !email || !fileData || !fileName) {
             return { statusCode: 400, body: JSON.stringify({ error: 'Todos os campos são obrigatórios.' }) };
@@ -25,7 +26,7 @@ exports.handler = async (event) => {
 
         const fileUploadResponse = await fetch('https://api.openai.com/v1/files', {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders( ) },
+            headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
             body: form
         });
 
@@ -52,7 +53,7 @@ exports.handler = async (event) => {
                 model: "gpt-4o-mini",
                 tools: [{ type: "file_search" }],
                 tool_resources: { file_search: { vector_store_ids: [fileObject.id] } }
-            } )
+            })
         });
 
         if (!assistantResponse.ok) {
@@ -78,7 +79,8 @@ exports.handler = async (event) => {
                 whatsapp: whatsapp,
                 email: email,
                 assistant_id: assistantObject.id,
-                status: "1. Aguardando Pagamento"
+                status: '1. Aguardando Pagamento',
+                plano: plan || 'Não especificado'
             })
         });
 
@@ -91,12 +93,71 @@ exports.handler = async (event) => {
         const savedData = await supabaseResponse.json();
         console.log('Dados salvos com sucesso no Supabase:', savedData);
 
-        // ETAPA 4: Retornar sucesso
+        // ETAPA 4: Criar link de pagamento no Mercado Pago
+        console.log('Criando link de pagamento...');
+        const paymentResponse = await fetch(`${event.headers.origin || 'https://smartbots.club'}/.netlify/functions/create-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                plan: plan,
+                customerName: name,
+                customerEmail: email
+            })
+        });
+
+        let paymentUrl = null;
+        if (paymentResponse.ok) {
+            const paymentData = await paymentResponse.json();
+            paymentUrl = paymentData.paymentUrl;
+            console.log('Link de pagamento criado:', paymentUrl);
+        } else {
+            console.warn('Falha ao criar link de pagamento, continuando sem ele...');
+        }
+
+        // ETAPA 5: Enviar notificação por e-mail via Resend
+        console.log('Enviando notificação por e-mail...');
+        const emailHtml = `
+<h2>Novo cadastro no SmartBots!</h2>
+<p><strong>Nome:</strong> ${name}</p>
+<p><strong>WhatsApp:</strong> ${whatsapp}</p>
+<p><strong>E-mail:</strong> ${email}</p>
+<p><strong>Plano:</strong> ${plan || 'Não especificado'}</p>
+<p><strong>Assistant ID:</strong> ${assistantObject.id}</p>
+<p><strong>Arquivo:</strong> ${fileName}</p>
+${paymentUrl ? `<p><strong>Link de Pagamento:</strong> <a href="${paymentUrl}">${paymentUrl}</a></p>` : ''}
+<hr>
+<p><small>Este e-mail foi enviado automaticamente pelo sistema SmartBots.</small></p>
+        `;
+
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${RESEND_API_KEY}`
+            },
+            body: JSON.stringify({
+                from: 'SmartBots <onboarding@smartbots.club>',
+                to: [RECIPIENT_EMAIL],
+                subject: `SmartBots - Novo Cadastro: ${name} (${plan || 'Plano não especificado'})`,
+                html: emailHtml
+            })
+        });
+
+        if (!resendResponse.ok) {
+            const errorText = await resendResponse.text();
+            console.error('Erro ao enviar e-mail via Resend:', errorText);
+            console.warn('Continuando sem notificação por e-mail...');
+        } else {
+            console.log('E-mail de notificação enviado com sucesso!');
+        }
+
+        // ETAPA 6: Retornar sucesso com link de pagamento
         return {
             statusCode: 200,
             body: JSON.stringify({ 
                 message: "Processo concluído com sucesso!", 
-                assistantId: assistantObject.id 
+                assistantId: assistantObject.id,
+                paymentUrl: paymentUrl
             })
         };
 
