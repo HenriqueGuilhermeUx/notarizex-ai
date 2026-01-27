@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff - Seu Assistente Pessoal de IA | SmartBots</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-text { background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .glow { box-shadow: 0 0 30px rgba(139, 92, 246, 0.6); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
+    
+    <!-- Header -->
+    <header class="container mx-auto px-6 py-6">
+        <nav class="flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold gradient-text">SmartBots</a>
+            <a href="index.html" class="hover:text-purple-400 transition">← Voltar</a>
+        </nav>
+    </header>
+
+    <!-- Hero -->
+    <section class="container mx-auto px-6 py-20 text-center">
+        <div class="inline-block bg-purple-600/20 border border-purple-500 rounded-full px-6 py-2 mb-6">
+            <span class="text-purple-300 font-semibold">✨ O Melhor Bot Pessoal do Brasil</span>
+        </div>
+        <h1 class="text-5xl md:text-7xl font-bold mb-6">
+            <span class="gradient-text">Tô enrolado?</span><br>
+            Deixa eu ver com meu <span class="text-purple-400">Staff!</span>
+        </h1>
+        <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
+            Seu mordomo digital que gerencia finanças, agenda, família, veículos e muito mais. Tudo no WhatsApp.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <button onclick="openStaffModal()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-full text-lg glow transition">
+                Ativar Meu Staff Agora
+            </button>
+            <a href="#funcionalidades" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-full text-lg transition border border-gray-700">
+                Ver Funcionalidades
+            </a>
+        </div>
+        <div class="mt-8 text-2xl font-bold gradient-text">
+            Apenas R$ 19,90/mês
+        </div>
+    </section>
+
+    <!-- Como Funciona -->
+    <section class="container mx-auto px-6 py-20">
+        <h2 class="text-4xl font-bold text-center mb-16">Como Funciona</h2>
+        <div class="grid md:grid-cols-4 gap-8 max-w-5xl mx-auto">
+            <div class="text-center">
+                <div class="bg-purple-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">1</div>
+                <h3 class="font-bold mb-2">Cadastre-se</h3>
+                <p class="text-gray-400">Preencha seus dados e escolha o plano</p>
+            </div>
+            <div class="text-center">
+                <div class="bg-purple-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">2</div>
+                <h3 class="font-bold mb-2">Conecte o WhatsApp</h3>
+                <p class="text-gray-400">Escaneie o QR Code que enviamos</p>
+            </div>
+            <div class="text-center">
+                <div class="bg-purple-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">3</div>
+                <h3 class="font-bold mb-2">Configure</h3>
+                <p class="text-gray-400">Responda perguntas iniciais sobre sua rotina</p>
+            </div>
+            <div class="text-center">
+                <div class="bg-purple-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">4</div>
+                <h3 class="font-bold mb-2">Pronto!</h3>
+                <p class="text-gray-400">Seu Staff começa a trabalhar para você</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Funcionalidades -->
+    <section id="funcionalidades" class="container mx-auto px-6 py-20">
+        <h2 class="text-4xl font-bold text-center mb-16">O Que o Staff Faz Por Você</h2>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            
+            <!-- Financeiro -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition">
+                <i class="fas fa-money-bill-wave text-4xl text-green-400 mb-4"></i>
+                <h3 class="text-xl font-bold mb-3">💰 Gestão Financeira</h3>
+                <ul class="space-y-2 text-gray-300 text-sm">
+                    <li>✓ OCR de boletos (lê código de barras)</li>
+                    <li>✓ Lembretes de vencimento</li>
+                    <li>✓ Controle de gastos mensais</li>
+                    <li>✓ Organização de comprovantes</li>
+                </ul>
+            </div>
+
+            <!-- Veículos -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition">
+                <i class="fas fa-car text-4xl text-blue-400 mb-4"></i>
+                <h3 class="text-xl font-bold mb-3">🚗 Veículos & Documentação</h3>
+                <ul class="space-y-2 text-gray-300 text-sm">
+                    <li>✓ Lembretes de IPVA e licenciamento</li>
+                    <li>✓ Controle de multas</li>
+                    <li>✓ Histórico de manutenções</li>
+                    <li>✓ Alerta de revisões</li>
+                </ul>
+            </div>
+
+            <!-- Casa -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition">
+                <i class="fas fa-home text-4xl text-yellow-400 mb-4"></i>
+                <h3 class="text-xl font-bold mb-3">🏠 Casa & Família</h3>
+                <ul class="space-y-2 text-gray-300 text-sm">
+                    <li>✓ Lista de compras inteligente</li>
+                    <li>✓ Sugestão de cardápios</li>
+                    <li>✓ Lembretes de manutenção</li>
+                    <li>✓ Controle de contas (luz, água, etc)</li>
+                </ul>
+            </div>
+
+            <!-- Filhos -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition">
+                <i class="fas fa-graduation-cap text-4xl text-pink-400 mb-4"></i>
+                <h3 class="text-xl font-bold mb-3">👨‍👩‍👧‍👦 Filhos & Educação</h3>
+                <ul class="space-y-2 text-gray-300 text-sm">
+                    <li>✓ Agenda escolar (provas, trabalhos)</li>
+                    <li>✓ Lembretes de materiais</li>
+                    <li>✓ Resumo de comunicados</li>
+                    <li>✓ Controle de notas</li>
+                </ul>
+            </div>
+
+            <!-- Profissional -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition">
+                <i class="fas fa-briefcase text-4xl text-purple-400 mb-4"></i>
+                <h3 class="text-xl font-bold mb-3">💼 Profissional & Produtividade</h3>
+                <ul class="space-y-2 text-gray-300 text-sm">
+                    <li>✓ Triagem de e-mails importantes</li>
+                    <li>✓ Resumo da agenda do dia</li>
+                    <li>✓ Transcrição de áudios</li>
+                    <li>✓ Lembretes de reuniões</li>
+                </ul>
+            </div>
+
+            <!-- Saúde -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition">
+                <i class="fas fa-heartbeat text-4xl text-red-400 mb-4"></i>
+                <h3 class="text-xl font-bold mb-3">🏥 Saúde & Bem-estar</h3>
+                <ul class="space-y-2 text-gray-300 text-sm">
+                    <li>✓ Agenda de consultas médicas</li>
+                    <li>✓ Lembretes de medicamentos</li>
+                    <li>✓ Controle de exames</li>
+                    <li>✓ Histórico de vacinas</li>
+                </ul>
+            </div>
+
+            <!-- Eventos -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition">
+                <i class="fas fa-calendar-alt text-4xl text-orange-400 mb-4"></i>
+                <h3 class="text-xl font-bold mb-3">🎉 Eventos & Datas Especiais</h3>
+                <ul class="space-y-2 text-gray-300 text-sm">
+                    <li>✓ Aniversários (família e amigos)</li>
+                    <li>✓ Datas comemorativas</li>
+                    <li>✓ Sugestões de presentes</li>
+                    <li>✓ Lembretes de reservas</li>
+                </ul>
+            </div>
+
+            <!-- Investimentos -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition">
+                <i class="fas fa-chart-line text-4xl text-cyan-400 mb-4"></i>
+                <h3 class="text-xl font-bold mb-3">💰 Investimentos & Mercado</h3>
+                <ul class="space-y-2 text-gray-300 text-sm">
+                    <li>✓ Alertas de Bitcoin, Dólar, Ações</li>
+                    <li>✓ Notícias do mercado financeiro</li>
+                    <li>✓ Lembretes de aportes</li>
+                    <li>✓ Controle de carteira</li>
+                </ul>
+            </div>
+
+            <!-- Segurança -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition">
+                <i class="fas fa-shield-alt text-4xl text-indigo-400 mb-4"></i>
+                <h3 class="text-xl font-bold mb-3">🔒 Segurança & Privacidade</h3>
+                <ul class="space-y-2 text-gray-300 text-sm">
+                    <li>✓ Gerenciador de senhas</li>
+                    <li>✓ Backup automático de dados</li>
+                    <li>✓ Modo privacidade total</li>
+                    <li>✓ Criptografia end-to-end</li>
+                </ul>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- CTA Final -->
+    <section class="container mx-auto px-6 py-20 text-center">
+        <div class="max-w-3xl mx-auto bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-2xl p-12 border-2 border-purple-500 glow">
+            <h2 class="text-4xl font-bold mb-6">Pronto Para Ter Seu Staff?</h2>
+            <p class="text-xl text-gray-300 mb-8">Apenas R$ 19,90/mês. Cancele quando quiser.</p>
+            <button onclick="openStaffModal()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-12 rounded-full text-lg glow transition">
+                Ativar Agora
+            </button>
+        </div>
+    </section>
+
+    <!-- Modal Staff -->
+    <div id="staffModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-gray-900 rounded-2xl p-8 max-w-md w-full border border-purple-500">
+            <h3 class="text-2xl font-bold mb-6">Ativar Meu Staff</h3>
+            <form id="staffForm" class="space-y-4">
+                <input type="text" name="name" placeholder="Seu Nome" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
+                <input type="tel" name="whatsapp" placeholder="WhatsApp (com DDD)" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
+                <input type="email" name="email" placeholder="E-mail" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition">
+                    Ativar Staff
+                </button>
+                <button type="button" onclick="closeStaffModal()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition">
+                    Cancelar
+                </button>
+            </form>
+            <div id="staffLoading" class="hidden text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+                <p>Processando...</p>
+            </div>
+            <div id="staffSuccess" class="hidden text-center">
+                <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
+                <p class="text-lg">Staff ativado! Em instantes você receberá o link de pagamento e o QR Code no seu WhatsApp.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="container mx-auto px-6 py-12 text-center text-gray-400 border-t border-gray-800">
+        <p>&copy; 2025 SmartBots. Todos os direitos reservados.</p>
+    </footer>
+
+    <script>
+        function openStaffModal() {
+            document.getElementById('staffModal').classList.remove('hidden');
+            document.getElementById('staffModal').classList.add('flex');
+        }
+        function closeStaffModal() {
+            document.getElementById('staffModal').classList.add('hidden');
+            document.getElementById('staffModal').classList.remove('flex');
+        }
+
+        document.getElementById('staffForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            document.getElementById('staffForm').classList.add('hidden');
+            document.getElementById('staffLoading').classList.remove('hidden');
+
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            data.plan = 'staff';
+            
+            try {
+                const response = await fetch('/.netlify/functions/staff-onboarding', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    document.getElementById('staffLoading').classList.add('hidden');
+                    document.getElementById('staffSuccess').classList.remove('hidden');
+                }
+            } catch (error) {
+                alert('Erro ao enviar. Tente novamente.');
+                location.reload();
+            }
+        });
+    </script>
+</body>
+</html>
