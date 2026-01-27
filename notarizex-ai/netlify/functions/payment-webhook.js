@@ -1,43 +1,39 @@
 const fetch = require('node-fetch');
 
 exports.handler = async (event) => {
-    if (event.httpMethod !== 'POST' ) {
+    if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
 
-    const MERCADOPAGO_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN;
-    const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
+    const { MERCADOPAGO_ACCESS_TOKEN, SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
 
     try {
         const notification = JSON.parse(event.body);
-        console.log('Notificação recebida do Mercado Pago:', notification);
+        console.log('[Payment Webhook] Notificação recebida:', notification);
 
-        // Verificar se é uma notificação de pagamento
+        // Mercado Pago envia notificações de diferentes tipos
         if (notification.type === 'payment') {
             const paymentId = notification.data.id;
 
             // Buscar detalhes do pagamento
             const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-                method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${MERCADOPAGO_ACCESS_TOKEN}`
                 }
-            } );
+            });
 
             if (!paymentResponse.ok) {
-                throw new Error('Falha ao buscar detalhes do pagamento.');
+                throw new Error('Falha ao buscar detalhes do pagamento');
             }
 
-            const payment = await paymentResponse.json();
-            console.log('Detalhes do pagamento:', payment);
+            const paymentData = await paymentResponse.json();
+            const { status, external_reference: customerEmail } = paymentData;
 
-            // Verificar se o pagamento foi aprovado
-            if (payment.status === 'approved') {
-                const customerEmail = payment.payer.email;
-                const externalReference = payment.external_reference;
+            console.log('[Payment Webhook] Status do pagamento:', status, 'Cliente:', customerEmail);
 
-                // Atualizar status no Supabase
-                const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/clientes?email=eq.${customerEmail}`, {
+            // Se o pagamento foi aprovado, atualizar status no Supabase
+            if (status === 'approved') {
+                const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/clients?email=eq.${customerEmail}`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -48,18 +44,19 @@ exports.handler = async (event) => {
                     body: JSON.stringify({
                         status: '2. Pago - Aguardando QR Code',
                         payment_id: paymentId,
-                        payment_status: 'approved'
+                        payment_status: 'approved',
+                        updated_at: new Date().toISOString()
                     })
                 });
 
                 if (!updateResponse.ok) {
-                    console.error('Erro ao atualizar status no Supabase');
+                    console.error('[Payment Webhook] Erro ao atualizar status no Supabase');
                 } else {
-                    console.log('Status atualizado no Supabase para:', customerEmail);
+                    console.log('[Payment Webhook] Status atualizado no Supabase para:', customerEmail);
                 }
 
                 // Aqui você pode adicionar lógica para enviar o QR Code por WhatsApp
-                // usando a Evolution API
+                // usando a Evolution API ou Meta API
             }
         }
 
@@ -69,7 +66,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error('Erro no webhook de pagamento:', error.message);
+        console.error('[Payment Webhook] Erro:', error.message);
         return {
             statusCode: 500,
             body: JSON.stringify({ error: error.message })
