@@ -1,58 +1,49 @@
 const fetch = require('node-fetch');
 
 exports.handler = async (event) => {
-    if (event.httpMethod !== 'POST' ) {
+    if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
 
-    const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    const RECIPIENT_EMAIL = 'henriquecampos66@gmail.com';
+    const { RESEND_API_KEY } = process.env;
 
     try {
-        const fields = JSON.parse(event.body);
-        const { name, email, whatsapp, company, message } = fields;
+        const { name, company, whatsapp, email, message } = JSON.parse(event.body);
 
-        if (!name || !email || !whatsapp) {
-            return { 
-                statusCode: 400, 
-                body: JSON.stringify({ error: 'Nome, e-mail e WhatsApp são obrigatórios.' }) 
-            };
-        }
+        console.log('[Contact] Nova solicitação empresarial de:', email);
 
-        // Enviar e-mail via Resend
-        const emailHtml = `
-<h2>Nova solicitação de Plano Empresarial - SmartBots</h2>
-<p><strong>Nome:</strong> ${name}</p>
-<p><strong>E-mail:</strong> ${email}</p>
-<p><strong>WhatsApp:</strong> ${whatsapp}</p>
-<p><strong>Empresa:</strong> ${company || 'Não informado'}</p>
-<p><strong>Mensagem:</strong></p>
-<p>${message || 'Não informada'}</p>
-<hr>
-<p><small>Este e-mail foi enviado automaticamente pelo sistema SmartBots.</small></p>
+        const emailContent = `
+Nova Solicitação de Orçamento Empresarial!
+
+Nome: ${name}
+Empresa: ${company || 'Não informado'}
+WhatsApp: ${whatsapp}
+E-mail: ${email}
+Mensagem: ${message}
+
+---
+Responda o mais rápido possível!
         `;
 
-        const resendResponse = await fetch('https://api.resend.com/emails', {
+        const response = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${RESEND_API_KEY}`
             },
             body: JSON.stringify({
-                from: 'SmartBots <contato@smartbots.club>',
-                to: [RECIPIENT_EMAIL],
-                subject: `SmartBots - Nova Solicitação Empresarial de ${name}`,
-                html: emailHtml
-            } )
+                from: 'SmartBots <noreply@smartbots.club>',
+                to: 'henriquecampos66@gmail.com',
+                subject: `Solicitação Empresarial: ${name}`,
+                text: emailContent
+            })
         });
 
-        if (!resendResponse.ok) {
-            const errorText = await resendResponse.text();
-            console.error('Erro ao enviar e-mail via Resend:', errorText);
-            throw new Error('Falha ao enviar notificação por e-mail.');
+        if (!response.ok) {
+            throw new Error('Falha ao enviar e-mail');
         }
 
-        console.log('E-mail de contato enviado com sucesso para:', RECIPIENT_EMAIL);
+        console.log('[Contact] E-mail enviado com sucesso');
 
         return {
             statusCode: 200,
@@ -60,11 +51,10 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error('Erro na função contact:', error.message);
+        console.error('[Contact] Erro:', error.message);
         return {
             statusCode: 500,
             body: JSON.stringify({ error: error.message })
         };
     }
 };
-
