@@ -5,55 +5,352 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartBots - Automação Inteligente para WhatsApp</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .glow { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
-        .gradient-text { background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        .float-animation { animation: float 3s ease-in-out infinite; }
+        :root {
+            --bg-primary: #0f1115;
+            --bg-secondary: #1a1d24;
+            --text-primary: #e5e5e5;
+            --text-secondary: #a0a0a0;
+            --staff-primary: #00FF88;
+            --staff-glow: rgba(0, 255, 136, 0.3);
+            --business-primary: #00A3FF;
+            --business-glow: rgba(0, 163, 255, 0.3);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+        }
+        
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+        
+        .glass {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+        
+        .glow-staff { box-shadow: 0 0 30px var(--staff-glow); }
+        .glow-business { box-shadow: 0 0 30px var(--business-glow); }
+        
+        .gradient-staff {
+            background: linear-gradient(135deg, var(--staff-primary), #00cc6d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .gradient-business {
+            background: linear-gradient(135deg, var(--business-primary), #0082cc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .btn-staff {
+            background: linear-gradient(135deg, var(--staff-primary), #00cc6d);
+            color: #000;
+        }
+        
+        .btn-business {
+            background: linear-gradient(135deg, var(--business-primary), #0082cc);
+            color: #fff;
+        }
+        
+        .toggle-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-btn.active {
+            background: var(--glass-bg);
+        }
+        
+        .mode-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .mode-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .float-animation {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        /* Phone Mockup */
+        .phone-frame {
+            width: 280px;
+            height: 570px;
+            background: #1a1d24;
+            border-radius: 40px;
+            padding: 12px;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .phone-notch {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 24px;
+            background: var(--bg-primary);
+            border-radius: 0 0 16px 16px;
+            z-index: 3;
+        }
+        
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            border-radius: 32px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--glass-border);
+        }
+        
+        .chat-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--staff-primary), var(--business-primary));
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .message {
+            padding: 10px 14px;
+            border-radius: 14px;
+            max-width: 80%;
+            font-size: 13px;
+            line-height: 1.4;
+            animation: messageSlide 0.3s ease;
+        }
+        
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            background: var(--glass-bg);
+            align-self: flex-end;
+            border: 1px solid var(--glass-border);
+        }
+        
+        .message.bot {
+            background: linear-gradient(135deg, var(--staff-primary), #00cc6d);
+            color: #000;
+            align-self: flex-start;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 10px 14px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            width: fit-content;
+        }
+        
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            animation: typingDot 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typingDot {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+        
+        /* Mobile CTA */
+        .mobile-cta {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 24px;
+            background: rgba(15, 17, 21, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--glass-border);
+            z-index: 999;
+            display: none;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .mobile-cta.visible {
+            transform: translateY(0);
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-cta {
+                display: block;
+            }
+            .phone-frame {
+                width: 240px;
+                height: 490px;
+            }
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white min-h-screen">
+<body class="text-white min-h-screen">
     
     <!-- Header -->
-    <header class="container mx-auto px-6 py-6">
+    <header class="container mx-auto px-6 py-6 relative z-50">
         <nav class="flex justify-between items-center">
-            <div class="text-2xl font-bold gradient-text">SmartBots</div>
-            <div class="space-x-6">
-                <a href="#produtos" class="hover:text-purple-400 transition">Produtos</a>
-                <a href="#contato" class="hover:text-purple-400 transition">Contato</a>
+            <div class="text-2xl font-bold font-display gradient-staff">SmartBots</div>
+            <div class="space-x-6 hidden md:flex">
+                <a href="#produtos" class="hover:text-gray-300 transition">Produtos</a>
+                <a href="#contato" class="hover:text-gray-300 transition">Contato</a>
             </div>
         </nav>
     </header>
 
     <!-- Hero Section -->
-    <section class="container mx-auto px-6 py-20 text-center">
-        <h1 class="text-5xl md:text-7xl font-bold mb-6 gradient-text">
-            Transforme seu WhatsApp em uma Máquina de Vendas 24h
-        </h1>
-        <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
-            Atendentes de IA que nunca dormem, nunca erram e sempre vendem.
-        </p>
-        <a href="#produtos" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-full text-lg glow transition inline-block">
-            Escolher Meu Bot
-        </a>
+    <section class="container mx-auto px-6 py-12 md:py-20">
+        <!-- Toggle Switch -->
+        <div class="flex justify-center mb-12">
+            <div class="glass rounded-2xl p-2 inline-flex gap-2">
+                <button class="toggle-btn px-6 py-3 rounded-xl font-semibold transition active" data-mode="staff">
+                    <span class="mr-2">👤</span> Para Você
+                </button>
+                <button class="toggle-btn px-6 py-3 rounded-xl font-semibold transition" data-mode="business">
+                    <span class="mr-2">🏢</span> Para Empresas
+                </button>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-12 items-center">
+            <!-- Content -->
+            <div>
+                <!-- Staff Mode (Default) -->
+                <div class="mode-content active" data-mode="staff">
+                    <h1 class="text-4xl md:text-6xl font-bold font-display mb-6 leading-tight">
+                        O Assistente Pessoal que organiza o 
+                        <span class="gradient-staff">caos da sua rotina</span> 
+                        via WhatsApp
+                    </h1>
+                    <p class="text-xl text-gray-400 mb-8">
+                        Cotações, lembretes, agenda, pesquisas e muito mais. Tudo conversando naturalmente no WhatsApp. Por apenas R$ 19,90/mês.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href="staff.html" class="btn-staff font-bold py-4 px-8 rounded-xl text-lg glow-staff transition hover:scale-105 text-center">
+                            Ativar meu Staff Agora
+                        </a>
+                        <a href="#produtos" class="glass font-bold py-4 px-8 rounded-xl text-lg transition hover:border-gray-500 text-center">
+                            Ver Demonstração
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Business Mode -->
+                <div class="mode-content" data-mode="business">
+                    <h1 class="text-4xl md:text-6xl font-bold font-display mb-6 leading-tight">
+                        Sua equipe de vendas que 
+                        <span class="gradient-business">não dorme, não pede demissão</span> 
+                        e custa menos que um estagiário
+                    </h1>
+                    <p class="text-xl text-gray-400 mb-8">
+                        Automatize atendimento, qualifique leads e agende reuniões 24/7. Seus clientes conversam com IA no WhatsApp enquanto você foca no que importa.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button onclick="openBusinessModal()" class="btn-business font-bold py-4 px-8 rounded-xl text-lg glow-business transition hover:scale-105">
+                            Começar Agora
+                        </button>
+                        <a href="#produtos" class="glass font-bold py-4 px-8 rounded-xl text-lg transition hover:border-gray-500 text-center">
+                            Agendar Demonstração
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Animated Mockup -->
+            <div class="flex justify-center">
+                <div class="phone-frame float-animation">
+                    <div class="phone-notch"></div>
+                    <div class="phone-screen">
+                        <div class="chat-header">
+                            <div class="chat-avatar"></div>
+                            <div>
+                                <div class="font-semibold text-sm">SmartBot</div>
+                                <div class="text-xs text-green-400">online</div>
+                            </div>
+                        </div>
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Messages injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- Produtos Section -->
     <section id="produtos" class="container mx-auto px-6 py-20">
-        <h2 class="text-4xl font-bold text-center mb-16">Escolha Seu Bot Perfeito</h2>
+        <h2 class="text-4xl font-bold font-display text-center mb-16">Escolha Seu Bot Perfeito</h2>
         
         <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             
             <!-- SmartBots Business -->
-            <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 hover:border-purple-500 transition">
+            <div class="glass rounded-2xl p-8 hover:border-blue-500 transition">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-2xl font-bold">SmartBots Business</h3>
+                    <h3 class="text-2xl font-bold font-display">SmartBots Business</h3>
                     <i class="fas fa-briefcase text-3xl text-blue-400"></i>
                 </div>
-                <p class="text-gray-300 mb-6">Atendente de IA para empresas que querem automatizar vendas e suporte.</p>
+                <p class="text-gray-400 mb-6">Atendente de IA para empresas que querem automatizar vendas e suporte.</p>
                 
                 <div class="space-y-4 mb-8">
                     <div class="flex items-start">
@@ -72,30 +369,30 @@
 
                 <div class="border-t border-gray-700 pt-6 mb-6">
                     <div class="mb-4">
-                        <div class="text-sm text-gray-400">Plano Básico</div>
-                        <div class="text-3xl font-bold">R$ 99<span class="text-lg text-gray-400">/mês</span></div>
+                        <div class="text-sm text-gray-500">Plano Básico</div>
+                        <div class="text-3xl font-bold">R$ 99<span class="text-lg text-gray-500">/mês</span></div>
                     </div>
                     <div>
-                        <div class="text-sm text-gray-400">Plano Pro</div>
-                        <div class="text-3xl font-bold">R$ 249<span class="text-lg text-gray-400">/mês</span></div>
+                        <div class="text-sm text-gray-500">Plano Pro</div>
+                        <div class="text-3xl font-bold">R$ 249<span class="text-lg text-gray-500">/mês</span></div>
                     </div>
                 </div>
 
-                <button onclick="openBusinessModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
+                <button onclick="openBusinessModal()" class="w-full btn-business font-bold py-3 rounded-xl transition hover:scale-105">
                     Criar Meu Bot Business
                 </button>
             </div>
 
             <!-- Staff (Bot Pessoal) -->
-            <div class="bg-gradient-to-br from-purple-900/50 to-pink-900/50 backdrop-blur-sm rounded-2xl p-8 border-2 border-purple-500 glow relative">
+            <div class="glass rounded-2xl p-8 border-2 !border-purple-500 glow-staff relative">
                 <div class="absolute top-4 right-4 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">NOVO</div>
                 
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-2xl font-bold">Staff</h3>
+                    <h3 class="text-2xl font-bold font-display">Staff</h3>
                     <i class="fas fa-user-tie text-3xl text-purple-400"></i>
                 </div>
                 <p class="text-gray-200 mb-2 font-semibold">"Tô enrolado? Deixa eu ver com meu Staff!"</p>
-                <p class="text-gray-300 mb-6">Seu assistente pessoal de IA que gerencia TUDO na sua vida.</p>
+                <p class="text-gray-400 mb-6">Seu assistente pessoal de IA que gerencia TUDO na sua vida.</p>
                 
                 <div class="space-y-4 mb-8">
                     <div class="flex items-start">
@@ -117,10 +414,10 @@
                 </div>
 
                 <div class="border-t border-purple-700 pt-6 mb-6">
-                    <div class="text-4xl font-bold gradient-text">R$ 19,90<span class="text-lg text-gray-300">/mês</span></div>
+                    <div class="text-4xl font-bold gradient-staff">R$ 19,90<span class="text-lg text-gray-400">/mês</span></div>
                 </div>
 
-                <a href="staff.html" class="block w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition text-center">
+                <a href="staff.html" class="block w-full btn-staff font-bold py-3 rounded-xl transition hover:scale-105 text-center">
                     Conhecer o Staff →
                 </a>
             </div>
@@ -128,10 +425,10 @@
         </div>
 
         <!-- Plano Empresarial -->
-        <div class="mt-12 max-w-3xl mx-auto bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 text-center">
-            <h3 class="text-2xl font-bold mb-4">Plano Empresarial</h3>
-            <p class="text-gray-300 mb-6">Soluções personalizadas para grandes volumes e necessidades específicas.</p>
-            <button onclick="openEnterpriseModal()" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-8 rounded-lg transition">
+        <div class="mt-12 max-w-3xl mx-auto glass rounded-2xl p-8 text-center">
+            <h3 class="text-2xl font-bold font-display mb-4">Plano Empresarial</h3>
+            <p class="text-gray-400 mb-6">Soluções personalizadas para grandes volumes e necessidades específicas.</p>
+            <button onclick="openEnterpriseModal()" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-8 rounded-xl transition">
                 Solicitar Orçamento
             </button>
         </div>
@@ -139,25 +436,25 @@
 
     <!-- Modal Business -->
     <div id="businessModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="bg-gray-900 rounded-2xl p-8 max-w-md w-full border border-purple-500">
-            <h3 class="text-2xl font-bold mb-6">Criar Meu Bot Business</h3>
+        <div class="glass rounded-2xl p-8 max-w-md w-full border-2 border-purple-500">
+            <h3 class="text-2xl font-bold font-display mb-6">Criar Meu Bot Business</h3>
             <form id="businessForm" class="space-y-4">
-                <input type="text" name="name" placeholder="Seu Nome" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <input type="tel" name="whatsapp" placeholder="WhatsApp (com DDD)" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <input type="email" name="email" placeholder="E-mail" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <select name="plan" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
+                <input type="text" name="name" placeholder="Seu Nome" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
+                <input type="tel" name="whatsapp" placeholder="WhatsApp (com DDD)" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
+                <input type="email" name="email" placeholder="E-mail" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
+                <select name="plan" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
                     <option value="">Escolha o Plano</option>
                     <option value="basico">Básico - R$ 99/mês</option>
                     <option value="pro">Pro - R$ 249/mês</option>
                 </select>
                 <div>
                     <label class="block text-sm text-gray-400 mb-2">Manual de Treinamento (PDF)</label>
-                    <input type="file" name="file" accept=".pdf" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none text-sm">
+                    <input type="file" name="file" accept=".pdf" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none text-sm">
                 </div>
-                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition">
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition">
                     Enviar e Ativar Bot
                 </button>
-                <button type="button" onclick="closeBusinessModal()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition">
+                <button type="button" onclick="closeBusinessModal()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition">
                     Cancelar
                 </button>
             </form>
@@ -174,18 +471,18 @@
 
     <!-- Modal Enterprise -->
     <div id="enterpriseModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="bg-gray-900 rounded-2xl p-8 max-w-md w-full border border-purple-500">
-            <h3 class="text-2xl font-bold mb-6">Solicitar Orçamento Empresarial</h3>
+        <div class="glass rounded-2xl p-8 max-w-md w-full border-2 border-purple-500">
+            <h3 class="text-2xl font-bold font-display mb-6">Solicitar Orçamento Empresarial</h3>
             <form id="enterpriseForm" class="space-y-4">
-                <input type="text" name="name" placeholder="Seu Nome" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <input type="text" name="company" placeholder="Nome da Empresa" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <input type="tel" name="whatsapp" placeholder="WhatsApp (com DDD)" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <input type="email" name="email" placeholder="E-mail" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <textarea name="message" placeholder="Descreva suas necessidades" rows="4" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none"></textarea>
-                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition">
+                <input type="text" name="name" placeholder="Seu Nome" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
+                <input type="text" name="company" placeholder="Nome da Empresa" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
+                <input type="tel" name="whatsapp" placeholder="WhatsApp (com DDD)" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
+                <input type="email" name="email" placeholder="E-mail" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
+                <textarea name="message" placeholder="Descreva suas necessidades" rows="4" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none"></textarea>
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition">
                     Enviar Solicitação
                 </button>
-                <button type="button" onclick="closeEnterpriseModal()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition">
+                <button type="button" onclick="closeEnterpriseModal()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition">
                     Cancelar
                 </button>
             </form>
@@ -197,11 +494,144 @@
     </div>
 
     <!-- Footer -->
-    <footer class="container mx-auto px-6 py-12 text-center text-gray-400 border-t border-gray-800">
+    <footer id="contato" class="container mx-auto px-6 py-12 text-center text-gray-500 border-t border-gray-800">
         <p>&copy; 2025 SmartBots. Todos os direitos reservados.</p>
     </footer>
 
+    <!-- Mobile CTA -->
+    <div class="mobile-cta" id="mobileCta">
+        <a href="staff.html" class="block btn-staff font-bold py-4 rounded-xl text-center">
+            Começar Agora
+        </a>
+    </div>
+
     <script>
+        // Toggle functionality
+        const toggleButtons = document.querySelectorAll('.toggle-btn');
+        const modeContents = document.querySelectorAll('.mode-content');
+        let currentMode = 'staff';
+
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const mode = button.getAttribute('data-mode');
+                if (mode === currentMode) return;
+                
+                currentMode = mode;
+                
+                toggleButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                modeContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.getAttribute('data-mode') === mode) {
+                        content.classList.add('active');
+                    }
+                });
+                
+                clearChatMessages();
+                setTimeout(() => startChatAnimation(mode), 300);
+            });
+        });
+
+        // Chat animation
+        const chatMessages = document.getElementById('chatMessages');
+        const conversations = {
+            staff: [
+                { type: 'user', text: 'Qual a cotação do Bitcoin agora?' },
+                { type: 'bot', text: 'Bitcoin está em R$ 487.234,50 (+3,2% hoje)' },
+                { type: 'user', text: 'Me lembre de pagar o DARF dia 20' },
+                { type: 'bot', text: '✅ Lembrete criado! Vou te avisar no dia 20 às 9h.' }
+            ],
+            business: [
+                { type: 'user', text: 'Olá, gostaria de saber mais' },
+                { type: 'bot', text: 'Olá! Qual é o seu nome?' },
+                { type: 'user', text: 'João Silva' },
+                { type: 'bot', text: '✅ Perfeito! Posso agendar uma demo para amanhã?' }
+            ]
+        };
+
+        let chatTimeout;
+        let currentMessageIndex = 0;
+
+        function clearChatMessages() {
+            chatMessages.innerHTML = '';
+            clearTimeout(chatTimeout);
+            currentMessageIndex = 0;
+        }
+
+        function addMessage(type, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return typingDiv;
+        }
+
+        function startChatAnimation(mode) {
+            const conversation = conversations[mode];
+            currentMessageIndex = 0;
+            
+            function displayNextMessage() {
+                if (currentMessageIndex >= conversation.length) {
+                    chatTimeout = setTimeout(() => {
+                        clearChatMessages();
+                        startChatAnimation(mode);
+                    }, 3000);
+                    return;
+                }
+                
+                const message = conversation[currentMessageIndex];
+                
+                if (message.type === 'bot') {
+                    const typingIndicator = showTypingIndicator();
+                    chatTimeout = setTimeout(() => {
+                        typingIndicator.remove();
+                        addMessage(message.type, message.text);
+                        currentMessageIndex++;
+                        chatTimeout = setTimeout(displayNextMessage, 2000);
+                    }, 1500);
+                } else {
+                    addMessage(message.type, message.text);
+                    currentMessageIndex++;
+                    chatTimeout = setTimeout(displayNextMessage, 1000);
+                }
+            }
+            
+            displayNextMessage();
+        }
+
+        // Start animation on load
+        document.addEventListener('DOMContentLoaded', () => {
+            startChatAnimation('staff');
+        });
+
+        // Mobile CTA visibility
+        function updateMobileCta() {
+            const mobileCta = document.getElementById('mobileCta');
+            const productos = document.getElementById('produtos');
+            const productosRect = productos.getBoundingClientRect();
+            
+            if (window.scrollY > 300 && (productosRect.top > window.innerHeight || productosRect.bottom < 0)) {
+                mobileCta.classList.add('visible');
+            } else {
+                mobileCta.classList.remove('visible');
+            }
+        }
+
+        if (window.innerWidth <= 768) {
+            window.addEventListener('scroll', updateMobileCta);
+        }
+
+        // Modal functions (MANTIDAS INTACTAS)
         function openBusinessModal() {
             document.getElementById('businessModal').classList.remove('hidden');
             document.getElementById('businessModal').classList.add('flex');
@@ -219,7 +649,7 @@
             document.getElementById('enterpriseModal').classList.remove('flex');
         }
 
-        // Business Form
+        // Business Form (MANTIDO INTACTO)
         document.getElementById('businessForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('businessForm').classList.add('hidden');
@@ -259,7 +689,7 @@
             reader.readAsDataURL(file);
         });
 
-        // Enterprise Form
+        // Enterprise Form (MANTIDO INTACTO)
         document.getElementById('enterpriseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
