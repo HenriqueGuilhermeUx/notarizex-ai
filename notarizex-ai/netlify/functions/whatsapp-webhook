@@ -1,0 +1,227 @@
+const fetch = require('node-fetch');
+
+exports.handler = async (event) => {
+    // Twilio envia POST com dados do WhatsApp
+    if (event.httpMethod !== 'POST') {
+        return { statusCode: 405, body: 'Method Not Allowed' };
+    }
+
+    const { OPENAI_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } = process.env;
+
+    try {
+        // Parse do body (Twilio envia como application/x-www-form-urlencoded)
+        const params = new URLSearchParams(event.body);
+        
+        const from = params.get('From'); // whatsapp:+5513999999999
+        const body = params.get('Body'); // Mensagem do usuário
+        const profileName = params.get('ProfileName'); // Nome do usuário no WhatsApp
+
+        console.log('[WhatsApp] Mensagem recebida de:', from, '- Nome:', profileName);
+        console.log('[WhatsApp] Conteúdo:', body);
+
+        // Extrair número de telefone (remover "whatsapp:")
+        const phoneNumber = from.replace('whatsapp:', '');
+
+        // 1. BUSCAR BOT ASSOCIADO A ESTE NÚMERO NO SUPABASE
+        const botResponse = await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_bots?phone_number=eq.${phoneNumber}&select=bot_id,assistant_id,status`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+
+        if (!botResponse.ok) {
+            throw new Error('Falha ao buscar bot no banco de dados');
+        }
+
+        const bots = await botResponse.json();
+        
+        if (bots.length === 0) {
+            // Bot não encontrado - enviar mensagem de boas-vindas
+            return {
+                statusCode: 200,
+                headers: { 'Content-Type': 'text/xml' },
+                body: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>Olá! 👋 Parece que você ainda não tem um bot configurado. Acesse smartbots.club para criar o seu!</Message>
+</Response>`
+            };
+        }
+
+        const bot = bots[0];
+
+        if (bot.status !== 'active') {
+            return {
+                statusCode: 200,
+                headers: { 'Content-Type': 'text/xml' },
+                body: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>⚠️ Seu bot está inativo. Verifique o status do pagamento em smartbots.club</Message>
+</Response>`
+            };
+        }
+
+        const assistantId = bot.assistant_id;
+
+        // 2. BUSCAR OU CRIAR THREAD PARA ESTE USUÁRIO
+        const threadResponse = await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_threads?bot_id=eq.${bot.bot_id}&phone_number=eq.${phoneNumber}&select=thread_id`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+
+        let threadId;
+        const threads = await threadResponse.json();
+
+        if (threads.length === 0) {
+            // Criar nova thread
+            const newThreadResponse = await fetch('https://api.openai.com/v1/threads', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                    'OpenAI-Beta': 'assistants=v2'
+                }
+            });
+
+            const newThread = await newThreadResponse.json();
+            threadId = newThread.id;
+
+            // Salvar thread no banco
+            await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_threads`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({
+                    bot_id: bot.bot_id,
+                    phone_number: phoneNumber,
+                    thread_id: threadId,
+                    profile_name: profileName,
+                    created_at: new Date().toISOString()
+                })
+            });
+
+            console.log('[WhatsApp] Nova thread criada:', threadId);
+        } else {
+            threadId = threads[0].thread_id;
+            console.log('[WhatsApp] Thread existente:', threadId);
+        }
+
+        // 3. ADICIONAR MENSAGEM DO USUÁRIO
+        await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'OpenAI-Beta': 'assistants=v2'
+            },
+            body: JSON.stringify({
+                role: 'user',
+                content: body
+            })
+        });
+
+        // 4. EXECUTAR ASSISTENTE
+        const runResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'OpenAI-Beta': 'assistants=v2'
+            },
+            body: JSON.stringify({
+                assistant_id: assistantId
+            })
+        });
+
+        const runData = await runResponse.json();
+        const runId = runData.id;
+
+        // 5. AGUARDAR CONCLUSÃO (polling)
+        let runStatus = 'in_progress';
+        let attempts = 0;
+        const maxAttempts = 20; // 20 segundos máximo (Twilio tem timeout de 15s)
+
+        while (runStatus === 'in_progress' || runStatus === 'queued') {
+            if (attempts >= maxAttempts) {
+                throw new Error('Timeout ao aguardar resposta');
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const statusResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+                headers: {
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                    'OpenAI-Beta': 'assistants=v2'
+                }
+            });
+
+            const statusData = await statusResponse.json();
+            runStatus = statusData.status;
+            attempts++;
+        }
+
+        if (runStatus !== 'completed') {
+            throw new Error(`Assistente retornou status: ${runStatus}`);
+        }
+
+        // 6. BUSCAR RESPOSTA DO ASSISTENTE
+        const messagesResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages?limit=1`, {
+            headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'OpenAI-Beta': 'assistants=v2'
+            }
+        });
+
+        const messagesData = await messagesResponse.json();
+        const assistantMessage = messagesData.data[0];
+        const reply = assistantMessage.content[0].text.value;
+
+        console.log('[WhatsApp] Resposta gerada:', reply.substring(0, 100) + '...');
+
+        // 7. SALVAR HISTÓRICO
+        await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_history`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+                bot_id: bot.bot_id,
+                phone_number: phoneNumber,
+                thread_id: threadId,
+                user_message: body,
+                bot_reply: reply,
+                created_at: new Date().toISOString()
+            })
+        });
+
+        // 8. RETORNAR RESPOSTA PARA O TWILIO (TwiML)
+        return {
+            statusCode: 200,
+            headers: { 'Content-Type': 'text/xml' },
+            body: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>${reply}</Message>
+</Response>`
+        };
+
+    } catch (error) {
+        console.error('[WhatsApp] Erro:', error.message);
+        
+        // Retornar mensagem de erro amigável para o usuário
+        return {
+            statusCode: 200,
+            headers: { 'Content-Type': 'text/xml' },
+            body: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>❌ Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente em alguns instantes.</Message>
+</Response>`
+        };
+    }
+};
