@@ -3,396 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartBots - Automação Inteligente para WhatsApp</title>
+    <title>SmartBots - Automação Inteligente com IA</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --bg-primary: #0f1115;
-            --bg-secondary: #1a1d24;
-            --text-primary: #e5e5e5;
-            --text-secondary: #a0a0a0;
-            --staff-primary: #00FF88;
-            --staff-glow: rgba(0, 255, 136, 0.3);
-            --business-primary: #00A3FF;
-            --business-glow: rgba(0, 163, 255, 0.3);
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-        }
-        
-        body { 
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-primary);
-        }
-        
-        .font-display { font-family: 'Space Grotesk', sans-serif; }
-        
-        .glass {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            backdrop-filter: blur(10px);
-        }
-        
-        .glow-staff { box-shadow: 0 0 30px var(--staff-glow); }
-        .glow-business { box-shadow: 0 0 30px var(--business-glow); }
-        
-        .gradient-staff {
-            background: linear-gradient(135deg, var(--staff-primary), #00cc6d);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .gradient-business {
-            background: linear-gradient(135deg, var(--business-primary), #0082cc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .btn-staff {
-            background: linear-gradient(135deg, var(--staff-primary), #00cc6d);
+        body { font-family: 'Inter', sans-serif; }
+        .glow { box-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+        .gradient-text { background: linear-gradient(135deg, #00FF88 0%, #00A3FF 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .float-animation { animation: float 3s ease-in-out infinite; }
+        .coming-soon-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: linear-gradient(135deg, #FF6B6B 0%, #FFD93D 100%);
             color: #000;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 6px 12px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+            z-index: 10;
+            animation: pulse 2s infinite;
         }
-        
-        .btn-business {
-            background: linear-gradient(135deg, var(--business-primary), #0082cc);
-            color: #fff;
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
-        
-        .toggle-btn {
-            transition: all 0.3s ease;
+        .content-option {
+            cursor: pointer;
+            transition: all 0.3s;
         }
-        
-        .toggle-btn.active {
-            background: var(--glass-bg);
+        .content-option.selected {
+            border-color: #00FF88 !important;
+            background: rgba(0, 255, 136, 0.1);
         }
-        
-        .mode-content {
+        .content-fields {
             display: none;
-            animation: fadeIn 0.5s ease;
+            animation: fadeIn 0.3s;
         }
-        
-        .mode-content.active {
+        .content-fields.active {
             display: block;
         }
-        
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        .float-animation {
-            animation: float 3s ease-in-out infinite;
-        }
-        
-        /* Phone Mockup */
-        .phone-frame {
-            width: 280px;
-            height: 570px;
-            background: #1a1d24;
-            border-radius: 40px;
-            padding: 12px;
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
-            position: relative;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .phone-notch {
-            position: absolute;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 24px;
-            background: var(--bg-primary);
-            border-radius: 0 0 16px 16px;
-            z-index: 3;
-        }
-        
-        .phone-screen {
-            width: 100%;
-            height: 100%;
-            background: var(--bg-primary);
-            border-radius: 32px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .chat-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--glass-border);
-        }
-        
-        .chat-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--staff-primary), var(--business-primary));
-        }
-        
-        .chat-messages {
-            flex: 1;
-            padding: 16px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        
-        .message {
-            padding: 10px 14px;
-            border-radius: 14px;
-            max-width: 80%;
-            font-size: 13px;
-            line-height: 1.4;
-            animation: messageSlide 0.3s ease;
-        }
-        
-        @keyframes messageSlide {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .message.user {
-            background: var(--glass-bg);
-            align-self: flex-end;
-            border: 1px solid var(--glass-border);
-        }
-        
-        .message.bot {
-            background: linear-gradient(135deg, var(--staff-primary), #00cc6d);
-            color: #000;
-            align-self: flex-start;
-        }
-        
-        .typing-indicator {
-            display: flex;
-            gap: 4px;
-            padding: 10px 14px;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 14px;
-            width: fit-content;
-        }
-        
-        .typing-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--text-secondary);
-            animation: typingDot 1.4s infinite;
-        }
-        
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-        
-        @keyframes typingDot {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-6px); }
-        }
-        
-        /* Mobile CTA */
-        .mobile-cta {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 16px 24px;
-            background: rgba(15, 17, 21, 0.95);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid var(--glass-border);
-            z-index: 999;
-            display: none;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-        }
-        
-        .mobile-cta.visible {
-            transform: translateY(0);
-        }
-        
-        @media (max-width: 768px) {
-            .mobile-cta {
-                display: block;
-            }
-            .phone-frame {
-                width: 240px;
-                height: 490px;
-            }
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body class="text-white min-h-screen">
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white min-h-screen">
     
     <!-- Header -->
-    <header class="container mx-auto px-6 py-6 relative z-50">
+    <header class="container mx-auto px-6 py-6">
         <nav class="flex justify-between items-center">
-            <div class="text-2xl font-bold font-display gradient-staff">SmartBots</div>
-            <div class="space-x-6 hidden md:flex">
-                <a href="#produtos" class="hover:text-gray-300 transition">Produtos</a>
-                <a href="#contato" class="hover:text-gray-300 transition">Contato</a>
+            <div class="text-2xl font-bold gradient-text">SmartBots</div>
+            <div class="space-x-6">
+                <a href="#produtos" class="hover:text-green-400 transition">Produtos</a>
+                <a href="#contato" class="hover:text-green-400 transition">Contato</a>
             </div>
         </nav>
     </header>
 
     <!-- Hero Section -->
-    <section class="container mx-auto px-6 py-12 md:py-20">
-        <!-- Toggle Switch -->
-        <div class="flex justify-center mb-12">
-            <div class="glass rounded-2xl p-2 inline-flex gap-2">
-                <button class="toggle-btn px-6 py-3 rounded-xl font-semibold transition active" data-mode="staff">
-                    <span class="mr-2">👤</span> Para Você
-                </button>
-                <button class="toggle-btn px-6 py-3 rounded-xl font-semibold transition" data-mode="business">
-                    <span class="mr-2">🏢</span> Para Empresas
-                </button>
-            </div>
-        </div>
-
-        <div class="grid md:grid-cols-2 gap-12 items-center">
-            <!-- Content -->
-            <div>
-                <!-- Staff Mode (Default) -->
-                <div class="mode-content active" data-mode="staff">
-                    <h1 class="text-4xl md:text-6xl font-bold font-display mb-6 leading-tight">
-                        O Assistente Pessoal que organiza o 
-                        <span class="gradient-staff">caos da sua rotina</span> 
-                        via WhatsApp
-                    </h1>
-                    <p class="text-xl text-gray-400 mb-8">
-                        Cotações, lembretes, agenda, pesquisas e muito mais. Tudo conversando naturalmente no WhatsApp. Por apenas R$ 19,90/mês.
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <a href="staff.html" class="btn-staff font-bold py-4 px-8 rounded-xl text-lg glow-staff transition hover:scale-105 text-center">
-                            Ativar meu Staff Agora
-                        </a>
-                        <a href="#produtos" class="glass font-bold py-4 px-8 rounded-xl text-lg transition hover:border-gray-500 text-center">
-                            Ver Demonstração
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Business Mode -->
-                <div class="mode-content" data-mode="business">
-                    <h1 class="text-4xl md:text-6xl font-bold font-display mb-6 leading-tight">
-                        Sua equipe de vendas que 
-                        <span class="gradient-business">não dorme, não pede demissão</span> 
-                        e custa menos que um estagiário
-                    </h1>
-                    <p class="text-xl text-gray-400 mb-8">
-                        Automatize atendimento, qualifique leads e agende reuniões 24/7. Seus clientes conversam com IA no WhatsApp enquanto você foca no que importa.
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <button onclick="openBusinessModal()" class="btn-business font-bold py-4 px-8 rounded-xl text-lg glow-business transition hover:scale-105">
-                            Começar Agora
-                        </button>
-                        <a href="#produtos" class="glass font-bold py-4 px-8 rounded-xl text-lg transition hover:border-gray-500 text-center">
-                            Agendar Demonstração
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Animated Mockup -->
-            <div class="flex justify-center">
-                <div class="phone-frame float-animation">
-                    <div class="phone-notch"></div>
-                    <div class="phone-screen">
-                        <div class="chat-header">
-                            <div class="chat-avatar"></div>
-                            <div>
-                                <div class="font-semibold text-sm">SmartBot</div>
-                                <div class="text-xs text-green-400">online</div>
-                            </div>
-                        </div>
-                        <div class="chat-messages" id="chatMessages">
-                            <!-- Messages injected by JS -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <section class="container mx-auto px-6 py-20 text-center">
+        <h1 class="text-5xl md:text-7xl font-bold mb-6 gradient-text">
+            Atendimento Inteligente 24/7 com IA
+        </h1>
+        <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
+            Bots de IA que atendem seus clientes no site ou WhatsApp, automaticamente.
+        </p>
+        <a href="#produtos" class="bg-green-500 hover:bg-green-600 text-black font-bold py-4 px-8 rounded-full text-lg glow transition inline-block">
+            Escolher Meu Bot
+        </a>
     </section>
 
     <!-- Produtos Section -->
     <section id="produtos" class="container mx-auto px-6 py-20">
-        <h2 class="text-4xl font-bold font-display text-center mb-16">Escolha Seu Bot Perfeito</h2>
+        <h2 class="text-4xl font-bold text-center mb-16">Escolha Seu Bot Perfeito</h2>
         
-        <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             
-            <!-- SmartBots Business -->
-            <div class="glass rounded-2xl p-8 hover:border-blue-500 transition">
+            <!-- Bot para Site (DISPONÍVEL) -->
+            <div class="bg-gradient-to-br from-green-900/50 to-blue-900/50 backdrop-blur-sm rounded-2xl p-8 border-2 border-green-500 glow relative">
+                <div class="absolute top-4 right-4 bg-green-500 text-black text-xs font-bold px-3 py-1 rounded-full">DISPONÍVEL</div>
+                
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-2xl font-bold font-display">SmartBots Business</h3>
-                    <i class="fas fa-briefcase text-3xl text-blue-400"></i>
+                    <h3 class="text-2xl font-bold">Bot para Site</h3>
+                    <i class="fas fa-globe text-3xl text-green-400"></i>
                 </div>
-                <p class="text-gray-400 mb-6">Atendente de IA para empresas que querem automatizar vendas e suporte.</p>
+                <p class="text-gray-200 mb-6">Chat inteligente que atende visitantes do seu site 24/7.</p>
                 
                 <div class="space-y-4 mb-8">
                     <div class="flex items-start">
                         <i class="fas fa-check text-green-400 mt-1 mr-3"></i>
-                        <span>Responde perguntas sobre produtos/serviços</span>
+                        <span>Instalação em 5 minutos</span>
                     </div>
                     <div class="flex items-start">
                         <i class="fas fa-check text-green-400 mt-1 mr-3"></i>
-                        <span>Qualifica leads automaticamente</span>
+                        <span>3 formas de alimentar conteúdo</span>
                     </div>
                     <div class="flex items-start">
                         <i class="fas fa-check text-green-400 mt-1 mr-3"></i>
-                        <span>Integra com seu site e sistemas</span>
+                        <span>Personalização completa</span>
+                    </div>
+                    <div class="flex items-start">
+                        <i class="fas fa-check text-green-400 mt-1 mr-3"></i>
+                        <span>Histórico de conversas</span>
+                    </div>
+                </div>
+
+                <div class="border-t border-green-700 pt-6 mb-6">
+                    <div class="text-4xl font-bold gradient-text">R$ 79<span class="text-lg text-gray-300">/mês</span></div>
+                </div>
+
+                <button onclick="openWebsiteBotModal()" class="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-3 rounded-lg transition">
+                    Criar Meu Bot Agora
+                </button>
+            </div>
+
+            <!-- Bot para WhatsApp (EM BREVE) -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 hover:border-blue-500 transition relative opacity-75">
+                <div class="coming-soon-badge">EM BREVE</div>
+                
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-2xl font-bold">Bot para WhatsApp</h3>
+                    <i class="fab fa-whatsapp text-3xl text-blue-400"></i>
+                </div>
+                <p class="text-gray-300 mb-6">Atendente de IA direto no WhatsApp da sua empresa.</p>
+                
+                <div class="space-y-4 mb-8">
+                    <div class="flex items-start">
+                        <i class="fas fa-check text-green-400 mt-1 mr-3"></i>
+                        <span>Responde mensagens automaticamente</span>
+                    </div>
+                    <div class="flex items-start">
+                        <i class="fas fa-check text-green-400 mt-1 mr-3"></i>
+                        <span>Qualifica leads</span>
+                    </div>
+                    <div class="flex items-start">
+                        <i class="fas fa-check text-green-400 mt-1 mr-3"></i>
+                        <span>Integra com sistemas</span>
                     </div>
                 </div>
 
                 <div class="border-t border-gray-700 pt-6 mb-6">
-                    <div class="mb-4">
-                        <div class="text-sm text-gray-500">Plano Básico</div>
-                        <div class="text-3xl font-bold">R$ 99<span class="text-lg text-gray-500">/mês</span></div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-gray-500">Plano Pro</div>
-                        <div class="text-3xl font-bold">R$ 249<span class="text-lg text-gray-500">/mês</span></div>
-                    </div>
+                    <div class="text-3xl font-bold">R$ 129<span class="text-lg text-gray-400">/mês</span></div>
                 </div>
 
-                <button onclick="openBusinessModal()" class="w-full btn-business font-bold py-3 rounded-xl transition hover:scale-105">
-                    Criar Meu Bot Business
+                <button disabled class="w-full bg-gray-700 text-gray-400 font-bold py-3 rounded-lg cursor-not-allowed">
+                    Em Breve
                 </button>
             </div>
 
-            <!-- Staff (Bot Pessoal) -->
-            <div class="glass rounded-2xl p-8 border-2 !border-purple-500 glow-staff relative">
-                <div class="absolute top-4 right-4 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">NOVO</div>
+            <!-- Staff (Bot Pessoal) - EM BREVE -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 hover:border-purple-500 transition relative opacity-75">
+                <div class="coming-soon-badge">EM BREVE</div>
                 
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-2xl font-bold font-display">Staff</h3>
+                    <h3 class="text-2xl font-bold">Staff</h3>
                     <i class="fas fa-user-tie text-3xl text-purple-400"></i>
                 </div>
                 <p class="text-gray-200 mb-2 font-semibold">"Tô enrolado? Deixa eu ver com meu Staff!"</p>
-                <p class="text-gray-400 mb-6">Seu assistente pessoal de IA que gerencia TUDO na sua vida.</p>
+                <p class="text-gray-300 mb-6">Seu assistente pessoal de IA no WhatsApp.</p>
                 
                 <div class="space-y-4 mb-8">
                     <div class="flex items-start">
@@ -401,88 +174,147 @@
                     </div>
                     <div class="flex items-start">
                         <i class="fas fa-check text-green-400 mt-1 mr-3"></i>
-                        <span>Organiza agenda e compromissos</span>
+                        <span>Organiza agenda</span>
                     </div>
                     <div class="flex items-start">
                         <i class="fas fa-check text-green-400 mt-1 mr-3"></i>
-                        <span>Controla veículos, casa e família</span>
-                    </div>
-                    <div class="flex items-start">
-                        <i class="fas fa-check text-green-400 mt-1 mr-3"></i>
-                        <span>Alertas de investimentos (Bitcoin, Dólar, Ações)</span>
+                        <span>Alertas de investimentos</span>
                     </div>
                 </div>
 
-                <div class="border-t border-purple-700 pt-6 mb-6">
-                    <div class="text-4xl font-bold gradient-staff">R$ 19,90<span class="text-lg text-gray-400">/mês</span></div>
+                <div class="border-t border-gray-700 pt-6 mb-6">
+                    <div class="text-3xl font-bold">R$ 19,90<span class="text-lg text-gray-400">/mês</span></div>
                 </div>
 
-                <a href="staff.html" class="block w-full btn-staff font-bold py-3 rounded-xl transition hover:scale-105 text-center">
-                    Conhecer o Staff →
-                </a>
+                <button disabled class="w-full bg-gray-700 text-gray-400 font-bold py-3 rounded-lg cursor-not-allowed">
+                    Em Breve
+                </button>
             </div>
 
         </div>
 
         <!-- Plano Empresarial -->
-        <div class="mt-12 max-w-3xl mx-auto glass rounded-2xl p-8 text-center">
-            <h3 class="text-2xl font-bold font-display mb-4">Plano Empresarial</h3>
-            <p class="text-gray-400 mb-6">Soluções personalizadas para grandes volumes e necessidades específicas.</p>
-            <button onclick="openEnterpriseModal()" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-8 rounded-xl transition">
+        <div class="mt-12 max-w-3xl mx-auto bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 text-center">
+            <h3 class="text-2xl font-bold mb-4">Plano Empresarial</h3>
+            <p class="text-gray-300 mb-6">Soluções personalizadas para grandes volumes e necessidades específicas.</p>
+            <button onclick="openEnterpriseModal()" class="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-black font-bold py-3 px-8 rounded-lg transition">
                 Solicitar Orçamento
             </button>
         </div>
     </section>
 
-    <!-- Modal Business -->
-    <div id="businessModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="glass rounded-2xl p-8 max-w-md w-full border-2 border-purple-500">
-            <h3 class="text-2xl font-bold font-display mb-6">Criar Meu Bot Business</h3>
-            <form id="businessForm" class="space-y-4">
-                <input type="text" name="name" placeholder="Seu Nome" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <input type="tel" name="whatsapp" placeholder="WhatsApp (com DDD)" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <input type="email" name="email" placeholder="E-mail" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <select name="plan" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
-                    <option value="">Escolha o Plano</option>
-                    <option value="basico">Básico - R$ 99/mês</option>
-                    <option value="pro">Pro - R$ 249/mês</option>
-                </select>
-                <div>
-                    <label class="block text-sm text-gray-400 mb-2">Manual de Treinamento (PDF)</label>
-                    <input type="file" name="file" accept=".pdf" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none text-sm">
+    <!-- Modal Website Bot -->
+    <div id="websiteBotModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-gray-900 rounded-2xl p-8 max-w-2xl w-full border border-green-500 my-8">
+            <h3 class="text-2xl font-bold mb-2">Criar Bot para Site</h3>
+            <p class="text-gray-400 text-sm mb-6">Escolha como alimentar o bot (pode escolher 1, 2 ou todas as opções)</p>
+            
+            <form id="websiteBotForm" class="space-y-6">
+                <!-- Informações Básicas -->
+                <div class="space-y-4">
+                    <h4 class="font-semibold text-lg border-b border-gray-700 pb-2">Informações Básicas</h4>
+                    <input type="text" name="name" placeholder="Seu Nome" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none">
+                    <input type="email" name="email" placeholder="E-mail" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none">
+                    <input type="tel" name="whatsapp" placeholder="WhatsApp (com DDD)" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none">
+                    <input type="text" name="companyName" placeholder="Nome da Empresa" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none">
+                    <input type="url" name="website" placeholder="Site da Empresa (https://...)" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none">
                 </div>
-                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition">
-                    Enviar e Ativar Bot
+
+                <!-- Opções de Conteúdo -->
+                <div class="space-y-4">
+                    <h4 class="font-semibold text-lg border-b border-gray-700 pb-2">Como Alimentar o Bot?</h4>
+                    <p class="text-sm text-gray-400">Escolha uma ou mais opções abaixo:</p>
+                    
+                    <!-- Opção 1: Web Scraping -->
+                    <div class="content-option border-2 border-gray-700 rounded-lg p-4 hover:border-green-500" onclick="toggleContentOption('scraping')">
+                        <div class="flex items-start">
+                            <input type="checkbox" id="scraping" name="contentOptions" value="scraping" class="mt-1 mr-3">
+                            <div class="flex-1">
+                                <label for="scraping" class="font-semibold cursor-pointer flex items-center">
+                                    <i class="fas fa-spider text-green-400 mr-2"></i>
+                                    Importar automaticamente do meu site
+                                </label>
+                                <p class="text-sm text-gray-400 mt-1">O sistema vai acessar seu site e extrair o conteúdo automaticamente</p>
+                            </div>
+                        </div>
+                        <div id="scrapingFields" class="content-fields mt-4">
+                            <p class="text-xs text-gray-500 mb-2">O sistema vai usar a URL do site que você informou acima</p>
+                        </div>
+                    </div>
+
+                    <!-- Opção 2: Upload PDF -->
+                    <div class="content-option border-2 border-gray-700 rounded-lg p-4 hover:border-green-500" onclick="toggleContentOption('pdf')">
+                        <div class="flex items-start">
+                            <input type="checkbox" id="pdf" name="contentOptions" value="pdf" class="mt-1 mr-3">
+                            <div class="flex-1">
+                                <label for="pdf" class="font-semibold cursor-pointer flex items-center">
+                                    <i class="fas fa-file-pdf text-red-400 mr-2"></i>
+                                    Upload de PDF (catálogo, manual)
+                                </label>
+                                <p class="text-sm text-gray-400 mt-1">Envie um PDF com informações sobre produtos/serviços</p>
+                            </div>
+                        </div>
+                        <div id="pdfFields" class="content-fields mt-4">
+                            <input type="file" name="file" accept=".pdf" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Opção 3: Texto Manual -->
+                    <div class="content-option border-2 border-gray-700 rounded-lg p-4 hover:border-green-500" onclick="toggleContentOption('text')">
+                        <div class="flex items-start">
+                            <input type="checkbox" id="text" name="contentOptions" value="text" class="mt-1 mr-3">
+                            <div class="flex-1">
+                                <label for="text" class="font-semibold cursor-pointer flex items-center">
+                                    <i class="fas fa-keyboard text-blue-400 mr-2"></i>
+                                    Colar textos manualmente
+                                </label>
+                                <p class="text-sm text-gray-400 mt-1">Escreva ou cole informações sobre sua empresa e produtos</p>
+                            </div>
+                        </div>
+                        <div id="textFields" class="content-fields mt-4">
+                            <textarea name="manualText" placeholder="Cole aqui informações sobre produtos, serviços, preços, formas de pagamento, prazos de entrega, etc. Quanto mais detalhado, melhor!" rows="8" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="contentError" class="hidden text-red-400 text-sm">
+                    ⚠️ Escolha pelo menos uma opção de conteúdo
+                </div>
+
+                <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-3 rounded-lg transition">
+                    Criar Bot (R$ 79/mês)
                 </button>
-                <button type="button" onclick="closeBusinessModal()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition">
+                <button type="button" onclick="closeWebsiteBotModal()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition">
                     Cancelar
                 </button>
             </form>
-            <div id="businessLoading" class="hidden text-center">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-                <p>Processando...</p>
+            <div id="websiteBotLoading" class="hidden text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                <p>Criando seu bot...</p>
+                <p class="text-sm text-gray-400 mt-2">Isso pode levar até 30 segundos</p>
             </div>
-            <div id="businessSuccess" class="hidden text-center">
+            <div id="websiteBotSuccess" class="hidden text-center">
                 <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
-                <p class="text-lg">Recebemos seus dados! Em instantes você receberá o link de pagamento e o QR Code no seu WhatsApp.</p>
+                <p class="text-lg mb-4">Bot criado com sucesso!</p>
+                <p class="text-sm text-gray-400 mb-4">Você será redirecionado para o pagamento...</p>
             </div>
         </div>
     </div>
 
     <!-- Modal Enterprise -->
     <div id="enterpriseModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="glass rounded-2xl p-8 max-w-md w-full border-2 border-purple-500">
-            <h3 class="text-2xl font-bold font-display mb-6">Solicitar Orçamento Empresarial</h3>
+        <div class="bg-gray-900 rounded-2xl p-8 max-w-md w-full border border-green-500">
+            <h3 class="text-2xl font-bold mb-6">Solicitar Orçamento Empresarial</h3>
             <form id="enterpriseForm" class="space-y-4">
-                <input type="text" name="name" placeholder="Seu Nome" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <input type="text" name="company" placeholder="Nome da Empresa" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <input type="tel" name="whatsapp" placeholder="WhatsApp (com DDD)" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <input type="email" name="email" placeholder="E-mail" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none">
-                <textarea name="message" placeholder="Descreva suas necessidades" rows="4" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none"></textarea>
-                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition">
+                <input type="text" name="name" placeholder="Seu Nome" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none">
+                <input type="text" name="company" placeholder="Nome da Empresa" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none">
+                <input type="tel" name="whatsapp" placeholder="WhatsApp (com DDD)" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none">
+                <input type="email" name="email" placeholder="E-mail" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none">
+                <textarea name="message" placeholder="Descreva suas necessidades" rows="4" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none"></textarea>
+                <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-3 rounded-lg transition">
                     Enviar Solicitação
                 </button>
-                <button type="button" onclick="closeEnterpriseModal()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition">
+                <button type="button" onclick="closeEnterpriseModal()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition">
                     Cancelar
                 </button>
             </form>
@@ -494,151 +326,37 @@
     </div>
 
     <!-- Footer -->
-    <footer id="contato" class="container mx-auto px-6 py-12 text-center text-gray-500 border-t border-gray-800">
+    <footer id="contato" class="container mx-auto px-6 py-12 text-center text-gray-400 border-t border-gray-800">
         <p>&copy; 2025 SmartBots. Todos os direitos reservados.</p>
+        <p class="mt-2 text-sm">Contato: henriquecampos66@gmail.com</p>
     </footer>
 
-    <!-- Mobile CTA -->
-    <div class="mobile-cta" id="mobileCta">
-        <a href="staff.html" class="block btn-staff font-bold py-4 rounded-xl text-center">
-            Começar Agora
-        </a>
-    </div>
-
     <script>
-        // Toggle functionality
-        const toggleButtons = document.querySelectorAll('.toggle-btn');
-        const modeContents = document.querySelectorAll('.mode-content');
-        let currentMode = 'staff';
-
-        toggleButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const mode = button.getAttribute('data-mode');
-                if (mode === currentMode) return;
-                
-                currentMode = mode;
-                
-                toggleButtons.forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                
-                modeContents.forEach(content => {
-                    content.classList.remove('active');
-                    if (content.getAttribute('data-mode') === mode) {
-                        content.classList.add('active');
-                    }
-                });
-                
-                clearChatMessages();
-                setTimeout(() => startChatAnimation(mode), 300);
-            });
-        });
-
-        // Chat animation
-        const chatMessages = document.getElementById('chatMessages');
-        const conversations = {
-            staff: [
-                { type: 'user', text: 'Qual a cotação do Bitcoin agora?' },
-                { type: 'bot', text: 'Bitcoin está em R$ 487.234,50 (+3,2% hoje)' },
-                { type: 'user', text: 'Me lembre de pagar o DARF dia 20' },
-                { type: 'bot', text: '✅ Lembrete criado! Vou te avisar no dia 20 às 9h.' }
-            ],
-            business: [
-                { type: 'user', text: 'Olá, gostaria de saber mais' },
-                { type: 'bot', text: 'Olá! Qual é o seu nome?' },
-                { type: 'user', text: 'João Silva' },
-                { type: 'bot', text: '✅ Perfeito! Posso agendar uma demo para amanhã?' }
-            ]
-        };
-
-        let chatTimeout;
-        let currentMessageIndex = 0;
-
-        function clearChatMessages() {
-            chatMessages.innerHTML = '';
-            clearTimeout(chatTimeout);
-            currentMessageIndex = 0;
-        }
-
-        function addMessage(type, text) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}`;
-            messageDiv.textContent = text;
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function showTypingIndicator() {
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'typing-indicator';
-            typingDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
-            chatMessages.appendChild(typingDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            return typingDiv;
-        }
-
-        function startChatAnimation(mode) {
-            const conversation = conversations[mode];
-            currentMessageIndex = 0;
+        function toggleContentOption(option) {
+            const checkbox = document.getElementById(option);
+            const fields = document.getElementById(option + 'Fields');
+            const parent = checkbox.closest('.content-option');
             
-            function displayNextMessage() {
-                if (currentMessageIndex >= conversation.length) {
-                    chatTimeout = setTimeout(() => {
-                        clearChatMessages();
-                        startChatAnimation(mode);
-                    }, 3000);
-                    return;
-                }
-                
-                const message = conversation[currentMessageIndex];
-                
-                if (message.type === 'bot') {
-                    const typingIndicator = showTypingIndicator();
-                    chatTimeout = setTimeout(() => {
-                        typingIndicator.remove();
-                        addMessage(message.type, message.text);
-                        currentMessageIndex++;
-                        chatTimeout = setTimeout(displayNextMessage, 2000);
-                    }, 1500);
-                } else {
-                    addMessage(message.type, message.text);
-                    currentMessageIndex++;
-                    chatTimeout = setTimeout(displayNextMessage, 1000);
-                }
-            }
+            checkbox.checked = !checkbox.checked;
             
-            displayNextMessage();
-        }
-
-        // Start animation on load
-        document.addEventListener('DOMContentLoaded', () => {
-            startChatAnimation('staff');
-        });
-
-        // Mobile CTA visibility
-        function updateMobileCta() {
-            const mobileCta = document.getElementById('mobileCta');
-            const productos = document.getElementById('produtos');
-            const productosRect = productos.getBoundingClientRect();
-            
-            if (window.scrollY > 300 && (productosRect.top > window.innerHeight || productosRect.bottom < 0)) {
-                mobileCta.classList.add('visible');
+            if (checkbox.checked) {
+                parent.classList.add('selected');
+                fields.classList.add('active');
             } else {
-                mobileCta.classList.remove('visible');
+                parent.classList.remove('selected');
+                fields.classList.remove('active');
             }
+            
+            document.getElementById('contentError').classList.add('hidden');
         }
 
-        if (window.innerWidth <= 768) {
-            window.addEventListener('scroll', updateMobileCta);
+        function openWebsiteBotModal() {
+            document.getElementById('websiteBotModal').classList.remove('hidden');
+            document.getElementById('websiteBotModal').classList.add('flex');
         }
-
-        // Modal functions (MANTIDAS INTACTAS)
-        function openBusinessModal() {
-            document.getElementById('businessModal').classList.remove('hidden');
-            document.getElementById('businessModal').classList.add('flex');
-        }
-        function closeBusinessModal() {
-            document.getElementById('businessModal').classList.add('hidden');
-            document.getElementById('businessModal').classList.remove('flex');
+        function closeWebsiteBotModal() {
+            document.getElementById('websiteBotModal').classList.add('hidden');
+            document.getElementById('websiteBotModal').classList.remove('flex');
         }
         function openEnterpriseModal() {
             document.getElementById('enterpriseModal').classList.remove('hidden');
@@ -649,68 +367,107 @@
             document.getElementById('enterpriseModal').classList.remove('flex');
         }
 
-        // Business Form (MANTIDO INTACTO)
-        document.getElementById('businessForm').addEventListener('submit', async (e) => {
+        // Website Bot Form
+        document.getElementById('websiteBotForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            document.getElementById('businessForm').classList.add('hidden');
-            document.getElementById('businessLoading').classList.remove('hidden');
+            
+            // Validar se pelo menos uma opção foi escolhida
+            const checkboxes = document.querySelectorAll('input[name="contentOptions"]:checked');
+            if (checkboxes.length === 0) {
+                document.getElementById('contentError').classList.remove('hidden');
+                return;
+            }
+            
+            document.getElementById('websiteBotForm').classList.add('hidden');
+            document.getElementById('websiteBotLoading').classList.remove('hidden');
 
             const formData = new FormData(e.target);
             const file = formData.get('file');
-            const reader = new FileReader();
             
-            reader.onload = async (event) => {
-                const base64 = event.target.result.split(',')[1];
-                
-                try {
-                    const response = await fetch('/.netlify/functions/onboarding', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            name: formData.get('name'),
-                            whatsapp: formData.get('whatsapp'),
-                            email: formData.get('email'),
-                            plan: formData.get('plan'),
-                            fileData: base64,
-                            fileName: file.name
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        document.getElementById('businessLoading').classList.add('hidden');
-                        document.getElementById('businessSuccess').classList.remove('hidden');
-                    }
-                } catch (error) {
-                    alert('Erro ao enviar. Tente novamente.');
-                    location.reload();
-                }
+            // Preparar dados
+            const data = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                whatsapp: formData.get('whatsapp'),
+                companyName: formData.get('companyName'),
+                website: formData.get('website'),
+                contentOptions: Array.from(checkboxes).map(cb => cb.value),
+                manualText: formData.get('manualText') || ''
             };
             
-            reader.readAsDataURL(file);
+            // Se tem PDF, converter para base64
+            if (file && file.size > 0) {
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    data.fileData = event.target.result.split(',')[1];
+                    data.fileName = file.name;
+                    await submitBot(data);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                await submitBot(data);
+            }
         });
 
-        // Enterprise Form (MANTIDO INTACTO)
-        document.getElementById('enterpriseForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData);
-            
+        async function submitBot(data) {
             try {
-                const response = await fetch('/.netlify/functions/contact', {
+                const response = await fetch('/.netlify/functions/website-bot-onboarding', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
                 
+                const result = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('websiteBotLoading').classList.add('hidden');
+                    document.getElementById('websiteBotSuccess').classList.remove('hidden');
+                    
+                    // Redirecionar para pagamento após 3 segundos
+                    setTimeout(() => {
+                        window.location.href = result.paymentLink;
+                    }, 3000);
+                } else {
+                    alert('Erro: ' + result.error);
+                    location.reload();
+                }
+            } catch (error) {
+                alert('Erro ao processar. Tente novamente.');
+                location.reload();
+            }
+        }
+
+        // Enterprise Form
+        document.getElementById('enterpriseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            
+            try {
+                const response = await fetch('/.netlify/functions/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: formData.get('name'),
+                        company: formData.get('company'),
+                        whatsapp: formData.get('whatsapp'),
+                        email: formData.get('email'),
+                        message: formData.get('message')
+                    })
+                });
+                
                 if (response.ok) {
                     document.getElementById('enterpriseForm').classList.add('hidden');
                     document.getElementById('enterpriseSuccess').classList.remove('hidden');
+                    setTimeout(() => closeEnterpriseModal(), 3000);
+                } else {
+                    alert('Erro ao enviar. Tente novamente.');
                 }
             } catch (error) {
                 alert('Erro ao enviar. Tente novamente.');
             }
         });
     </script>
+
 </body>
 </html>
