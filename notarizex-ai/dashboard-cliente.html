@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartBots — Painel do Cliente</title>
+    <meta name="robots" content="noindex, nofollow">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #0f1115 0%, #1a1d24 100%); }
+        .card-glass {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .tab-active { border-bottom: 2px solid #00FF88; color: #00FF88; }
+        .tab-inactive { border-bottom: 2px solid transparent; color: #9ca3af; }
+        .tab-inactive:hover { color: #e5e7eb; }
+        .stat-card {
+            background: rgba(0,255,136,0.05);
+            border: 1px solid rgba(0,255,136,0.15);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .upload-zone {
+            border: 2px dashed rgba(0,255,136,0.3);
+            border-radius: 12px;
+            transition: all 0.3s;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #00FF88;
+            background: rgba(0,255,136,0.05);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #00FF88 0%, #00CC6F 100%);
+            color: #000; font-weight: 700; padding: 12px 28px;
+            border-radius: 10px; transition: all 0.3s; cursor: pointer;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,255,136,0.3); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-danger {
+            background: rgba(239,68,68,0.15); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3);
+            padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-danger:hover { background: rgba(239,68,68,0.25); }
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            padding: 14px 20px; border-radius: 10px; font-weight: 600;
+            z-index: 9999; transform: translateY(100px); opacity: 0;
+            transition: all 0.3s; max-width: 360px;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: #00FF88; color: #000; }
+        .toast.error { background: #ef4444; color: #fff; }
+        .spinner {
+            width: 20px; height: 20px;
+            border: 2px solid rgba(0,255,136,0.2);
+            border-top-color: #00FF88;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .file-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px; margin-bottom: 8px;
+        }
+        .history-item {
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px; padding: 16px; margin-bottom: 10px;
+        }
+        .history-user { color: #00FF88; font-weight: 600; margin-bottom: 4px; }
+        .history-bot { color: #9ca3af; }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center px-4">
+        <div class="card-glass rounded-2xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="text-3xl font-bold mb-2">
+                    <span style="color:#00FF88">Smart</span>Bots
+                </div>
+                <p class="text-gray-400">Painel do Cliente</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Seu E-mail</label>
+                    <input id="loginEmail" type="email" placeholder="email@empresa.com"
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Token de Acesso</label>
+                    <input id="loginToken" type="text" placeholder="Token enviado por e-mail"
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition-colors font-mono text-sm">
+                    <p class="text-xs text-gray-500 mt-1">Token enviado no e-mail de confirmação do seu bot</p>
+                </div>
+                <button id="loginBtn" onclick="doLogin()" class="btn-primary w-full text-center">
+                    Entrar no Painel
+                </button>
+            </div>
+
+            <div class="mt-6 text-center">
+                <a href="/" class="text-gray-500 hover:text-gray-300 text-sm transition-colors">← Voltar para SmartBots.club</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="hidden">
+
+        <!-- HEADER -->
+        <header class="border-b border-white/10 px-6 py-4">
+            <div class="max-w-6xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="text-xl font-bold">
+                        <span style="color:#00FF88">Smart</span>Bots
+                    </div>
+                    <div class="hidden sm:block text-gray-400 text-sm">|</div>
+                    <div id="headerCompany" class="hidden sm:block text-gray-300 text-sm font-medium"></div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="headerStatus" class="text-xs px-3 py-1 rounded-full font-semibold"></div>
+                    <button onclick="doLogout()" class="text-gray-400 hover:text-white text-sm transition-colors">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT -->
+        <main class="max-w-6xl mx-auto px-4 py-8">
+
+            <!-- STATS ROW -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="stat-card">
+                    <div class="text-2xl font-bold" id="statTotal">—</div>
+                    <div class="text-gray-400 text-sm mt-1">Total de Conversas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="text-2xl font-bold" id="statWeek">—</div>
+                    <div class="text-gray-400 text-sm mt-1">Esta Semana</div>
+                </div>
+                <div class="stat-card">
+                    <div class="text-2xl font-bold" id="statUsers">—</div>
+                    <div class="text-gray-400 text-sm mt-1">Usuários Únicos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="text-2xl font-bold" id="statFiles">—</div>
+                    <div class="text-gray-400 text-sm mt-1">Arquivos Treinados</div>
+                </div>
+            </div>
+
+            <!-- TABS -->
+            <div class="flex gap-6 border-b border-white/10 mb-8">
+                <button onclick="showTab('training')" id="tab-training" class="tab-active pb-3 text-sm font-semibold transition-colors">
+                    📚 Treinamento
+                </button>
+                <button onclick="showTab('history')" id="tab-history" class="tab-inactive pb-3 text-sm font-semibold transition-colors">
+                    💬 Histórico
+                </button>
+                <button onclick="showTab('config')" id="tab-config" class="tab-inactive pb-3 text-sm font-semibold transition-colors">
+                    ⚙️ Configurações
+                </button>
+                <button onclick="showTab('widget')" id="tab-widget" class="tab-inactive pb-3 text-sm font-semibold transition-colors">
+                    🔗 Instalar Bot
+                </button>
+            </div>
+
+            <!-- TAB: TREINAMENTO -->
+            <div id="tab-content-training">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Upload de Arquivo -->
+                    <div class="card-glass rounded-2xl p-6">
+                        <h3 class="text-lg font-bold mb-2">Adicionar Documento</h3>
+                        <p class="text-gray-400 text-sm mb-5">
+                            Faça upload de PDFs, TXTs ou documentos Word. O bot aprende automaticamente com o novo conteúdo.
+                        </p>
+
+                        <div id="uploadZone" class="upload-zone p-8 text-center cursor-pointer mb-4"
+                            onclick="document.getElementById('fileInput').click()"
+                            ondragover="handleDragOver(event)"
+                            ondragleave="handleDragLeave(event)"
+                            ondrop="handleDrop(event)">
+                            <div class="text-4xl mb-3">📄</div>
+                            <div class="text-gray-300 font-medium">Clique ou arraste o arquivo aqui</div>
+                            <div class="text-gray-500 text-sm mt-1">PDF, TXT, DOCX, MD — máx. 20MB</div>
+                        </div>
+                        <input id="fileInput" type="file" accept=".pdf,.txt,.docx,.md" class="hidden" onchange="handleFileSelect(event)">
+
+                        <div id="filePreview" class="hidden mb-4 p-3 bg-white/5 rounded-xl flex items-center gap-3">
+                            <span class="text-2xl">📎</span>
+                            <div>
+                                <div id="fileName" class="text-sm font-medium text-white"></div>
+                                <div id="fileSize" class="text-xs text-gray-400"></div>
+                            </div>
+                            <button onclick="clearFile()" class="ml-auto text-gray-400 hover:text-red-400 text-lg">×</button>
+                        </div>
+
+                        <button id="uploadBtn" onclick="uploadFile()" class="btn-primary w-full text-center" disabled>
+                            Treinar Bot com este Arquivo
+                        </button>
+                    </div>
+
+                    <!-- Lista de Arquivos -->
+                    <div class="card-glass rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold">Arquivos do Bot</h3>
+                            <button onclick="loadFiles()" class="text-gray-400 hover:text-white text-sm transition-colors">↻ Atualizar</button>
+                        </div>
+                        <div id="filesList">
+                            <div class="text-center py-8 text-gray-500">
+                                <div class="spinner mx-auto mb-3"></div>
+                                Carregando arquivos...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: HISTÓRICO -->
+            <div id="tab-content-history" class="hidden">
+                <div class="card-glass rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-bold">Histórico de Conversas</h3>
+                        <button onclick="loadHistory()" class="text-gray-400 hover:text-white text-sm transition-colors">↻ Atualizar</button>
+                    </div>
+                    <div id="historyList">
+                        <div class="text-center py-8 text-gray-500">
+                            <div class="spinner mx-auto mb-3"></div>
+                            Carregando histórico...
+                        </div>
+                    </div>
+                    <div id="historyPagination" class="flex justify-center gap-3 mt-6 hidden">
+                        <button id="prevPage" onclick="changePage(-1)" class="px-4 py-2 bg-white/5 rounded-lg text-sm hover:bg-white/10 transition-colors">← Anterior</button>
+                        <span id="pageInfo" class="px-4 py-2 text-gray-400 text-sm"></span>
+                        <button id="nextPage" onclick="changePage(1)" class="px-4 py-2 bg-white/5 rounded-lg text-sm hover:bg-white/10 transition-colors">Próxima →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: CONFIGURAÇÕES -->
+            <div id="tab-content-config" class="hidden">
+                <div class="card-glass rounded-2xl p-6 max-w-2xl">
+                    <h3 class="text-lg font-bold mb-6">Personalizar o Bot</h3>
+
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Nome do Bot</label>
+                            <input id="configBotName" type="text" placeholder="Ex: Assistente da Empresa X"
+                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition-colors">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Tom de Voz</label>
+                            <select id="configTone"
+                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-400 transition-colors">
+                                <option value="friendly">😊 Amigável e Descontraído</option>
+                                <option value="formal">👔 Formal e Profissional</option>
+                                <option value="sales">🎯 Focado em Vendas</option>
+                                <option value="technical">🔧 Técnico e Detalhado</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Idioma Principal</label>
+                            <select id="configLanguage"
+                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-400 transition-colors">
+                                <option value="pt">🇧🇷 Português Brasileiro</option>
+                                <option value="en">🇺🇸 Inglês</option>
+                                <option value="es">🇪🇸 Espanhol</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Instruções Personalizadas</label>
+                            <textarea id="configInstructions" rows="5" placeholder="Ex: Sempre mencione que temos frete grátis acima de R$ 150. Não discuta preços de concorrentes. Direcione para o WhatsApp (11) 99999-9999 para pedidos acima de R$ 500..."
+                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition-colors resize-none"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Regras específicas do seu negócio para o bot seguir</p>
+                        </div>
+
+                        <button onclick="saveConfig()" class="btn-primary">
+                            Salvar Configurações
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: INSTALAR BOT -->
+            <div id="tab-content-widget" class="hidden">
+                <div class="card-glass rounded-2xl p-6 max-w-2xl">
+                    <h3 class="text-lg font-bold mb-2">Instalar o Bot no Seu Site</h3>
+                    <p class="text-gray-400 text-sm mb-6">
+                        Copie o código abaixo e cole antes do <code class="text-green-400">&lt;/body&gt;</code> no HTML do seu site.
+                    </p>
+
+                    <div class="bg-black/40 rounded-xl p-4 mb-4 relative">
+                        <pre id="widgetCode" class="text-green-400 text-xs overflow-x-auto whitespace-pre-wrap"></pre>
+                        <button onclick="copyWidget()" class="absolute top-3 right-3 text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors">
+                            Copiar
+                        </button>
+                    </div>
+
+                    <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+                        <div class="text-blue-400 font-semibold text-sm mb-1">📌 Como instalar</div>
+                        <ol class="text-gray-400 text-sm space-y-1 list-decimal list-inside">
+                            <li>Copie o código acima</li>
+                            <li>Abra o HTML do seu site</li>
+                            <li>Cole antes da tag <code class="text-green-400">&lt;/body&gt;</code></li>
+                            <li>Salve e publique — o bot aparece automaticamente!</li>
+                        </ol>
+                    </div>
+
+                    <div class="mt-4 p-4 bg-white/5 rounded-xl">
+                        <div class="text-sm font-semibold text-gray-300 mb-2">Seu Bot ID</div>
+                        <div id="displayBotId" class="font-mono text-xs text-green-400 break-all"></div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // ─── STATE ───────────────────────────────────────────────
+        let state = {
+            botId: null,
+            clientToken: null,
+            companyName: null,
+            currentTab: 'training',
+            historyPage: 1,
+            selectedFile: null
+        };
+
+        // ─── INIT ────────────────────────────────────────────────
+        window.onload = () => {
+            const saved = localStorage.getItem('sb_session');
+            if (saved) {
+                try {
+                    const s = JSON.parse(saved);
+                    state.botId = s.botId;
+                    state.clientToken = s.clientToken;
+                    state.companyName = s.companyName;
+                    showDashboard();
+                } catch (e) {
+                    localStorage.removeItem('sb_session');
+                }
+            }
+        };
+
+        // ─── LOGIN ───────────────────────────────────────────────
+        async function doLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const token = document.getElementById('loginToken').value.trim();
+
+            if (!email || !token) {
+                showToast('Preencha e-mail e token', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('loginBtn');
+            btn.textContent = 'Verificando...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/.netlify/functions/client-portal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'login', email, clientToken: token })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Credenciais inválidas');
+                }
+
+                state.botId = data.bot.botId;
+                state.clientToken = token;
+                state.companyName = data.bot.companyName;
+
+                localStorage.setItem('sb_session', JSON.stringify({
+                    botId: state.botId,
+                    clientToken: state.clientToken,
+                    companyName: state.companyName
+                }));
+
+                showDashboard();
+                showToast('Bem-vindo, ' + state.companyName + '!', 'success');
+
+            } catch (err) {
+                showToast(err.message, 'error');
+                btn.textContent = 'Entrar no Painel';
+                btn.disabled = false;
+            }
+        }
+
+        function doLogout() {
+            localStorage.removeItem('sb_session');
+            location.reload();
+        }
+
+        // ─── DASHBOARD ───────────────────────────────────────────
+        function showDashboard() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('headerCompany').textContent = state.companyName;
+
+            loadStats();
+            loadFiles();
+            updateWidgetCode();
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/.netlify/functions/client-portal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_stats', botId: state.botId, clientToken: state.clientToken })
+                });
+                const data = await res.json();
+
+                document.getElementById('statTotal').textContent = data.totalConversations || 0;
+                document.getElementById('statWeek').textContent = data.conversationsThisWeek || 0;
+                document.getElementById('statUsers').textContent = data.uniqueUsers || 0;
+                document.getElementById('statFiles').textContent = data.trainingFiles || 0;
+
+                const statusEl = document.getElementById('headerStatus');
+                if (data.botStatus === 'active') {
+                    statusEl.textContent = '● Ativo';
+                    statusEl.className = 'text-xs px-3 py-1 rounded-full font-semibold bg-green-500/20 text-green-400';
+                } else {
+                    statusEl.textContent = '● Inativo';
+                    statusEl.className = 'text-xs px-3 py-1 rounded-full font-semibold bg-red-500/20 text-red-400';
+                }
+            } catch (e) {
+                console.error('Erro ao carregar stats:', e);
+            }
+        }
+
+        // ─── TABS ────────────────────────────────────────────────
+        function showTab(tab) {
+            const tabs = ['training', 'history', 'config', 'widget'];
+            tabs.forEach(t => {
+                document.getElementById('tab-' + t).className = t === tab ? 'tab-active pb-3 text-sm font-semibold transition-colors' : 'tab-inactive pb-3 text-sm font-semibold transition-colors';
+                document.getElementById('tab-content-' + t).classList.toggle('hidden', t !== tab);
+            });
+            state.currentTab = tab;
+
+            if (tab === 'history') loadHistory();
+        }
+
+        // ─── TREINAMENTO ─────────────────────────────────────────
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('uploadZone').classList.add('dragover');
+        }
+        function handleDragLeave(e) {
+            document.getElementById('uploadZone').classList.remove('dragover');
+        }
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('uploadZone').classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) setFile(file);
+        }
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) setFile(file);
+        }
+        function setFile(file) {
+            state.selectedFile = file;
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+            document.getElementById('filePreview').classList.remove('hidden');
+            document.getElementById('uploadBtn').disabled = false;
+        }
+        function clearFile() {
+            state.selectedFile = null;
+            document.getElementById('filePreview').classList.add('hidden');
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('fileInput').value = '';
+        }
+
+        async function uploadFile() {
+            if (!state.selectedFile) return;
+
+            const btn = document.getElementById('uploadBtn');
+            btn.innerHTML = '<span class="spinner"></span> Treinando...';
+            btn.disabled = true;
+
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const base64 = e.target.result.split(',')[1];
+
+                    const res = await fetch('/.netlify/functions/train-bot', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'upload_file',
+                            botId: state.botId,
+                            clientToken: state.clientToken,
+                            fileData: base64,
+                            fileName: state.selectedFile.name
+                        })
+                    });
+
+                    const data = await res.json();
+
+                    if (!res.ok) throw new Error(data.error || 'Falha no upload');
+
+                    showToast(data.message, 'success');
+                    clearFile();
+                    loadFiles();
+                    loadStats();
+                };
+                reader.readAsDataURL(state.selectedFile);
+
+            } catch (err) {
+                showToast(err.message, 'error');
+                btn.textContent = 'Treinar Bot com este Arquivo';
+                btn.disabled = false;
+            }
+        }
+
+        async function loadFiles() {
+            const container = document.getElementById('filesList');
+            container.innerHTML = '<div class="text-center py-4 text-gray-500"><div class="spinner mx-auto mb-2"></div>Carregando...</div>';
+
+            try {
+                const res = await fetch('/.netlify/functions/train-bot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'list_files', botId: state.botId, clientToken: state.clientToken })
+                });
+                const data = await res.json();
+                const files = (data.files || []).filter(f => f.status === 'active');
+
+                if (files.length === 0) {
+                    container.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="text-3xl mb-2">📂</div><div>Nenhum arquivo ainda</div><div class="text-xs mt-1">Faça upload de documentos para treinar o bot</div></div>';
+                    return;
+                }
+
+                container.innerHTML = files.map(f => `
+                    <div class="file-item">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">📄</span>
+                            <div>
+                                <div class="text-sm font-medium text-white">${f.file_name}</div>
+                                <div class="text-xs text-gray-500">${(f.file_size_bytes / 1024).toFixed(1)} KB · ${new Date(f.created_at).toLocaleDateString('pt-BR')}</div>
+                            </div>
+                        </div>
+                        <button onclick="removeFile('${f.id}', '${f.file_name}')" class="btn-danger text-xs">Remover</button>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                container.innerHTML = '<div class="text-center py-4 text-red-400 text-sm">Erro ao carregar arquivos</div>';
+            }
+        }
+
+        async function removeFile(fileId, fileName) {
+            if (!confirm(`Remover "${fileName}" do bot?`)) return;
+
+            try {
+                const res = await fetch('/.netlify/functions/train-bot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'remove_file', botId: state.botId, clientToken: state.clientToken, fileId })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                showToast(data.message, 'success');
+                loadFiles();
+                loadStats();
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        // ─── HISTÓRICO ───────────────────────────────────────────
+        async function loadHistory() {
+            const container = document.getElementById('historyList');
+            container.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="spinner mx-auto mb-3"></div>Carregando...</div>';
+
+            try {
+                const res = await fetch('/.netlify/functions/client-portal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_history', botId: state.botId, clientToken: state.clientToken, page: state.historyPage })
+                });
+                const data = await res.json();
+                const history = data.history || [];
+
+                if (history.length === 0) {
+                    container.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="text-3xl mb-2">💬</div><div>Nenhuma conversa ainda</div></div>';
+                    return;
+                }
+
+                container.innerHTML = history.map(h => `
+                    <div class="history-item">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-xs text-gray-500">${new Date(h.created_at).toLocaleString('pt-BR')}</div>
+                            ${h.user_identifier ? `<div class="text-xs text-gray-600 font-mono">${h.user_identifier.substring(0,12)}...</div>` : ''}
+                        </div>
+                        <div class="history-user">👤 ${h.user_message}</div>
+                        <div class="history-bot mt-2">🤖 ${h.bot_reply.substring(0, 200)}${h.bot_reply.length > 200 ? '...' : ''}</div>
+                    </div>
+                `).join('');
+
+                // Paginação
+                const pagination = data.pagination;
+                if (pagination && pagination.totalPages > 1) {
+                    document.getElementById('historyPagination').classList.remove('hidden');
+                    document.getElementById('pageInfo').textContent = `Página ${pagination.page} de ${pagination.totalPages}`;
+                    document.getElementById('prevPage').disabled = pagination.page <= 1;
+                    document.getElementById('nextPage').disabled = pagination.page >= pagination.totalPages;
+                }
+
+            } catch (e) {
+                container.innerHTML = '<div class="text-center py-4 text-red-400 text-sm">Erro ao carregar histórico</div>';
+            }
+        }
+
+        function changePage(delta) {
+            state.historyPage = Math.max(1, state.historyPage + delta);
+            loadHistory();
+        }
+
+        // ─── CONFIGURAÇÕES ───────────────────────────────────────
+        async function saveConfig() {
+            const config = {
+                botName: document.getElementById('configBotName').value,
+                tone: document.getElementById('configTone').value,
+                language: document.getElementById('configLanguage').value,
+                instructions: document.getElementById('configInstructions').value
+            };
+
+            try {
+                const res = await fetch('/.netlify/functions/client-portal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'update_config', botId: state.botId, clientToken: state.clientToken, config })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                showToast(data.message, 'success');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        // ─── WIDGET CODE ─────────────────────────────────────────
+        function updateWidgetCode() {
+            const code = `<!-- SmartBots Widget -->
+<script src="https://smartbots.club/widget.js"><\/script>
+<script>
+  SmartBots.init({
+    botId: '${state.botId}',
+    position: 'bottom-right',
+    primaryColor: '#00FF88',
+    greeting: 'Olá! Como posso ajudar?'
+  });
+<\/script>`;
+            document.getElementById('widgetCode').textContent = code;
+            document.getElementById('displayBotId').textContent = state.botId;
+        }
+
+        function copyWidget() {
+            const code = document.getElementById('widgetCode').textContent;
+            navigator.clipboard.writeText(code).then(() => showToast('Código copiado!', 'success'));
+        }
+
+        // ─── TOAST ───────────────────────────────────────────────
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `toast ${type} show`;
+            setTimeout(() => { t.className = `toast ${type}`; }, 3500);
+        }
+
+        // Enter no login
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !document.getElementById('loginScreen').classList.contains('hidden')) {
+                doLogin();
+            }
+        });
+    </script>
+</body>
+</html>
