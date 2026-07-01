@@ -1,533 +1,72 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartBots - Atendimento Inteligente 24/7 com IA</title>
-    <meta name="description" content="Bots inteligentes para Site, WhatsApp e Assistente Pessoal. Automatize seu atendimento com IA.">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        
-        * { font-family: 'Inter', sans-serif; }
-        
-        .gradient-bg {
-            background: linear-gradient(135deg, #0f1115 0%, #1a1d24 100%);
-        }
-        
-        .card-glass {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .badge-available {
-            background: linear-gradient(135deg, #00FF88 0%, #00CC6F 100%);
-            color: #000;
-            font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #00FF88 0%, #00CC6F 100%);
-            color: #000;
-            font-weight: 700;
-            padding: 14px 32px;
-            border-radius: 12px;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
-        }
-        
-        .btn-secondary {
-            background: linear-gradient(135deg, #00A3FF 0%, #0082CC 100%);
-            color: #fff;
-            font-weight: 700;
-            padding: 14px 32px;
-            border-radius: 12px;
-            transition: all 0.3s;
-        }
-        
-        .btn-secondary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0, 163, 255, 0.3);
-        }
-        
-        .btn-tertiary {
-            background: linear-gradient(135deg, #FF6B00 0%, #CC5500 100%);
-            color: #fff;
-            font-weight: 700;
-            padding: 14px 32px;
-            border-radius: 12px;
-            transition: all 0.3s;
-        }
-        
-        .btn-tertiary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(255, 107, 0, 0.3);
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: #1a1d24;
-            border-radius: 16px;
-            padding: 32px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartBots.club | Bot para Site e WhatsApp com IA</title>
+  <meta name="description" content="Bots de atendimento com IA para site e WhatsApp. Automatize FAQ, suporte, vendas e captação de leads.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    *{font-family:Inter,sans-serif} html{scroll-behavior:smooth}
+    body{background:#080b10;color:#fff}.hero{background:radial-gradient(circle at 18% 12%,rgba(0,255,136,.18),transparent 28%),radial-gradient(circle at 85% 0,rgba(0,163,255,.16),transparent 28%),linear-gradient(135deg,#0c1018,#111827 55%,#080b10)}
+    .glass{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(12px);box-shadow:0 20px 70px rgba(0,0,0,.22)}
+    .btn-green{background:linear-gradient(135deg,#00ff88,#00c96b);color:#06120b;font-weight:900;border-radius:14px;padding:14px 22px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.25s}.btn-green:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(0,255,136,.22)}
+    .btn-blue{background:linear-gradient(135deg,#00a3ff,#006dff);color:white;font-weight:900;border-radius:14px;padding:14px 22px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.25s}.btn-blue:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(0,163,255,.22)}
+    .btn-muted{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-weight:800;border-radius:14px;padding:14px 22px}.badge{display:inline-flex;border:1px solid rgba(0,255,136,.25);background:rgba(0,255,136,.11);color:#00ff88;font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:7px 12px}
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:50;align-items:center;justify-content:center;padding:18px}.modal.active{display:flex}.modal-card{background:#111722;border:1px solid rgba(255,255,255,.12);border-radius:22px;width:100%;max-width:680px;max-height:92vh;overflow:auto;padding:28px}.field{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);border-radius:13px;padding:13px;color:#fff;outline:none}.field:focus{border-color:#00ff88}.label{display:block;color:#d1d5db;font-size:14px;font-weight:800;margin-bottom:7px}
+  </style>
 </head>
-<body class="gradient-bg text-white min-h-screen">
-    
-    <!-- Hero Section -->
-    <section class="container mx-auto px-4 py-20 text-center">
-        <h1 class="text-6xl font-bold mb-6">
-            SmartBots
-        </h1>
-        <p class="text-2xl text-gray-300 mb-12">
-            Atendimento Inteligente 24/7 com IA
-        </p>
-        <p class="text-lg text-gray-400 max-w-2xl mx-auto">
-            Escolha o bot perfeito para o seu negócio ou vida pessoal.<br>
-            Automatize atendimento, vendas e gestão com inteligência artificial.
-        </p>
-        <div class="mt-8">
-            <a href="/dashboard-cliente.html" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-green-400 transition-colors border border-white/10 hover:border-green-400/30 px-5 py-2.5 rounded-full">
-                <span>🔑</span> Já é cliente? Acesse seu Painel
-            </a>
-        </div>
-    </section>
-    
-    <!-- Produtos -->
-    <section class="container mx-auto px-4 pb-20">
-        <div class="max-w-6xl mx-auto">
-            <div class="grid md:grid-cols-3 gap-8">
-                
-                <!-- Bot para Site -->
-                <div class="card-glass rounded-2xl p-8 text-left">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-2xl font-bold">Bot para Site</h3>
-                        <span class="badge-available">DISPONÍVEL</span>
-                    </div>
-                    <p class="text-gray-400 mb-6">Atenda visitantes direto no seu site.</p>
-                    <div class="text-4xl font-bold mb-6">
-                        R$ 79<span class="text-lg text-gray-400">/mês</span>
-                    </div>
-                    <ul class="space-y-3 mb-8 text-sm text-gray-300">
-                        <li>✅ Widget JavaScript</li>
-                        <li>✅ Importa conteúdo do site</li>
-                        <li>✅ Upload de PDFs</li>
-                        <li>✅ Respostas instantâneas</li>
-                    </ul>
-                    <button onclick="openModal('site')" class="btn-primary w-full">
-                        Criar Bot para Site
-                    </button>
-                </div>
-                
-                <!-- Bot para WhatsApp -->
-                <div class="card-glass rounded-2xl p-8 text-left">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-2xl font-bold">Bot para WhatsApp</h3>
-                        <span class="badge-available">DISPONÍVEL</span>
-                    </div>
-                    <p class="text-gray-400 mb-6">Atenda clientes direto no WhatsApp Business.</p>
-                    <div class="text-4xl font-bold mb-6">
-                        R$ 129<span class="text-lg text-gray-400">/mês</span>
-                    </div>
-                    <ul class="space-y-3 mb-8 text-sm text-gray-300">
-                        <li>✅ WhatsApp Business API</li>
-                        <li>✅ Respostas automáticas</li>
-                        <li>✅ Histórico completo</li>
-                        <li>✅ Suporte a catálogos</li>
-                    </ul>
-                    <button onclick="openModal('whatsapp')" class="btn-secondary w-full">
-                        Criar Bot WhatsApp
-                    </button>
-                </div>
-                
-                <!-- Staff -->
-                <div class="card-glass rounded-2xl p-8 text-left">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-2xl font-bold">Staff</h3>
-                        <span class="badge-available">DISPONÍVEL</span>
-                    </div>
-                    <p class="text-gray-400 mb-6">Seu assistente pessoal inteligente.</p>
-                    <div class="text-4xl font-bold mb-6">
-                        R$ 19,90<span class="text-lg text-gray-400">/mês</span>
-                    </div>
-                    <ul class="space-y-3 mb-8 text-sm text-gray-300">
-                        <li>📅 Agenda e lembretes</li>
-                        <li>💰 Finanças pessoais</li>
-                        <li>🚗 Documentos e veículos</li>
-                        <li>👨‍👩‍👧‍👦 Gestão familiar</li>
-                    </ul>
-                    <button onclick="openModal('staff')" class="btn-tertiary w-full">
-                        Criar Meu Staff Agora
-                    </button>
-                </div>
-                
-            </div>
-        </div>
-    </section>
-    
-    <!-- Modal Bot para Site -->
-    <div id="modal-site" class="modal">
-        <div class="modal-content">
-            <h2 class="text-3xl font-bold mb-6">Criar Bot para Site</h2>
-            <form id="form-site" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Seu Nome</label>
-                    <input type="text" name="ownerName" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-green-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Email</label>
-                    <input type="email" name="ownerEmail" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-green-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">WhatsApp (com DDD)</label>
-                    <input type="tel" name="ownerWhatsApp" required placeholder="(13) 99999-9999" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-green-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Nome da Empresa</label>
-                    <input type="text" name="companyName" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-green-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Site da Empresa</label>
-                    <input type="url" name="website" required placeholder="https://exemplo.com.br" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-green-500">
-                </div>
-                
-                <div class="bg-gray-800 rounded-lg p-4 space-y-3">
-                    <p class="font-medium">Como você quer alimentar o bot?</p>
-                    <label class="flex items-start space-x-3 cursor-pointer">
-                        <input type="checkbox" name="contentWebScraping" class="mt-1">
-                        <span class="text-sm">🕷️ Importar automaticamente do meu site</span>
-                    </label>
-                    <label class="flex items-start space-x-3 cursor-pointer">
-                        <input type="checkbox" name="contentPDF" class="mt-1" onchange="togglePDFUpload(this, 'site')">
-                        <span class="text-sm">📄 Upload de PDF (catálogo, manual, etc.)</span>
-                    </label>
-                    <div id="pdf-upload-site" style="display:none;" class="ml-6">
-                        <input type="file" name="pdfFile" accept=".pdf" class="text-sm">
-                    </div>
-                    <label class="flex items-start space-x-3 cursor-pointer">
-                        <input type="checkbox" name="contentText" class="mt-1" onchange="toggleTextArea(this, 'site')">
-                        <span class="text-sm">⌨️ Colar textos manualmente</span>
-                    </label>
-                    <div id="text-area-site" style="display:none;" class="ml-6">
-                        <textarea name="businessDescription" rows="4" placeholder="Cole aqui informações sobre produtos, serviços, preços..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-sm"></textarea>
-                    </div>
-                </div>
-                
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeModal('site')" class="flex-1 bg-gray-700 hover:bg-gray-600 font-bold py-3 rounded-lg transition">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="flex-1 btn-primary">
-                        Criar Bot (R$ 79/mês)
-                    </button>
-                </div>
-            </form>
-            <div id="loading-site" style="display:none;" class="text-center py-8">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                <p>Criando seu bot...</p>
-            </div>
-        </div>
+<body>
+  <header class="hero border-b border-white/10 sticky top-0 z-40 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between">
+      <a href="/" class="text-2xl font-black"><span style="color:#00ff88">Smart</span>Bots<span class="text-gray-500">.club</span></a>
+      <nav class="hidden md:flex gap-7 text-sm text-gray-300">
+        <a href="#produtos" class="hover:text-white">Produtos</a><a href="#como" class="hover:text-white">Como funciona</a><a href="#precos" class="hover:text-white">Preços</a><a href="/dashboard-cliente.html" class="hover:text-green-400">Painel</a>
+      </nav>
+      <a href="#precos" class="btn-green !py-2.5 !px-4 text-sm">Começar</a>
     </div>
-    
-    <!-- Modal Bot para WhatsApp -->
-    <div id="modal-whatsapp" class="modal">
-        <div class="modal-content">
-            <h2 class="text-3xl font-bold mb-6">Criar Bot para WhatsApp</h2>
-            <form id="form-whatsapp" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Seu Nome</label>
-                    <input type="text" name="ownerName" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Email</label>
-                    <input type="email" name="ownerEmail" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">WhatsApp (com DDD)</label>
-                    <input type="tel" name="ownerWhatsApp" required placeholder="(13) 99999-9999" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Nome da Empresa</label>
-                    <input type="text" name="companyName" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Site da Empresa (opcional)</label>
-                    <input type="url" name="website" placeholder="https://exemplo.com.br" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500">
-                </div>
-                
-                <div class="bg-gray-800 rounded-lg p-4 space-y-3">
-                    <p class="font-medium">Como você quer alimentar o bot?</p>
-                    <label class="flex items-start space-x-3 cursor-pointer">
-                        <input type="checkbox" name="contentWebScraping" class="mt-1">
-                        <span class="text-sm">🕷️ Importar automaticamente do meu site</span>
-                    </label>
-                    <label class="flex items-start space-x-3 cursor-pointer">
-                        <input type="checkbox" name="contentPDF" class="mt-1" onchange="togglePDFUpload(this, 'whatsapp')">
-                        <span class="text-sm">📄 Upload de PDF (catálogo, manual, etc.)</span>
-                    </label>
-                    <div id="pdf-upload-whatsapp" style="display:none;" class="ml-6">
-                        <input type="file" name="pdfFile" accept=".pdf" class="text-sm">
-                    </div>
-                    <label class="flex items-start space-x-3 cursor-pointer">
-                        <input type="checkbox" name="contentText" class="mt-1" onchange="toggleTextArea(this, 'whatsapp')">
-                        <span class="text-sm">⌨️ Colar textos manualmente</span>
-                    </label>
-                    <div id="text-area-whatsapp" style="display:none;" class="ml-6">
-                        <textarea name="businessDescription" rows="4" placeholder="Cole aqui informações sobre produtos, serviços, preços..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-sm"></textarea>
-                    </div>
-                </div>
-                
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeModal('whatsapp')" class="flex-1 bg-gray-700 hover:bg-gray-600 font-bold py-3 rounded-lg transition">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="flex-1 btn-secondary">
-                        Criar Bot (R$ 129/mês)
-                    </button>
-                </div>
-            </form>
-            <div id="loading-whatsapp" style="display:none;" class="text-center py-8">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                <p>Criando seu bot...</p>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Modal Staff -->
-    <div id="modal-staff" class="modal">
-        <div class="modal-content">
-            <h2 class="text-3xl font-bold mb-6">Criar Seu Staff</h2>
-            <form id="form-staff" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Seu Nome</label>
-                    <input type="text" name="name" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Email</label>
-                    <input type="email" name="email" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">WhatsApp (com DDD)</label>
-                    <input type="tel" name="whatsapp" required placeholder="(13) 99999-9999" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Como o Staff pode te ajudar? (Opcional)</label>
-                    <textarea name="preferences" rows="3" placeholder="Ex: Preciso de lembretes, ajuda com finanças, organizar documentos..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-orange-500"></textarea>
-                    <p class="text-xs text-gray-500 mt-1">Isso ajuda a personalizar seu assistente</p>
-                </div>
-                
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeModal('staff')" class="flex-1 bg-gray-700 hover:bg-gray-600 font-bold py-3 rounded-lg transition">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="flex-1 btn-tertiary">
-                        Criar Staff (R$ 19,90/mês)
-                    </button>
-                </div>
-            </form>
-            <div id="loading-staff" style="display:none;" class="text-center py-8">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-                <p>Criando seu Staff...</p>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        // Modal functions
-        function openModal(type) {
-            document.getElementById('modal-' + type).classList.add('active');
-        }
-        
-        function closeModal(type) {
-            document.getElementById('modal-' + type).classList.remove('active');
-        }
-        
-        // Toggle PDF upload
-        function togglePDFUpload(checkbox, type) {
-            const uploadDiv = document.getElementById('pdf-upload-' + type);
-            uploadDiv.style.display = checkbox.checked ? 'block' : 'none';
-        }
-        
-        // Toggle text area
-        function toggleTextArea(checkbox, type) {
-            const textAreaDiv = document.getElementById('text-area-' + type);
-            textAreaDiv.style.display = checkbox.checked ? 'block' : 'none';
-        }
-        
-        // Form Bot Site
-        document.getElementById('form-site').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const form = e.target;
-            const formData = new FormData(form);
-            
-            form.style.display = 'none';
-            document.getElementById('loading-site').style.display = 'block';
-            
-            try {
-                const response = await fetch('/.netlify/functions/onboarding', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ownerName: formData.get('ownerName'),
-                        ownerEmail: formData.get('ownerEmail'),
-                        ownerWhatsApp: formData.get('ownerWhatsApp'),
-                        companyName: formData.get('companyName'),
-                        website: formData.get('website'),
-                        contentWebScraping: formData.get('contentWebScraping') === 'on',
-                        contentPDF: formData.get('contentPDF') === 'on',
-                        contentText: formData.get('contentText') === 'on',
-                        businessDescription: formData.get('businessDescription')
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('✅ Bot criado com sucesso! Verifique seu email para completar o pagamento.');
-                    window.location.href = result.paymentLink;
-                } else {
-                    throw new Error(result.error || 'Erro ao criar bot');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('❌ Erro ao criar bot: ' + error.message);
-                form.style.display = 'block';
-                document.getElementById('loading-site').style.display = 'none';
-            }
-        });
-        
-        // Form Bot WhatsApp
-        document.getElementById('form-whatsapp').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const form = e.target;
-            const formData = new FormData(form);
-            
-            form.style.display = 'none';
-            document.getElementById('loading-whatsapp').style.display = 'block';
-            
-            try {
-                const response = await fetch('/.netlify/functions/whatsapp-bot-onboarding', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ownerName: formData.get('ownerName'),
-                        ownerEmail: formData.get('ownerEmail'),
-                        ownerWhatsApp: formData.get('ownerWhatsApp'),
-                        companyName: formData.get('companyName'),
-                        website: formData.get('website'),
-                        contentWebScraping: formData.get('contentWebScraping') === 'on',
-                        contentPDF: formData.get('contentPDF') === 'on',
-                        contentText: formData.get('contentText') === 'on',
-                        businessDescription: formData.get('businessDescription')
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('✅ Bot WhatsApp criado com sucesso! Verifique seu email para completar o pagamento.');
-                    window.location.href = result.paymentLink;
-                } else {
-                    throw new Error(result.error || 'Erro ao criar bot WhatsApp');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('❌ Erro ao criar bot WhatsApp: ' + error.message);
-                form.style.display = 'block';
-                document.getElementById('loading-whatsapp').style.display = 'none';
-            }
-        });
-        
-        // Form Staff
-        document.getElementById('form-staff').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const form = e.target;
-            const formData = new FormData(form);
-            
-            form.style.display = 'none';
-            document.getElementById('loading-staff').style.display = 'block';
-            
-            try {
-                const response = await fetch('/.netlify/functions/staff-onboarding', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: formData.get('name'),
-                        email: formData.get('email'),
-                        whatsapp: formData.get('whatsapp'),
-                        preferences: formData.get('preferences')
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('✅ Staff criado com sucesso! Verifique seu email para completar o pagamento.');
-                    window.location.href = result.paymentLink;
-                } else {
-                    throw new Error(result.error || 'Erro ao criar Staff');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('❌ Erro ao criar Staff: ' + error.message);
-                form.style.display = 'block';
-                document.getElementById('loading-staff').style.display = 'none';
-            }
-        });
-    </script>
+  </header>
 
-    <!-- Footer -->
-    <footer class="border-t border-white/10 mt-16 py-10">
-        <div class="container mx-auto px-4 text-center">
-            <div class="text-2xl font-bold mb-3">
-                <span style="color:#00FF88">Smart</span>Bots
-            </div>
-            <p class="text-gray-500 text-sm mb-6">Atendimento Inteligente 24/7 com IA</p>
-            <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
-                <a href="/dashboard-cliente.html" class="hover:text-green-400 transition-colors">🔑 Painel do Cliente</a>
-                <span>·</span>
-                <a href="mailto:henriquecampos66@gmail.com" class="hover:text-green-400 transition-colors">📧 Suporte</a>
-                <span>·</span>
-                <span>© 2025 SmartBots.club</span>
-            </div>
-        </div>
-    </footer>
+  <main class="hero">
+    <section class="max-w-7xl mx-auto px-5 py-20 grid lg:grid-cols-2 gap-12 items-center">
+      <div>
+        <span class="badge">Atendimento automático com IA</span>
+        <h1 class="text-5xl md:text-7xl font-black leading-tight mt-7 mb-6">Bot para Site e WhatsApp sem complicação.</h1>
+        <p class="text-xl text-gray-300 leading-relaxed max-w-2xl">A SmartBots.club ajuda empresas a responder dúvidas, captar leads, vender, dar suporte e atender clientes 24 horas por dia com inteligência artificial.</p>
+        <div class="flex flex-col sm:flex-row gap-4 mt-9"><button onclick="openModal('site')" class="btn-green">Criar Bot para Site</button><button onclick="openModal('whatsapp')" class="btn-blue">Criar Bot WhatsApp</button></div>
+        <div class="grid grid-cols-3 gap-4 mt-10 text-center"><div class="glass rounded-2xl p-4"><b class="text-2xl">24/7</b><p class="text-xs text-gray-400">Atendimento</p></div><div class="glass rounded-2xl p-4"><b class="text-2xl">Leads</b><p class="text-xs text-gray-400">Captação</p></div><div class="glass rounded-2xl p-4"><b class="text-2xl">IA</b><p class="text-xs text-gray-400">Treinável</p></div></div>
+      </div>
+      <div class="glass rounded-3xl p-7">
+        <div class="flex items-center gap-3 mb-6"><div class="w-12 h-12 rounded-2xl bg-green-400/15 flex items-center justify-center text-2xl">🤖</div><div><b>SmartBots IA</b><p class="text-gray-400 text-sm">online agora</p></div></div>
+        <div class="space-y-4"><div class="bg-white/10 rounded-2xl p-4 text-gray-200">Olá! Posso ajudar com orçamento, dúvidas, produtos, horários ou falar com um consultor.</div><div class="bg-green-400 text-black rounded-2xl p-4 ml-10 font-bold">Quero contratar um bot.</div><div class="bg-white/10 rounded-2xl p-4 text-gray-200">Temos Bot para Site por R$ 79/mês e Bot WhatsApp por R$ 129/mês. Posso coletar seus dados para ativação.</div></div>
+      </div>
+    </section>
 
+    <section id="produtos" class="max-w-7xl mx-auto px-5 py-14">
+      <div class="text-center mb-12"><h2 class="text-4xl md:text-5xl font-black">Duas ofertas. Foco total em empresas.</h2><p class="text-gray-400 text-lg mt-4">Sem produto pessoal na vitrine. Só atendimento, vendas, leads e suporte.</p></div>
+      <div id="precos" class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <article class="glass rounded-3xl p-8"><div class="flex justify-between gap-4 mb-5"><h3 class="text-3xl font-black">Bot para Site</h3><span class="badge">R$ 79/mês</span></div><p class="text-gray-300 mb-7">Widget inteligente instalado no site para atender visitantes e transformar dúvidas em oportunidades.</p><ul class="space-y-3 text-gray-300 mb-8"><li>✅ Widget JavaScript</li><li>✅ Treinamento por site, PDF e texto</li><li>✅ Painel do cliente</li><li>✅ Histórico, arquivos e configurações</li><li>✅ Ideal para serviços, clínicas, lojas, imobiliárias e negócios locais</li></ul><button onclick="openModal('site')" class="btn-green w-full">Criar Bot para Site</button></article>
+        <article class="glass rounded-3xl p-8"><div class="flex justify-between gap-4 mb-5"><h3 class="text-3xl font-black">Bot WhatsApp</h3><span class="bg-blue-500/15 text-blue-300 border border-blue-500/25 font-black px-3 py-1.5 rounded-full text-xs uppercase">R$ 129/mês</span></div><p class="text-gray-300 mb-7">Atendimento automático para WhatsApp Business com linguagem natural e foco em conversão.</p><ul class="space-y-3 text-gray-300 mb-8"><li>✅ Respostas automáticas</li><li>✅ Suporte a catálogos e regras comerciais</li><li>✅ Captação e qualificação de leads</li><li>✅ Atendimento de dúvidas e orçamentos</li><li>✅ Ideal para vendas, suporte e agendamentos</li></ul><button onclick="openModal('whatsapp')" class="btn-blue w-full">Criar Bot WhatsApp</button></article>
+      </div>
+    </section>
+
+    <section id="como" class="max-w-7xl mx-auto px-5 py-14"><div class="grid md:grid-cols-4 gap-5"><div class="glass rounded-2xl p-6"><b class="text-3xl">1️⃣</b><h3 class="font-black text-xl mt-3">Cadastro</h3><p class="text-gray-400 text-sm mt-2">Você informa empresa, site, WhatsApp e conteúdo inicial.</p></div><div class="glass rounded-2xl p-6"><b class="text-3xl">2️⃣</b><h3 class="font-black text-xl mt-3">Treinamento</h3><p class="text-gray-400 text-sm mt-2">O bot aprende com seus textos, documentos e regras.</p></div><div class="glass rounded-2xl p-6"><b class="text-3xl">3️⃣</b><h3 class="font-black text-xl mt-3">Ativação</h3><p class="text-gray-400 text-sm mt-2">Você recebe painel, token e instruções de uso.</p></div><div class="glass rounded-2xl p-6"><b class="text-3xl">4️⃣</b><h3 class="font-black text-xl mt-3">Operação</h3><p class="text-gray-400 text-sm mt-2">O bot atende, registra histórico e pode ser melhorado.</p></div></div></section>
+
+    <section class="max-w-5xl mx-auto px-5 py-14 text-center"><div class="glass rounded-3xl p-10"><h2 class="text-4xl font-black mb-4">Já é cliente?</h2><p class="text-gray-400 text-lg mb-7">Acesse o painel para treinar o bot, ver histórico, configurar respostas e instalar no site.</p><a href="/dashboard-cliente.html" class="btn-muted">🔑 Acessar Painel do Cliente</a></div></section>
+  </main>
+
+  <footer class="border-t border-white/10 py-10 bg-[#080b10]"><div class="max-w-7xl mx-auto px-5 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500"><b class="text-xl"><span style="color:#00ff88">Smart</span>Bots.club</b><div class="flex gap-5 flex-wrap justify-center"><a class="hover:text-green-400" href="/dashboard-cliente.html">Painel</a><a class="hover:text-green-400" href="mailto:henriquecampos66@gmail.com">Suporte</a><span>© 2026 SmartBots.club</span></div></div></footer>
+
+  <div id="modal-site" class="modal"><div class="modal-card"><div class="flex justify-between gap-4 mb-6"><div><h2 class="text-3xl font-black">Criar Bot para Site</h2><p class="text-gray-400 mt-2">Gere o cadastro, link de pagamento e token do painel.</p></div><button onclick="closeModal('site')" class="text-gray-400 hover:text-white text-2xl">×</button></div><form id="form-site" class="space-y-4"><div class="grid md:grid-cols-2 gap-4"><div><label class="label">Seu nome</label><input class="field" name="ownerName" required></div><div><label class="label">E-mail</label><input class="field" name="ownerEmail" type="email" required></div><div><label class="label">WhatsApp</label><input class="field" name="ownerWhatsApp" required></div><div><label class="label">Empresa</label><input class="field" name="companyName" required></div></div><div><label class="label">Site</label><input class="field" name="website" type="url" placeholder="https://suaempresa.com.br"></div><div><label class="label">Conteúdo inicial</label><textarea class="field" name="businessDescription" rows="5" placeholder="Produtos, serviços, perguntas frequentes, horários e regras do atendimento."></textarea></div><div class="flex flex-col sm:flex-row gap-3"><button type="button" onclick="closeModal('site')" class="btn-muted flex-1">Cancelar</button><button class="btn-green flex-1">Criar Bot — R$ 79/mês</button></div></form><div id="loading-site" class="hidden text-center py-10 text-gray-300">Criando...</div></div></div>
+  <div id="modal-whatsapp" class="modal"><div class="modal-card"><div class="flex justify-between gap-4 mb-6"><div><h2 class="text-3xl font-black">Criar Bot WhatsApp</h2><p class="text-gray-400 mt-2">Automatize atendimento, vendas e suporte no WhatsApp.</p></div><button onclick="closeModal('whatsapp')" class="text-gray-400 hover:text-white text-2xl">×</button></div><form id="form-whatsapp" class="space-y-4"><div class="grid md:grid-cols-2 gap-4"><div><label class="label">Seu nome</label><input class="field" name="ownerName" required></div><div><label class="label">E-mail</label><input class="field" name="ownerEmail" type="email" required></div><div><label class="label">WhatsApp</label><input class="field" name="ownerWhatsApp" required></div><div><label class="label">Empresa</label><input class="field" name="companyName" required></div></div><div><label class="label">Site opcional</label><input class="field" name="website" type="url"></div><div><label class="label">Como o bot deve atender?</label><textarea class="field" name="businessDescription" rows="5" required placeholder="Explique produtos, serviços, dúvidas frequentes, tom de atendimento e quando chamar humano."></textarea></div><div class="flex flex-col sm:flex-row gap-3"><button type="button" onclick="closeModal('whatsapp')" class="btn-muted flex-1">Cancelar</button><button class="btn-blue flex-1">Criar WhatsApp — R$ 129/mês</button></div></form><div id="loading-whatsapp" class="hidden text-center py-10 text-gray-300">Criando...</div></div></div>
+
+  <script>
+    function openModal(type){document.getElementById('modal-'+type).classList.add('active')}
+    function closeModal(type){document.getElementById('modal-'+type).classList.remove('active')}
+    async function send(type,endpoint){const form=document.getElementById('form-'+type),loading=document.getElementById('loading-'+type),fd=new FormData(form);form.classList.add('hidden');loading.classList.remove('hidden');try{const payload=Object.fromEntries(fd.entries());const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await res.json().catch(()=>({}));if(!res.ok||!data.success)throw new Error(data.error||'Erro ao criar bot');const token=data.clientToken?'\n\nToken do painel: '+data.clientToken:'';alert('✅ Bot criado com sucesso!'+token);if(data.paymentLink||data.paymentUrl)location.href=data.paymentLink||data.paymentUrl;else closeModal(type)}catch(e){alert('❌ '+e.message);form.classList.remove('hidden')}finally{loading.classList.add('hidden')}}
+    document.getElementById('form-site').addEventListener('submit',e=>{e.preventDefault();send('site','/.netlify/functions/onboarding')});
+    document.getElementById('form-whatsapp').addEventListener('submit',e=>{e.preventDefault();send('whatsapp','/.netlify/functions/whatsapp-bot-onboarding')});
+  </script>
 </body>
 </html>
