@@ -1,91 +1,54 @@
 const fetch = require('node-fetch');
 
+const headers = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'OPTIONS, POST'
+};
+
+const plans = {
+  site: { title: 'SmartBots - Bot para Site', price: 79 },
+  whatsapp: { title: 'SmartBots - Bot WhatsApp', price: 129 },
+  'Bot para Site': { title: 'SmartBots - Bot para Site', price: 79 },
+  'Bot WhatsApp': { title: 'SmartBots - Bot WhatsApp', price: 129 },
+  'Básico': { title: 'SmartBots - Bot para Site', price: 79 },
+  Pro: { title: 'SmartBots - Bot WhatsApp', price: 129 }
+};
+
 exports.handler = async (event) => {
-    if (event.httpMethod !== 'POST' ) {
-        return { statusCode: 405, body: 'Method Not Allowed' };
-    }
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
+  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
 
-    const MERCADOPAGO_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  try {
+    const { plan, customerName, customerEmail, botId } = JSON.parse(event.body || '{}');
+    if (!plan || !customerName || !customerEmail) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Plano, nome e e-mail são obrigatórios.' }) };
+    if (!process.env.MERCADOPAGO_ACCESS_TOKEN) return { statusCode: 500, headers, body: JSON.stringify({ error: 'Mercado Pago não configurado.' }) };
 
-    try {
-        const { plan, customerName, customerEmail } = JSON.parse(event.body);
+    const selected = plans[plan];
+    if (!selected) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Plano inválido.' }) };
 
-        if (!plan || !customerName || !customerEmail) {
-            return { 
-                statusCode: 400, 
-                body: JSON.stringify({ error: 'Plano, nome e e-mail são obrigatórios.' }) 
-            };
-        }
+    const ref = botId ? `${plan}:${botId}` : `${plan}:${Date.now()}`;
+    const preferenceData = {
+      items: [{ title: selected.title, description: 'Assinatura mensal SmartBots.club', quantity: 1, currency_id: 'BRL', unit_price: selected.price }],
+      payer: { name: customerName, email: customerEmail },
+      back_urls: { success: 'https://smartbots.club?payment=success', failure: 'https://smartbots.club?payment=failure', pending: 'https://smartbots.club?payment=pending' },
+      auto_return: 'approved',
+      statement_descriptor: 'SMARTBOTS',
+      external_reference: ref,
+      notification_url: 'https://smartbots.club/.netlify/functions/payment-webhook'
+    };
 
-        // Definir preços dos planos
-        const planPrices = {
-            'Básico': 99.00,
-            'Pro': 249.00
-        };
+    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}` },
+      body: JSON.stringify(preferenceData)
+    });
 
-        const price = planPrices[plan];
-        if (!price) {
-            return { 
-                statusCode: 400, 
-                body: JSON.stringify({ error: 'Plano inválido.' }) 
-            };
-        }
-
-        // Criar preferência de pagamento no Mercado Pago
-        const preferenceData = {
-            items: [{
-                title: `SmartBots - Plano ${plan}`,
-                description: `Assinatura mensal do plano ${plan} do SmartBots`,
-                quantity: 1,
-                currency_id: 'BRL',
-                unit_price: price
-            }],
-            payer: {
-                name: customerName,
-                email: customerEmail
-            },
-            back_urls: {
-                success: 'https://smartbots.club/sucesso',
-                failure: 'https://smartbots.club/falha',
-                pending: 'https://smartbots.club/pendente'
-            },
-            auto_return: 'approved',
-            statement_descriptor: 'SMARTBOTS',
-            external_reference: `${plan}-${Date.now( )}`,
-            notification_url: 'https://smartbots.club/.netlify/functions/payment-webhook'
-        };
-
-        const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${MERCADOPAGO_ACCESS_TOKEN}`
-            },
-            body: JSON.stringify(preferenceData )
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Erro ao criar preferência no Mercado Pago:', errorText);
-            throw new Error('Falha ao criar link de pagamento.');
-        }
-
-        const preference = await response.json();
-        console.log('Link de pagamento criado:', preference.init_point);
-
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ 
-                paymentUrl: preference.init_point,
-                preferenceId: preference.id
-            })
-        };
-
-    } catch (error) {
-        console.error('Erro na função create-payment:', error.message);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: error.message })
-        };
-    }
+    if (!response.ok) throw new Error('Falha ao criar link de pagamento: ' + await response.text());
+    const preference = await response.json();
+    return { statusCode: 200, headers, body: JSON.stringify({ paymentUrl: preference.init_point || preference.sandbox_init_point, preferenceId: preference.id, amount: selected.price }) };
+  } catch (error) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
+  }
 };
