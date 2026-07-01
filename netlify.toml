@@ -1,0 +1,18 @@
+[build]
+  base = "notarizex-ai"
+  publish = "."
+  command = "npm install"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/dashboard-cliente"
+  to = "/dashboard-cliente.html"
+  status = 200
+
+[[redirects]]
+  from = "/painel"
+  to = "/dashboard-cliente.html"
+  status = 200
