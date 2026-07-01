@@ -135,6 +135,7 @@ create table if not exists chat_history (
   user_identifier text,
   user_message text,
   bot_response text,
+  bot_reply text,
   created_at timestamptz default now()
 );
 
@@ -142,6 +143,7 @@ alter table chat_history add column if not exists bot_id text;
 alter table chat_history add column if not exists user_identifier text;
 alter table chat_history add column if not exists user_message text;
 alter table chat_history add column if not exists bot_response text;
+alter table chat_history add column if not exists bot_reply text;
 alter table chat_history add column if not exists created_at timestamptz default now();
 create index if not exists idx_chat_history_bot_id on chat_history(bot_id);
 
