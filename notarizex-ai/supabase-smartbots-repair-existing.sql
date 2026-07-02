@@ -41,11 +41,8 @@ alter table if exists bot_training_files alter column openai_file_id drop not nu
 alter table if exists bot_training_files alter column file_size_bytes set default 0;
 alter table if exists bot_training_files alter column status set default 'active';
 
--- 6) smartbot_leads: corrigir id sem default.
-create sequence if not exists smartbot_leads_id_seq;
-alter table if exists smartbot_leads alter column id set default nextval('smartbot_leads_id_seq'::regclass);
-alter sequence smartbot_leads_id_seq owned by smartbot_leads.id;
-select setval('smartbot_leads_id_seq', greatest(coalesce((select max(id) from smartbot_leads), 0), 1), true);
+-- 6) smartbot_leads já usa identity column no Supabase.
+-- Não mexer no default do id.
 
 -- 7) Garantir colunas novas do cérebro do bot.
 alter table if exists website_bots add column if not exists knowledge_text text;
