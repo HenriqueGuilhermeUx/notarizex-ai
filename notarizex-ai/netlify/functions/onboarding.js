@@ -153,9 +153,11 @@ exports.handler = async (event) => {
       uploaded_file_base64: uploaded ? uploaded.base64 : null,
       assistant_id: 'pending',
       vector_store_id: 'pending',
+      file_ids: uploaded ? fileName : '',
+      content_options: JSON.stringify({ site: Boolean(website), manual: Boolean(businessDescription), upload: Boolean(uploaded) }),
       plan: 'site',
       status: 'pending_payment',
-      payment_link: paymentLink,
+      payment_link: paymentLink || '',
       created_at: new Date().toISOString()
     });
 
