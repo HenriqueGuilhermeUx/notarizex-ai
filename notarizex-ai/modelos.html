@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SmartBots Modelos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-white">
+  <main class="max-w-6xl mx-auto p-4">
+    <div class="flex justify-between items-center mb-4">
+      <a href="/crm.html" class="font-black text-xl"><span class="text-green-400">Smart</span>Bots</a>
+      <a href="/crm.html" class="bg-white/10 px-4 py-2 rounded-xl font-black">Voltar ao CRM</a>
+    </div>
+    <section class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-5">
+      <h1 class="text-2xl font-black">Modelos de atendimento</h1>
+      <p class="text-gray-400 mt-2">Escolha um modelo para preencher as regras do bot.</p>
+    </section>
+    <section class="grid md:grid-cols-3 gap-4">
+      <button onclick="applyModel('clinica')" class="bg-slate-900 border border-white/10 rounded-2xl p-5 text-left hover:border-green-400"><h2 class="font-black text-xl">Clínica</h2><p class="text-gray-400 text-sm mt-2">Consulta, retorno, convênio e agendamento.</p></button>
+      <button onclick="applyModel('advocacia')" class="bg-slate-900 border border-white/10 rounded-2xl p-5 text-left hover:border-green-400"><h2 class="font-black text-xl">Advocacia</h2><p class="text-gray-400 text-sm mt-2">Área jurídica, prazo e documentos.</p></button>
+      <button onclick="applyModel('imobiliaria')" class="bg-slate-900 border border-white/10 rounded-2xl p-5 text-left hover:border-green-400"><h2 class="font-black text-xl">Imobiliária</h2><p class="text-gray-400 text-sm mt-2">Compra, venda, aluguel e visita.</p></button>
+      <button onclick="applyModel('agencia')" class="bg-slate-900 border border-white/10 rounded-2xl p-5 text-left hover:border-green-400"><h2 class="font-black text-xl">Agência e Serviços</h2><p class="text-gray-400 text-sm mt-2">Projeto, prazo, orçamento e proposta.</p></button>
+      <button onclick="applyModel('estetica')" class="bg-slate-900 border border-white/10 rounded-2xl p-5 text-left hover:border-green-400"><h2 class="font-black text-xl">Estética</h2><p class="text-gray-400 text-sm mt-2">Procedimento, avaliação e retorno.</p></button>
+      <button onclick="applyModel('b2b')" class="bg-slate-900 border border-white/10 rounded-2xl p-5 text-left hover:border-green-400"><h2 class="font-black text-xl">Vendas B2B</h2><p class="text-gray-400 text-sm mt-2">Dor, urgência, decisor e próximos passos.</p></button>
+    </section>
+    <div id="result" class="mt-5 bg-white/5 border border-white/10 rounded-2xl p-5 text-gray-400">Escolha um modelo.</div>
+  </main>
+  <script src="/modelos.js"></script>
+</body>
+</html>
