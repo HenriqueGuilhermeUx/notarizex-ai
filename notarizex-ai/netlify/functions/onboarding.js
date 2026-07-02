@@ -151,6 +151,8 @@ exports.handler = async (event) => {
       uploaded_file_mime: uploaded ? uploaded.mime : null,
       uploaded_file_size_bytes: uploaded ? uploaded.size : null,
       uploaded_file_base64: uploaded ? uploaded.base64 : null,
+      assistant_id: 'pending',
+      vector_store_id: 'pending',
       plan: 'site',
       status: 'pending_payment',
       payment_link: paymentLink,
