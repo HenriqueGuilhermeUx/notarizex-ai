@@ -12,13 +12,30 @@
       <a href="/crm.html" class="font-black text-xl"><span class="text-green-400">Smart</span>Bots</a>
       <a href="/crm.html" class="bg-white/10 px-4 py-2 rounded-xl font-black">Voltar ao CRM</a>
     </div>
+
     <section class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-5">
       <h1 class="text-2xl font-black">Importar contatos antigos</h1>
-      <p class="text-gray-400 mt-2">Cole contatos de planilha no formato CSV simples.</p>
-      <p class="text-gray-500 text-sm mt-2">Cabeçalho sugerido: name,phone,email,interest,notes</p>
+      <p class="text-gray-400 mt-2">Use esta tela para trazer clientes antigos, orçamentos perdidos ou contatos que sumiram para a etapa de Reativação.</p>
+      <div class="bg-slate-900 border border-white/10 rounded-2xl p-4 mt-5 text-sm text-gray-300">
+        <b class="text-white">Como preparar a planilha:</b>
+        <ol class="list-decimal ml-5 mt-2 space-y-1">
+          <li>Abra Excel, Google Sheets ou outra planilha.</li>
+          <li>Crie as colunas: <b>nome, telefone, email, interesse, observacao</b>.</li>
+          <li>Preencha uma linha por contato.</li>
+          <li>Copie tudo e cole abaixo, ou salve como CSV e escolha o arquivo.</li>
+        </ol>
+      </div>
+      <p class="text-gray-500 text-sm mt-4">Modelo: nome,telefone,email,interesse,observacao</p>
     </section>
-    <textarea id="csv" class="w-full h-80 bg-slate-900 border border-white/10 rounded-2xl p-4 text-sm" placeholder="name,phone,email,interest,notes&#10;Maria,13999999999,maria@email.com,Limpeza dental,Cliente antiga"></textarea>
-    <button onclick="importContacts()" class="mt-4 bg-green-400 text-black px-5 py-3 rounded-xl font-black">Importar contatos</button>
+
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
+      <label class="block text-sm font-bold mb-2">Escolher arquivo CSV opcional</label>
+      <input id="file" type="file" accept=".csv,.txt" class="block w-full text-sm text-gray-300" onchange="loadCsvFile(event)">
+      <p class="text-xs text-gray-500 mt-2">Também pode copiar e colar direto no campo abaixo.</p>
+    </div>
+
+    <textarea id="csv" class="w-full h-80 bg-slate-900 border border-white/10 rounded-2xl p-4 text-sm" placeholder="nome,telefone,email,interesse,observacao&#10;Maria,13999999999,maria@email.com,Limpeza dental,Cliente antiga&#10;João,13888888888,joao@email.com,Orçamento de imóvel,Sumiu depois da proposta"></textarea>
+    <button onclick="importContacts()" class="mt-4 bg-green-400 text-black px-5 py-3 rounded-xl font-black">Importar contatos para Reativação</button>
     <div id="result" class="mt-4 text-gray-400"></div>
   </main>
   <script src="/importar-contatos.js"></script>
