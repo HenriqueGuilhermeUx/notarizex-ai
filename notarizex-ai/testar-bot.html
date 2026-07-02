@@ -6,29 +6,50 @@
   <title>Testar SmartBot</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body{background:#0f1115;color:white;font-family:Inter,Arial,sans-serif}.card{background:#181b22;border:1px solid #30343d;border-radius:18px}.field{background:#101318;border:1px solid #30343d;border-radius:12px;color:white;padding:12px;width:100%}.btn{background:#00ff88;color:#07110b;font-weight:900;border-radius:12px;padding:12px 16px}.msg{padding:12px 14px;border-radius:14px;white-space:pre-wrap;line-height:1.45}.user{background:#00ff88;color:#07110b;align-self:flex-end}.bot{background:#252a33;color:#e5e7eb;align-self:flex-start}.pill{font-size:12px;font-weight:800;border-radius:999px;padding:6px 10px;background:#2b2412;color:#fbbf24}
+    body{background:#0f1115;color:white;font-family:Inter,Arial,sans-serif}.card{background:#181b22;border:1px solid #30343d;border-radius:18px}.field{background:#101318;border:1px solid #30343d;border-radius:12px;color:white;padding:12px;width:100%}.btn{background:#00ff88;color:#07110b;font-weight:900;border-radius:12px;padding:12px 16px}.btn2{background:#2a2e37;color:white;border:1px solid #3a3f4b;border-radius:12px;padding:10px 12px}.msg{padding:12px 14px;border-radius:14px;white-space:pre-wrap;line-height:1.45}.user{background:#00ff88;color:#07110b;align-self:flex-end}.bot{background:#252a33;color:#e5e7eb;align-self:flex-start}.pill{font-size:12px;font-weight:800;border-radius:999px;padding:6px 10px;background:#2b2412;color:#fbbf24}.hot{color:#f87171}.warm{color:#fbbf24}
   </style>
 </head>
 <body>
-  <header class="border-b border-white/10 p-4"><div class="max-w-4xl mx-auto flex justify-between"><a href="/dashboard-cliente.html" class="font-black text-xl"><span style="color:#00ff88">Smart</span>Bots</a><span id="status" class="pill">Teste</span></div></header>
-  <main class="max-w-4xl mx-auto p-4">
-    <section class="card p-5 mb-4">
-      <h1 class="text-2xl font-black mb-2">Testar Bot</h1>
-      <p class="text-gray-400 text-sm mb-4">Use seu Bot ID para testar a resposta antes de instalar no site.</p>
-      <label class="text-sm text-gray-300 font-bold">Bot ID</label>
-      <input id="botId" class="field mt-2 font-mono" placeholder="site-...">
+  <header class="border-b border-white/10 p-4"><div class="max-w-5xl mx-auto flex justify-between"><a href="/dashboard-cliente.html" class="font-black text-xl"><span style="color:#00ff88">Smart</span>Bots</a><span id="status" class="pill">Teste</span></div></header>
+  <main class="max-w-5xl mx-auto p-4 grid lg:grid-cols-3 gap-4">
+    <section class="lg:col-span-2 space-y-4">
+      <div class="card p-5">
+        <h1 class="text-2xl font-black mb-2">Testar Bot</h1>
+        <p class="text-gray-400 text-sm mb-4">Teste a IA antes de instalar no site. O bot já pode captar oportunidades.</p>
+        <label class="text-sm text-gray-300 font-bold">Bot ID</label>
+        <input id="botId" class="field mt-2 font-mono" placeholder="site-...">
+      </div>
+      <div class="card p-4">
+        <div class="text-sm text-gray-400 mb-3">Perguntas rápidas</div>
+        <div class="grid md:grid-cols-2 gap-2">
+          <button class="btn2" onclick="quick('Quais serviços vocês oferecem?')">❓ Serviços</button>
+          <button class="btn2" onclick="quick('Quero um orçamento. Meu nome é Henrique e meu WhatsApp é 13 99798-4328')">💰 Orçamento</button>
+          <button class="btn2" onclick="quick('Quero agendar uma reunião')">📅 Agendamento</button>
+          <button class="btn2" onclick="quick('Quero falar com um humano')">🙋 Humano</button>
+        </div>
+      </div>
+      <section class="card overflow-hidden">
+        <div id="chat" class="h-[470px] overflow-auto p-4 flex flex-col gap-3"><div class="msg bot">Olá! Escolha uma pergunta rápida ou digite uma mensagem.</div></div>
+        <form id="form" class="p-4 border-t border-white/10 flex gap-3"><input id="text" class="field" placeholder="Digite sua mensagem..."><button class="btn">Enviar</button></form>
+      </section>
     </section>
-    <section class="card overflow-hidden">
-      <div id="chat" class="h-[500px] overflow-auto p-4 flex flex-col gap-3"><div class="msg bot">Olá! Digite uma pergunta para testar o SmartBot.</div></div>
-      <form id="form" class="p-4 border-t border-white/10 flex gap-3"><input id="text" class="field" placeholder="Digite sua mensagem..."><button class="btn">Enviar</button></form>
-    </section>
+    <aside class="card p-5 h-fit">
+      <div class="flex justify-between items-center mb-3"><h2 class="font-black text-lg">Oportunidades</h2><button onclick="loadLeads()" class="text-sm text-green-400">Atualizar</button></div>
+      <div id="leads" class="text-gray-500 text-sm">Teste um orçamento para gerar lead.</div>
+    </aside>
   </main>
   <script>
-    function getSavedBot(){try{var s=JSON.parse(localStorage.getItem('sb_session')||'{}');return s.botId||''}catch(e){return ''}}
-    botId.value = new URLSearchParams(location.search).get('botId') || getSavedBot();
-    var visitorId = localStorage.getItem('sb_test_visitor') || ('test-'+Date.now()); localStorage.setItem('sb_test_visitor', visitorId);
+    function saved(){try{return JSON.parse(localStorage.getItem('sb_session')||'{}')}catch(e){return {}}}
+    function getBot(){var s=saved();return new URLSearchParams(location.search).get('botId')||s.botId||''}
+    function esc(v){return String(v||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+    botId.value=getBot();
+    var visitorId=localStorage.getItem('sb_test_visitor')||('test-'+Date.now());localStorage.setItem('sb_test_visitor',visitorId);
     function add(t,c){var d=document.createElement('div');d.className='msg '+c;d.textContent=t;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
-    form.onsubmit=async function(e){e.preventDefault();var b=botId.value.trim();var m=text.value.trim();if(!b||!m)return alert('Informe Bot ID e mensagem');text.value='';add(m,'user');var wait=add('Pensando...','bot');try{var r=await fetch('/.netlify/functions/smartbot-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({botId:b,visitorId:visitorId,channel:'site',message:m})});var j=await r.json();wait.textContent=j.reply||j.error||'Sem resposta';status.textContent=j.aiUsed?'IA ativa':'Fallback'}catch(err){wait.textContent='Erro: '+err.message;status.textContent='Erro'}};
+    function quick(t){text.value='';send(t)}
+    async function send(m){var b=botId.value.trim();if(!b||!m)return alert('Informe Bot ID e mensagem');add(m,'user');var wait=add('Pensando...','bot');try{var r=await fetch('/.netlify/functions/smartbot-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({botId:b,visitorId:visitorId,channel:'site',message:m})});var j=await r.json();wait.textContent=j.reply||j.error||'Sem resposta';status.textContent=j.aiUsed?'IA ativa':'Fallback';loadLeads()}catch(err){wait.textContent='Erro: '+err.message;status.textContent='Erro'}}
+    form.onsubmit=function(e){e.preventDefault();var m=text.value.trim();text.value='';send(m)};
+    async function loadLeads(){var s=saved();var b=botId.value.trim();if(!s.clientToken||!b){leads.innerHTML='Para ver oportunidades, abra esta página depois de entrar pelo painel.';return}try{var r=await fetch('/.netlify/functions/client-portal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_leads',botId:b,clientToken:s.clientToken})});var j=await r.json();var arr=j.leads||[];if(!arr.length){leads.innerHTML='Nenhuma oportunidade ainda.';return}leads.innerHTML=arr.slice(0,8).map(function(x){return '<div class="border-b border-white/10 py-3"><div class="font-bold text-white">'+esc(x.phone||x.email||x.name||'Contato não informado')+'</div><div class="text-xs '+(x.lead_temperature==='hot'?'hot':'warm')+'">'+esc(x.lead_temperature||'lead')+' · '+esc(x.intent||'')+'</div><div class="mt-1">'+esc(x.interest||'')+'</div><div class="text-xs text-gray-500 mt-1">'+new Date(x.created_at).toLocaleString('pt-BR')+'</div></div>'}).join('')}catch(e){leads.innerHTML='Erro ao carregar oportunidades.'}}
+    loadLeads();
   </script>
 </body>
 </html>
