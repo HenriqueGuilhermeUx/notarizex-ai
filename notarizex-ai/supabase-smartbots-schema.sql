@@ -178,3 +178,14 @@ alter table smartbot_leads add column if not exists conversation_summary text;
 alter table smartbot_leads add column if not exists created_at timestamptz default now();
 alter table smartbot_leads add column if not exists updated_at timestamptz;
 create index if not exists idx_smartbot_leads_bot_id on smartbot_leads(bot_id);
+
+-- Correção MVP para RLS.
+-- Como as funções Netlify usam a chave anon do Supabase neste momento,
+-- estas tabelas precisam permitir operações feitas pelo papel anon.
+-- Em produção, o ideal é trocar as funções para SUPABASE_SERVICE_ROLE_KEY.
+
+alter table website_bots disable row level security;
+alter table whatsapp_bots disable row level security;
+alter table bot_training_files disable row level security;
+alter table chat_history disable row level security;
+alter table smartbot_leads disable row level security;
