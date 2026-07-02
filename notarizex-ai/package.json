@@ -19,6 +19,9 @@
     "node-fetch": "^2.6.7",
     "cheerio": "^1.0.0-rc.12",
     "form-data": "^4.0.0",
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "openai": "^4.104.0",
+    "@supabase/supabase-js": "^2.45.4",
+    "twilio": "^5.3.4"
   }
 }
