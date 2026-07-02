@@ -141,6 +141,7 @@ exports.handler = async (event) => {
       company_name: companyName,
       website,
       email: ownerEmail,
+      owner_email: ownerEmail,
       owner_name: ownerName,
       owner_whatsapp: ownerWhatsApp,
       business_description: businessDescription,
