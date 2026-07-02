@@ -82,6 +82,10 @@ function nextAction(intent) {
   return map[intent] || map.duvida;
 }
 
+function shouldNotify(intent) {
+  return ['orcamento', 'agendamento', 'follow_up', 'satisfacao', 'handoff'].includes(intent);
+}
+
 function fallbackReply({ bot, intent }) {
   const company = bot.company_name || 'nossa empresa';
   const knowledge = clean(bot.knowledge_text || bot.business_description || '').slice(0, 700);
@@ -120,6 +124,51 @@ async function aiReply({ bot, channel, message, intent, history }) {
   return clean(completion.choices?.[0]?.message?.content || '');
 }
 
+async function sendOwnerEmail({ bot, botId, channel, message, intent, botReply, phone, email, temperature }) {
+  if (!process.env.RESEND_API_KEY) return false;
+  const to = clean(bot.owner_email || bot.email);
+  if (!to) return false;
+
+  const company = bot.company_name || 'SmartBot';
+  const subject = `Novo lead ${temperature || 'hot'} no SmartBot - ${company}`;
+  const from = process.env.RESEND_FROM || 'SmartBots <onboarding@resend.dev>';
+  const dashboardUrl = 'https://smartbots.club/dashboard-cliente.html';
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;background:#f6f7f9;padding:24px">
+      <div style="max-width:640px;margin:auto;background:white;border-radius:14px;padding:24px;border:1px solid #e5e7eb">
+        <h2 style="margin:0 0 8px;color:#111827">Novo contato captado pelo SmartBot</h2>
+        <p style="margin:0 0 18px;color:#4b5563">O bot detectou uma intenção importante e registrou uma oportunidade.</p>
+        <p><b>Empresa:</b> ${company}</p>
+        <p><b>Canal:</b> ${channel}</p>
+        <p><b>Intenção:</b> ${intent}</p>
+        <p><b>Temperatura:</b> ${temperature}</p>
+        <p><b>Telefone:</b> ${phone || 'não informado'}</p>
+        <p><b>E-mail:</b> ${email || 'não informado'}</p>
+        <p><b>Mensagem do cliente:</b><br>${String(message || '').replace(/</g, '&lt;')}</p>
+        <p><b>Resposta do bot:</b><br>${String(botReply || '').replace(/</g, '&lt;')}</p>
+        <p><b>Próxima ação sugerida:</b><br>${nextAction(intent)}</p>
+        <p style="margin-top:24px"><a href="${dashboardUrl}" style="background:#00cc6f;color:#07110b;padding:12px 16px;border-radius:10px;text-decoration:none;font-weight:bold">Abrir painel SmartBots</a></p>
+        <p style="font-size:12px;color:#6b7280;margin-top:24px">Bot ID: ${botId}</p>
+      </div>
+    </div>`;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ from, to, subject, html })
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('[SmartBot Email]', error.message);
+    return false;
+  }
+}
+
 async function saveHistory({ botId, visitorId, message, botReply }) {
   await db('chat_history', {
     method: 'POST',
@@ -128,11 +177,13 @@ async function saveHistory({ botId, visitorId, message, botReply }) {
   }).catch(() => null);
 }
 
-async function saveLead({ botId, channel, message, intent, botReply }) {
+async function saveLead({ bot, botId, channel, message, intent, botReply }) {
   const phone = extractPhone(message);
   const email = extractEmail(message);
-  const shouldSave = phone || email || ['orcamento', 'agendamento', 'follow_up', 'satisfacao', 'handoff'].includes(intent);
-  if (!shouldSave) return;
+  const shouldSave = phone || email || shouldNotify(intent);
+  if (!shouldSave) return { saved: false, emailed: false };
+
+  const temperature = ['orcamento', 'agendamento', 'satisfacao', 'handoff'].includes(intent) ? 'hot' : 'warm';
   await db('smartbot_leads', {
     method: 'POST',
     headers: { Prefer: 'return=minimal' },
@@ -143,12 +194,18 @@ async function saveLead({ botId, channel, message, intent, botReply }) {
       phone,
       interest: message.slice(0, 700),
       intent,
-      lead_temperature: ['orcamento', 'agendamento', 'satisfacao', 'handoff'].includes(intent) ? 'hot' : 'warm',
+      lead_temperature: temperature,
       next_action: nextAction(intent),
       conversation_summary: `Cliente: ${message}\nBot: ${botReply}`,
       created_at: new Date().toISOString()
     })
   }).catch(() => null);
+
+  let emailed = false;
+  if (shouldNotify(intent)) {
+    emailed = await sendOwnerEmail({ bot, botId, channel, message, intent, botReply, phone, email, temperature });
+  }
+  return { saved: true, emailed };
 }
 
 exports.handler = async (event) => {
@@ -161,8 +218,10 @@ exports.handler = async (event) => {
     const visitorId = clean(body.visitorId || body.visitor_id || 'visitor-' + Date.now());
     const channel = clean(body.channel || 'site');
     if (!botId || !message) return json(400, { success: false, error: 'botId e message são obrigatórios.' });
+
     const bot = await findBot(botId, channel);
     if (!bot) return json(404, { success: false, error: 'Bot não encontrado.' });
+
     const intent = detectIntent(message);
     const history = await getRecentHistory(botId, visitorId);
     let botReply = null;
@@ -174,9 +233,11 @@ exports.handler = async (event) => {
       console.error('[SmartBot AI fallback]', e.message);
     }
     if (!botReply) botReply = fallbackReply({ bot, intent });
+
     await saveHistory({ botId, visitorId, message, botReply });
-    await saveLead({ botId, channel, message, intent, botReply });
-    return json(200, { success: true, reply: botReply, intent, botId, visitorId, aiUsed });
+    const lead = await saveLead({ bot, botId, channel, message, intent, botReply });
+
+    return json(200, { success: true, reply: botReply, intent, botId, visitorId, aiUsed, leadSaved: lead.saved, emailSent: lead.emailed });
   } catch (error) {
     console.error('[SmartBot Chat]', error.message);
     return json(500, { success: false, error: error.message || 'Erro no SmartBot' });
