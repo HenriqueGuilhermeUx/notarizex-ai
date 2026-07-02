@@ -1,700 +1,108 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartBots — Painel do Cliente</title>
-    <meta name="robots" content="noindex, nofollow">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        * { font-family: 'Inter', sans-serif; }
-        .gradient-bg { background: linear-gradient(135deg, #0f1115 0%, #1a1d24 100%); }
-        .card-glass {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .tab-active { border-bottom: 2px solid #00FF88; color: #00FF88; }
-        .tab-inactive { border-bottom: 2px solid transparent; color: #9ca3af; }
-        .tab-inactive:hover { color: #e5e7eb; }
-        .stat-card {
-            background: rgba(0,255,136,0.05);
-            border: 1px solid rgba(0,255,136,0.15);
-            border-radius: 12px;
-            padding: 20px;
-        }
-        .upload-zone {
-            border: 2px dashed rgba(0,255,136,0.3);
-            border-radius: 12px;
-            transition: all 0.3s;
-        }
-        .upload-zone:hover, .upload-zone.dragover {
-            border-color: #00FF88;
-            background: rgba(0,255,136,0.05);
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #00FF88 0%, #00CC6F 100%);
-            color: #000; font-weight: 700; padding: 12px 28px;
-            border-radius: 10px; transition: all 0.3s; cursor: pointer;
-        }
-        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,255,136,0.3); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .btn-danger {
-            background: rgba(239,68,68,0.15); color: #ef4444;
-            border: 1px solid rgba(239,68,68,0.3);
-            padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
-        }
-        .btn-danger:hover { background: rgba(239,68,68,0.25); }
-        .toast {
-            position: fixed; bottom: 24px; right: 24px;
-            padding: 14px 20px; border-radius: 10px; font-weight: 600;
-            z-index: 9999; transform: translateY(100px); opacity: 0;
-            transition: all 0.3s; max-width: 360px;
-        }
-        .toast.show { transform: translateY(0); opacity: 1; }
-        .toast.success { background: #00FF88; color: #000; }
-        .toast.error { background: #ef4444; color: #fff; }
-        .spinner {
-            width: 20px; height: 20px;
-            border: 2px solid rgba(0,255,136,0.2);
-            border-top-color: #00FF88;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            display: inline-block;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .file-item {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 16px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 10px; margin-bottom: 8px;
-        }
-        .history-item {
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 10px; padding: 16px; margin-bottom: 10px;
-        }
-        .history-user { color: #00FF88; font-weight: 600; margin-bottom: 4px; }
-        .history-bot { color: #9ca3af; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartBots — Painel do Cliente</title>
+  <meta name="robots" content="noindex, nofollow">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    *{font-family:Inter,sans-serif} body{background:#0f1115;color:#fff}.card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:18px}.stat{background:rgba(0,255,136,.055);border:1px solid rgba(0,255,136,.16);border-radius:14px;padding:18px}.tab-active{border-bottom:2px solid #00ff88;color:#00ff88}.tab-inactive{border-bottom:2px solid transparent;color:#9ca3af}.field{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px;color:#fff;outline:none}.field:focus{border-color:#00ff88}.btn{background:linear-gradient(135deg,#00ff88,#00cc6f);color:#07110b;font-weight:900;border-radius:12px;padding:12px 18px;cursor:pointer;text-align:center}.btn:disabled{opacity:.55;cursor:not-allowed}.btn-soft{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:11px 16px;color:#fff}.danger{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:6px 12px}.upload{border:2px dashed rgba(0,255,136,.3);border-radius:14px}.upload:hover,.upload.dragover{background:rgba(0,255,136,.06);border-color:#00ff88}.toast{position:fixed;right:22px;bottom:22px;max-width:380px;padding:14px 18px;border-radius:12px;font-weight:800;opacity:0;transform:translateY(40px);transition:.25s;z-index:9999}.toast.show{opacity:1;transform:translateY(0)}.toast.success{background:#00ff88;color:#07110b}.toast.error{background:#ef4444;color:white}.spin{width:18px;height:18px;border:2px solid rgba(0,255,136,.25);border-top-color:#00ff88;border-radius:50%;display:inline-block;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}.pill{font-size:11px;font-weight:900;border-radius:999px;padding:5px 9px}.ok{background:rgba(0,255,136,.14);color:#00ff88}.warn{background:rgba(251,191,36,.14);color:#fbbf24}.bad{background:rgba(239,68,68,.14);color:#ef4444}
+  </style>
 </head>
-<body class="gradient-bg min-h-screen text-white">
+<body class="min-h-screen">
+  <div id="loginScreen" class="min-h-screen flex items-center justify-center px-4">
+    <div class="card p-8 w-full max-w-md">
+      <div class="text-center mb-8"><div class="text-3xl font-black"><span style="color:#00ff88">Smart</span>Bots</div><p class="text-gray-400 mt-1">Painel do Cliente</p></div>
+      <div class="space-y-4">
+        <div><label class="block text-sm text-gray-300 mb-2">Seu e-mail</label><input id="loginEmail" type="email" class="field" placeholder="email@empresa.com"></div>
+        <div><label class="block text-sm text-gray-300 mb-2">Token de acesso</label><input id="loginToken" class="field font-mono text-sm" placeholder="Ex: SB-XXXXXX-XXXXXX"><p class="text-xs text-gray-500 mt-1">O token aparece na tela depois da criação do bot. Em breve também enviaremos por e-mail.</p></div>
+        <button id="loginBtn" onclick="doLogin()" class="btn w-full">Entrar no Painel</button>
+      </div>
+      <div class="mt-6 text-center"><a href="/" class="text-gray-500 hover:text-gray-300 text-sm">← Voltar para SmartBots.club</a></div>
+    </div>
+  </div>
 
-    <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="min-h-screen flex items-center justify-center px-4">
-        <div class="card-glass rounded-2xl p-8 w-full max-w-md">
-            <div class="text-center mb-8">
-                <div class="text-3xl font-bold mb-2">
-                    <span style="color:#00FF88">Smart</span>Bots
-                </div>
-                <p class="text-gray-400">Painel do Cliente</p>
-            </div>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Seu E-mail</label>
-                    <input id="loginEmail" type="email" placeholder="email@empresa.com"
-                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition-colors">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Token de Acesso</label>
-                    <input id="loginToken" type="text" placeholder="Token enviado por e-mail"
-                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition-colors font-mono text-sm">
-                    <p class="text-xs text-gray-500 mt-1">Token enviado no e-mail de confirmação do seu bot</p>
-                </div>
-                <button id="loginBtn" onclick="doLogin()" class="btn-primary w-full text-center">
-                    Entrar no Painel
-                </button>
-            </div>
-
-            <div class="mt-6 text-center">
-                <a href="/" class="text-gray-500 hover:text-gray-300 text-sm transition-colors">← Voltar para SmartBots.club</a>
-            </div>
+  <div id="dashboard" class="hidden">
+    <header class="border-b border-white/10 px-6 py-4"><div class="max-w-6xl mx-auto flex items-center justify-between"><div class="flex items-center gap-4"><div class="text-xl font-black"><span style="color:#00ff88">Smart</span>Bots</div><div class="text-gray-500">|</div><div id="headerCompany" class="text-gray-300 text-sm font-bold"></div></div><div class="flex items-center gap-4"><div id="headerStatus" class="pill warn">● Preparando</div><button onclick="doLogout()" class="text-gray-400 hover:text-white text-sm">Sair</button></div></div></header>
+    <main class="max-w-6xl mx-auto px-4 py-8">
+      <section class="card p-6 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4"><div><h1 class="text-2xl font-black">Configure seu SmartBot em poucos minutos</h1><p class="text-gray-400 mt-1">O bot já importou o site. Agora complete o conhecimento, escolha um template e instale no seu site.</p></div><button onclick="showTab('widget')" class="btn-soft">Ver código de instalação</button></div>
+        <div class="grid md:grid-cols-4 gap-3 mt-5">
+          <div id="stepSite" class="p-3 rounded-xl bg-white/5 text-sm">✅ Site importado</div>
+          <div id="stepDocs" class="p-3 rounded-xl bg-white/5 text-sm">📄 Documentos opcionais</div>
+          <div id="stepTemplate" class="p-3 rounded-xl bg-white/5 text-sm">🎯 Template de atuação</div>
+          <div id="stepWidget" class="p-3 rounded-xl bg-white/5 text-sm">🔗 Instalar widget</div>
         </div>
-    </div>
-
-    <!-- DASHBOARD -->
-    <div id="dashboard" class="hidden">
-
-        <!-- HEADER -->
-        <header class="border-b border-white/10 px-6 py-4">
-            <div class="max-w-6xl mx-auto flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="text-xl font-bold">
-                        <span style="color:#00FF88">Smart</span>Bots
-                    </div>
-                    <div class="hidden sm:block text-gray-400 text-sm">|</div>
-                    <div id="headerCompany" class="hidden sm:block text-gray-300 text-sm font-medium"></div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div id="headerStatus" class="text-xs px-3 py-1 rounded-full font-semibold"></div>
-                    <button onclick="doLogout()" class="text-gray-400 hover:text-white text-sm transition-colors">Sair</button>
-                </div>
-            </div>
-        </header>
-
-        <!-- MAIN CONTENT -->
-        <main class="max-w-6xl mx-auto px-4 py-8">
-
-            <!-- STATS ROW -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="stat-card">
-                    <div class="text-2xl font-bold" id="statTotal">—</div>
-                    <div class="text-gray-400 text-sm mt-1">Total de Conversas</div>
-                </div>
-                <div class="stat-card">
-                    <div class="text-2xl font-bold" id="statWeek">—</div>
-                    <div class="text-gray-400 text-sm mt-1">Esta Semana</div>
-                </div>
-                <div class="stat-card">
-                    <div class="text-2xl font-bold" id="statUsers">—</div>
-                    <div class="text-gray-400 text-sm mt-1">Usuários Únicos</div>
-                </div>
-                <div class="stat-card">
-                    <div class="text-2xl font-bold" id="statFiles">—</div>
-                    <div class="text-gray-400 text-sm mt-1">Arquivos Treinados</div>
-                </div>
-            </div>
-
-            <!-- TABS -->
-            <div class="flex gap-6 border-b border-white/10 mb-8">
-                <button onclick="showTab('training')" id="tab-training" class="tab-active pb-3 text-sm font-semibold transition-colors">
-                    📚 Treinamento
-                </button>
-                <button onclick="showTab('history')" id="tab-history" class="tab-inactive pb-3 text-sm font-semibold transition-colors">
-                    💬 Histórico
-                </button>
-                <button onclick="showTab('config')" id="tab-config" class="tab-inactive pb-3 text-sm font-semibold transition-colors">
-                    ⚙️ Configurações
-                </button>
-                <button onclick="showTab('widget')" id="tab-widget" class="tab-inactive pb-3 text-sm font-semibold transition-colors">
-                    🔗 Instalar Bot
-                </button>
-            </div>
-
-            <!-- TAB: TREINAMENTO -->
-            <div id="tab-content-training">
-                <div class="grid md:grid-cols-2 gap-6">
-                    <!-- Upload de Arquivo -->
-                    <div class="card-glass rounded-2xl p-6">
-                        <h3 class="text-lg font-bold mb-2">Adicionar Documento</h3>
-                        <p class="text-gray-400 text-sm mb-5">
-                            Faça upload de PDFs, TXTs ou documentos Word. O bot aprende automaticamente com o novo conteúdo.
-                        </p>
-
-                        <div id="uploadZone" class="upload-zone p-8 text-center cursor-pointer mb-4"
-                            onclick="document.getElementById('fileInput').click()"
-                            ondragover="handleDragOver(event)"
-                            ondragleave="handleDragLeave(event)"
-                            ondrop="handleDrop(event)">
-                            <div class="text-4xl mb-3">📄</div>
-                            <div class="text-gray-300 font-medium">Clique ou arraste o arquivo aqui</div>
-                            <div class="text-gray-500 text-sm mt-1">PDF, TXT, DOCX, MD — máx. 20MB</div>
-                        </div>
-                        <input id="fileInput" type="file" accept=".pdf,.txt,.docx,.md" class="hidden" onchange="handleFileSelect(event)">
-
-                        <div id="filePreview" class="hidden mb-4 p-3 bg-white/5 rounded-xl flex items-center gap-3">
-                            <span class="text-2xl">📎</span>
-                            <div>
-                                <div id="fileName" class="text-sm font-medium text-white"></div>
-                                <div id="fileSize" class="text-xs text-gray-400"></div>
-                            </div>
-                            <button onclick="clearFile()" class="ml-auto text-gray-400 hover:text-red-400 text-lg">×</button>
-                        </div>
-
-                        <button id="uploadBtn" onclick="uploadFile()" class="btn-primary w-full text-center" disabled>
-                            Treinar Bot com este Arquivo
-                        </button>
-                    </div>
-
-                    <!-- Lista de Arquivos -->
-                    <div class="card-glass rounded-2xl p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-bold">Arquivos do Bot</h3>
-                            <button onclick="loadFiles()" class="text-gray-400 hover:text-white text-sm transition-colors">↻ Atualizar</button>
-                        </div>
-                        <div id="filesList">
-                            <div class="text-center py-8 text-gray-500">
-                                <div class="spinner mx-auto mb-3"></div>
-                                Carregando arquivos...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB: HISTÓRICO -->
-            <div id="tab-content-history" class="hidden">
-                <div class="card-glass rounded-2xl p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-bold">Histórico de Conversas</h3>
-                        <button onclick="loadHistory()" class="text-gray-400 hover:text-white text-sm transition-colors">↻ Atualizar</button>
-                    </div>
-                    <div id="historyList">
-                        <div class="text-center py-8 text-gray-500">
-                            <div class="spinner mx-auto mb-3"></div>
-                            Carregando histórico...
-                        </div>
-                    </div>
-                    <div id="historyPagination" class="flex justify-center gap-3 mt-6 hidden">
-                        <button id="prevPage" onclick="changePage(-1)" class="px-4 py-2 bg-white/5 rounded-lg text-sm hover:bg-white/10 transition-colors">← Anterior</button>
-                        <span id="pageInfo" class="px-4 py-2 text-gray-400 text-sm"></span>
-                        <button id="nextPage" onclick="changePage(1)" class="px-4 py-2 bg-white/5 rounded-lg text-sm hover:bg-white/10 transition-colors">Próxima →</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB: CONFIGURAÇÕES -->
-            <div id="tab-content-config" class="hidden">
-                <div class="card-glass rounded-2xl p-6 max-w-2xl">
-                    <h3 class="text-lg font-bold mb-6">Personalizar o Bot</h3>
-
-                    <div class="space-y-5">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Nome do Bot</label>
-                            <input id="configBotName" type="text" placeholder="Ex: Assistente da Empresa X"
-                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition-colors">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Tom de Voz</label>
-                            <select id="configTone"
-                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-400 transition-colors">
-                                <option value="friendly">😊 Amigável e Descontraído</option>
-                                <option value="formal">👔 Formal e Profissional</option>
-                                <option value="sales">🎯 Focado em Vendas</option>
-                                <option value="technical">🔧 Técnico e Detalhado</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Idioma Principal</label>
-                            <select id="configLanguage"
-                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-400 transition-colors">
-                                <option value="pt">🇧🇷 Português Brasileiro</option>
-                                <option value="en">🇺🇸 Inglês</option>
-                                <option value="es">🇪🇸 Espanhol</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Instruções Personalizadas</label>
-                            <textarea id="configInstructions" rows="5" placeholder="Ex: Sempre mencione que temos frete grátis acima de R$ 150. Não discuta preços de concorrentes. Direcione para o WhatsApp (11) 99999-9999 para pedidos acima de R$ 500..."
-                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition-colors resize-none"></textarea>
-                            <p class="text-xs text-gray-500 mt-1">Regras específicas do seu negócio para o bot seguir</p>
-                        </div>
-
-                        <button onclick="saveConfig()" class="btn-primary">
-                            Salvar Configurações
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB: INSTALAR BOT -->
-            <div id="tab-content-widget" class="hidden">
-                <div class="card-glass rounded-2xl p-6 max-w-2xl">
-                    <h3 class="text-lg font-bold mb-2">Instalar o Bot no Seu Site</h3>
-                    <p class="text-gray-400 text-sm mb-6">
-                        Copie o código abaixo e cole antes do <code class="text-green-400">&lt;/body&gt;</code> no HTML do seu site.
-                    </p>
-
-                    <div class="bg-black/40 rounded-xl p-4 mb-4 relative">
-                        <pre id="widgetCode" class="text-green-400 text-xs overflow-x-auto whitespace-pre-wrap"></pre>
-                        <button onclick="copyWidget()" class="absolute top-3 right-3 text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors">
-                            Copiar
-                        </button>
-                    </div>
-
-                    <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-                        <div class="text-blue-400 font-semibold text-sm mb-1">📌 Como instalar</div>
-                        <ol class="text-gray-400 text-sm space-y-1 list-decimal list-inside">
-                            <li>Copie o código acima</li>
-                            <li>Abra o HTML do seu site</li>
-                            <li>Cole antes da tag <code class="text-green-400">&lt;/body&gt;</code></li>
-                            <li>Salve e publique — o bot aparece automaticamente!</li>
-                        </ol>
-                    </div>
-
-                    <div class="mt-4 p-4 bg-white/5 rounded-xl">
-                        <div class="text-sm font-semibold text-gray-300 mb-2">Seu Bot ID</div>
-                        <div id="displayBotId" class="font-mono text-xs text-green-400 break-all"></div>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <!-- TOAST -->
-    <div id="toast" class="toast"></div>
-
-    <script>
-        // ─── STATE ───────────────────────────────────────────────
-        let state = {
-            botId: null,
-            clientToken: null,
-            companyName: null,
-            currentTab: 'training',
-            historyPage: 1,
-            selectedFile: null
-        };
-
-        // ─── INIT ────────────────────────────────────────────────
-        window.onload = () => {
-            const saved = localStorage.getItem('sb_session');
-            if (saved) {
-                try {
-                    const s = JSON.parse(saved);
-                    state.botId = s.botId;
-                    state.clientToken = s.clientToken;
-                    state.companyName = s.companyName;
-                    showDashboard();
-                } catch (e) {
-                    localStorage.removeItem('sb_session');
-                }
-            }
-        };
-
-        // ─── LOGIN ───────────────────────────────────────────────
-        async function doLogin() {
-            const email = document.getElementById('loginEmail').value.trim();
-            const token = document.getElementById('loginToken').value.trim();
-
-            if (!email || !token) {
-                showToast('Preencha e-mail e token', 'error');
-                return;
-            }
-
-            const btn = document.getElementById('loginBtn');
-            btn.textContent = 'Verificando...';
-            btn.disabled = true;
-
-            try {
-                const res = await fetch('/.netlify/functions/client-portal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'login', email, clientToken: token })
-                });
-
-                const data = await res.json();
-
-                if (!res.ok || !data.success) {
-                    throw new Error(data.error || 'Credenciais inválidas');
-                }
-
-                state.botId = data.bot.botId;
-                state.clientToken = token;
-                state.companyName = data.bot.companyName;
-
-                localStorage.setItem('sb_session', JSON.stringify({
-                    botId: state.botId,
-                    clientToken: state.clientToken,
-                    companyName: state.companyName
-                }));
-
-                showDashboard();
-                showToast('Bem-vindo, ' + state.companyName + '!', 'success');
-
-            } catch (err) {
-                showToast(err.message, 'error');
-                btn.textContent = 'Entrar no Painel';
-                btn.disabled = false;
-            }
-        }
-
-        function doLogout() {
-            localStorage.removeItem('sb_session');
-            location.reload();
-        }
-
-        // ─── DASHBOARD ───────────────────────────────────────────
-        function showDashboard() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('headerCompany').textContent = state.companyName;
-
-            loadStats();
-            loadFiles();
-            updateWidgetCode();
-        }
-
-        async function loadStats() {
-            try {
-                const res = await fetch('/.netlify/functions/client-portal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'get_stats', botId: state.botId, clientToken: state.clientToken })
-                });
-                const data = await res.json();
-
-                document.getElementById('statTotal').textContent = data.totalConversations || 0;
-                document.getElementById('statWeek').textContent = data.conversationsThisWeek || 0;
-                document.getElementById('statUsers').textContent = data.uniqueUsers || 0;
-                document.getElementById('statFiles').textContent = data.trainingFiles || 0;
-
-                const statusEl = document.getElementById('headerStatus');
-                if (data.botStatus === 'active') {
-                    statusEl.textContent = '● Ativo';
-                    statusEl.className = 'text-xs px-3 py-1 rounded-full font-semibold bg-green-500/20 text-green-400';
-                } else {
-                    statusEl.textContent = '● Inativo';
-                    statusEl.className = 'text-xs px-3 py-1 rounded-full font-semibold bg-red-500/20 text-red-400';
-                }
-            } catch (e) {
-                console.error('Erro ao carregar stats:', e);
-            }
-        }
-
-        // ─── TABS ────────────────────────────────────────────────
-        function showTab(tab) {
-            const tabs = ['training', 'history', 'config', 'widget'];
-            tabs.forEach(t => {
-                document.getElementById('tab-' + t).className = t === tab ? 'tab-active pb-3 text-sm font-semibold transition-colors' : 'tab-inactive pb-3 text-sm font-semibold transition-colors';
-                document.getElementById('tab-content-' + t).classList.toggle('hidden', t !== tab);
-            });
-            state.currentTab = tab;
-
-            if (tab === 'history') loadHistory();
-        }
-
-        // ─── TREINAMENTO ─────────────────────────────────────────
-        function handleDragOver(e) {
-            e.preventDefault();
-            document.getElementById('uploadZone').classList.add('dragover');
-        }
-        function handleDragLeave(e) {
-            document.getElementById('uploadZone').classList.remove('dragover');
-        }
-        function handleDrop(e) {
-            e.preventDefault();
-            document.getElementById('uploadZone').classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file) setFile(file);
-        }
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file) setFile(file);
-        }
-        function setFile(file) {
-            state.selectedFile = file;
-            document.getElementById('fileName').textContent = file.name;
-            document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
-            document.getElementById('filePreview').classList.remove('hidden');
-            document.getElementById('uploadBtn').disabled = false;
-        }
-        function clearFile() {
-            state.selectedFile = null;
-            document.getElementById('filePreview').classList.add('hidden');
-            document.getElementById('uploadBtn').disabled = true;
-            document.getElementById('fileInput').value = '';
-        }
-
-        async function uploadFile() {
-            if (!state.selectedFile) return;
-
-            const btn = document.getElementById('uploadBtn');
-            btn.innerHTML = '<span class="spinner"></span> Treinando...';
-            btn.disabled = true;
-
-            try {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const base64 = e.target.result.split(',')[1];
-
-                    const res = await fetch('/.netlify/functions/train-bot', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'upload_file',
-                            botId: state.botId,
-                            clientToken: state.clientToken,
-                            fileData: base64,
-                            fileName: state.selectedFile.name
-                        })
-                    });
-
-                    const data = await res.json();
-
-                    if (!res.ok) throw new Error(data.error || 'Falha no upload');
-
-                    showToast(data.message, 'success');
-                    clearFile();
-                    loadFiles();
-                    loadStats();
-                };
-                reader.readAsDataURL(state.selectedFile);
-
-            } catch (err) {
-                showToast(err.message, 'error');
-                btn.textContent = 'Treinar Bot com este Arquivo';
-                btn.disabled = false;
-            }
-        }
-
-        async function loadFiles() {
-            const container = document.getElementById('filesList');
-            container.innerHTML = '<div class="text-center py-4 text-gray-500"><div class="spinner mx-auto mb-2"></div>Carregando...</div>';
-
-            try {
-                const res = await fetch('/.netlify/functions/train-bot', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'list_files', botId: state.botId, clientToken: state.clientToken })
-                });
-                const data = await res.json();
-                const files = (data.files || []).filter(f => f.status === 'active');
-
-                if (files.length === 0) {
-                    container.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="text-3xl mb-2">📂</div><div>Nenhum arquivo ainda</div><div class="text-xs mt-1">Faça upload de documentos para treinar o bot</div></div>';
-                    return;
-                }
-
-                container.innerHTML = files.map(f => `
-                    <div class="file-item">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xl">📄</span>
-                            <div>
-                                <div class="text-sm font-medium text-white">${f.file_name}</div>
-                                <div class="text-xs text-gray-500">${(f.file_size_bytes / 1024).toFixed(1)} KB · ${new Date(f.created_at).toLocaleDateString('pt-BR')}</div>
-                            </div>
-                        </div>
-                        <button onclick="removeFile('${f.id}', '${f.file_name}')" class="btn-danger text-xs">Remover</button>
-                    </div>
-                `).join('');
-
-            } catch (e) {
-                container.innerHTML = '<div class="text-center py-4 text-red-400 text-sm">Erro ao carregar arquivos</div>';
-            }
-        }
-
-        async function removeFile(fileId, fileName) {
-            if (!confirm(`Remover "${fileName}" do bot?`)) return;
-
-            try {
-                const res = await fetch('/.netlify/functions/train-bot', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'remove_file', botId: state.botId, clientToken: state.clientToken, fileId })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error);
-                showToast(data.message, 'success');
-                loadFiles();
-                loadStats();
-            } catch (e) {
-                showToast(e.message, 'error');
-            }
-        }
-
-        // ─── HISTÓRICO ───────────────────────────────────────────
-        async function loadHistory() {
-            const container = document.getElementById('historyList');
-            container.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="spinner mx-auto mb-3"></div>Carregando...</div>';
-
-            try {
-                const res = await fetch('/.netlify/functions/client-portal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'get_history', botId: state.botId, clientToken: state.clientToken, page: state.historyPage })
-                });
-                const data = await res.json();
-                const history = data.history || [];
-
-                if (history.length === 0) {
-                    container.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="text-3xl mb-2">💬</div><div>Nenhuma conversa ainda</div></div>';
-                    return;
-                }
-
-                container.innerHTML = history.map(h => `
-                    <div class="history-item">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="text-xs text-gray-500">${new Date(h.created_at).toLocaleString('pt-BR')}</div>
-                            ${h.user_identifier ? `<div class="text-xs text-gray-600 font-mono">${h.user_identifier.substring(0,12)}...</div>` : ''}
-                        </div>
-                        <div class="history-user">👤 ${h.user_message}</div>
-                        <div class="history-bot mt-2">🤖 ${h.bot_reply.substring(0, 200)}${h.bot_reply.length > 200 ? '...' : ''}</div>
-                    </div>
-                `).join('');
-
-                // Paginação
-                const pagination = data.pagination;
-                if (pagination && pagination.totalPages > 1) {
-                    document.getElementById('historyPagination').classList.remove('hidden');
-                    document.getElementById('pageInfo').textContent = `Página ${pagination.page} de ${pagination.totalPages}`;
-                    document.getElementById('prevPage').disabled = pagination.page <= 1;
-                    document.getElementById('nextPage').disabled = pagination.page >= pagination.totalPages;
-                }
-
-            } catch (e) {
-                container.innerHTML = '<div class="text-center py-4 text-red-400 text-sm">Erro ao carregar histórico</div>';
-            }
-        }
-
-        function changePage(delta) {
-            state.historyPage = Math.max(1, state.historyPage + delta);
-            loadHistory();
-        }
-
-        // ─── CONFIGURAÇÕES ───────────────────────────────────────
-        async function saveConfig() {
-            const config = {
-                botName: document.getElementById('configBotName').value,
-                tone: document.getElementById('configTone').value,
-                language: document.getElementById('configLanguage').value,
-                instructions: document.getElementById('configInstructions').value
-            };
-
-            try {
-                const res = await fetch('/.netlify/functions/client-portal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'update_config', botId: state.botId, clientToken: state.clientToken, config })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error);
-                showToast(data.message, 'success');
-            } catch (e) {
-                showToast(e.message, 'error');
-            }
-        }
-
-        // ─── WIDGET CODE ─────────────────────────────────────────
-        function updateWidgetCode() {
-            const code = `<!-- SmartBots Widget -->
-<script src="https://smartbots.club/widget.js"><\/script>
-<script>
-  SmartBots.init({
-    botId: '${state.botId}',
-    position: 'bottom-right',
-    primaryColor: '#00FF88',
-    greeting: 'Olá! Como posso ajudar?'
-  });
-<\/script>`;
-            document.getElementById('widgetCode').textContent = code;
-            document.getElementById('displayBotId').textContent = state.botId;
-        }
-
-        function copyWidget() {
-            const code = document.getElementById('widgetCode').textContent;
-            navigator.clipboard.writeText(code).then(() => showToast('Código copiado!', 'success'));
-        }
-
-        // ─── TOAST ───────────────────────────────────────────────
-        function showToast(msg, type = 'success') {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.className = `toast ${type} show`;
-            setTimeout(() => { t.className = `toast ${type}`; }, 3500);
-        }
-
-        // Enter no login
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Enter' && !document.getElementById('loginScreen').classList.contains('hidden')) {
-                doLogin();
-            }
-        });
-    </script>
+      </section>
+
+      <section class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-7">
+        <div class="stat"><div class="text-2xl font-black" id="statTotal">0</div><div class="text-gray-400 text-sm">Conversas</div></div>
+        <div class="stat"><div class="text-2xl font-black" id="statWeek">0</div><div class="text-gray-400 text-sm">Esta semana</div></div>
+        <div class="stat"><div class="text-2xl font-black" id="statUsers">0</div><div class="text-gray-400 text-sm">Usuários</div></div>
+        <div class="stat"><div class="text-2xl font-black" id="statFiles">0</div><div class="text-gray-400 text-sm">Documentos</div></div>
+        <div class="stat"><div class="text-2xl font-black" id="statLeads">0</div><div class="text-gray-400 text-sm">Leads</div></div>
+      </section>
+
+      <nav class="flex gap-5 border-b border-white/10 mb-7 overflow-x-auto">
+        <button onclick="showTab('overview')" id="tab-overview" class="tab-active pb-3 text-sm font-bold whitespace-nowrap">🏠 Visão Geral</button>
+        <button onclick="showTab('knowledge')" id="tab-knowledge" class="tab-inactive pb-3 text-sm font-bold whitespace-nowrap">📚 Conhecimento</button>
+        <button onclick="showTab('intelligence')" id="tab-intelligence" class="tab-inactive pb-3 text-sm font-bold whitespace-nowrap">🧠 Inteligência</button>
+        <button onclick="showTab('history')" id="tab-history" class="tab-inactive pb-3 text-sm font-bold whitespace-nowrap">💬 Conversas</button>
+        <button onclick="showTab('widget')" id="tab-widget" class="tab-inactive pb-3 text-sm font-bold whitespace-nowrap">🔗 Instalar</button>
+      </nav>
+
+      <div id="tab-content-overview">
+        <div class="grid md:grid-cols-3 gap-5">
+          <div class="card p-5"><h3 class="font-black text-lg mb-2">1. Base do negócio</h3><p class="text-gray-400 text-sm">Site importado, descrição e documentos formam o conhecimento inicial.</p><button onclick="showTab('knowledge')" class="btn-soft mt-4 w-full">Gerenciar conhecimento</button></div>
+          <div class="card p-5"><h3 class="font-black text-lg mb-2">2. Template pronto</h3><p class="text-gray-400 text-sm">Escolha clínica, advocacia, imobiliária, agência, estética ou B2B.</p><button onclick="showTab('intelligence')" class="btn-soft mt-4 w-full">Escolher template</button></div>
+          <div class="card p-5"><h3 class="font-black text-lg mb-2">3. Publicar</h3><p class="text-gray-400 text-sm">Copie o código do widget e cole no site do cliente.</p><button onclick="showTab('widget')" class="btn-soft mt-4 w-full">Instalar bot</button></div>
+        </div>
+      </div>
+
+      <div id="tab-content-knowledge" class="hidden">
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="card p-6"><h3 class="text-lg font-black mb-2">Adicionar documento</h3><p class="text-gray-400 text-sm mb-5">Envie PDF, TXT, DOCX ou MD. Nesta etapa o arquivo fica registrado na base do bot; o processamento avançado por IA entra na próxima fase.</p><div id="uploadZone" class="upload p-8 text-center cursor-pointer mb-4" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"><div class="text-4xl mb-3">📄</div><div class="text-gray-300 font-bold">Clique ou arraste o arquivo aqui</div><div class="text-gray-500 text-sm mt-1">PDF, TXT, DOCX, MD — máx. 20MB</div></div><input id="fileInput" type="file" accept=".pdf,.txt,.docx,.md" class="hidden" onchange="handleFileSelect(event)"><div id="filePreview" class="hidden mb-4 p-3 bg-white/5 rounded-xl flex items-center gap-3"><span class="text-2xl">📎</span><div><div id="fileName" class="text-sm font-bold text-white"></div><div id="fileSize" class="text-xs text-gray-400"></div></div><button onclick="clearFile()" class="ml-auto text-gray-400 hover:text-red-400 text-lg">×</button></div><button id="uploadBtn" onclick="uploadFile()" class="btn w-full" disabled>Adicionar documento à base</button></div>
+          <div class="card p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-lg font-black">Documentos do bot</h3><button onclick="loadFiles()" class="text-gray-400 hover:text-white text-sm">↻ Atualizar</button></div><div id="filesList" class="text-center py-8 text-gray-500"><span class="spin"></span><div class="mt-2">Carregando...</div></div></div>
+        </div>
+      </div>
+
+      <div id="tab-content-intelligence" class="hidden">
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="card p-6"><h3 class="text-lg font-black mb-4">Template por área de atuação</h3><select id="configSegment" class="field mb-4" onchange="applyTemplate()"><option value="">Escolha um segmento</option><option value="clinica">Clínica / Consultório</option><option value="advocacia">Advocacia</option><option value="imobiliaria">Imobiliária</option><option value="agencia">Agência / Serviços</option><option value="estetica">Estética / Studio</option><option value="b2b">Vendas B2B</option></select><div id="templatePreview" class="bg-white/5 rounded-xl p-4 text-sm text-gray-300 min-h-[140px]">Escolha um segmento para ver perguntas e objetivos sugeridos.</div></div>
+          <div class="card p-6"><h3 class="text-lg font-black mb-4">Regras do seu bot</h3><div class="space-y-4"><input id="configBotName" class="field" placeholder="Nome do bot. Ex: Assistente da Clínica X"><select id="configTone" class="field"><option value="friendly">😊 Amigável</option><option value="formal">👔 Profissional</option><option value="sales">🎯 Vendedor</option><option value="technical">🔧 Técnico</option></select><select id="configLanguage" class="field"><option value="pt">🇧🇷 Português</option><option value="en">🇺🇸 Inglês</option><option value="es">🇪🇸 Espanhol</option></select><textarea id="configInstructions" class="field" rows="6" placeholder="Regras, horários, serviços, objeções, quando chamar humano, dados que o bot deve coletar..."></textarea><button onclick="saveConfig()" class="btn w-full">Salvar inteligência</button></div></div>
+        </div>
+      </div>
+
+      <div id="tab-content-history" class="hidden"><div class="card p-6"><div class="flex justify-between mb-5"><h3 class="text-lg font-black">Conversas</h3><button onclick="loadHistory()" class="text-gray-400 hover:text-white text-sm">↻ Atualizar</button></div><div id="historyList" class="text-center py-8 text-gray-500">Nenhuma conversa ainda</div></div></div>
+
+      <div id="tab-content-widget" class="hidden"><div class="card p-6 max-w-2xl"><h3 class="text-lg font-black mb-2">Instalar o Bot no site</h3><p class="text-gray-400 text-sm mb-5">Copie e cole antes de <code class="text-green-400">&lt;/body&gt;</code> no HTML do site.</p><div class="bg-black/40 rounded-xl p-4 mb-4 relative"><pre id="widgetCode" class="text-green-400 text-xs overflow-x-auto whitespace-pre-wrap"></pre><button onclick="copyWidget()" class="absolute top-3 right-3 text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg">Copiar</button></div><div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-sm text-gray-300"><b class="text-blue-300">Seu Bot ID:</b><div id="displayBotId" class="font-mono text-green-400 break-all mt-1"></div></div></div></div>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script>
+    let state={botId:null,clientToken:null,companyName:null,currentTab:'overview',selectedFile:null};
+    const templates={clinica:{title:'Clínica / Consultório',text:'Objetivos: agendar consulta, explicar procedimentos, captar nome/WhatsApp/convênio, identificar urgência e encaminhar casos sensíveis para humano.\nPerguntas: especialidade, primeira consulta ou retorno, convênio/particular, melhor dia e horário.'},advocacia:{title:'Advocacia',text:'Objetivos: qualificar área jurídica, identificar prazo/urgência, captar documentos iniciais e encaminhar para análise humana.\nPerguntas: área do problema, PF/PJ, prazo, documentos, melhor contato.'},imobiliaria:{title:'Imobiliária',text:'Objetivos: captar compradores, vendedores e locatários.\nPerguntas: comprar/vender/alugar, bairro, valor, quartos, urgência, financiamento.'},agencia:{title:'Agência / Serviços',text:'Objetivos: entender projeto, orçamento, prazo e fit comercial.\nPerguntas: serviço desejado, objetivo, tamanho da empresa, prazo, orçamento aproximado.'},estetica:{title:'Estética / Studio',text:'Objetivos: explicar serviços, agendar avaliação, lembrar retornos e captar clientes.\nPerguntas: procedimento, objetivo, disponibilidade, restrições, WhatsApp.'},b2b:{title:'Vendas B2B',text:'Objetivos: qualificar lead, entender necessidade, tamanho da empresa, urgência e decisor.\nPerguntas: problema, solução buscada, número de usuários, prazo, orçamento, decisor.'}};
+    window.onload=()=>{const saved=localStorage.getItem('sb_session');if(saved){try{const s=JSON.parse(saved);Object.assign(state,s);showDashboard()}catch(e){localStorage.removeItem('sb_session')}}};
+    function toast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type+' show';setTimeout(()=>t.className='toast '+type,4000)}
+    async function doLogin(){const email=document.getElementById('loginEmail').value.trim();const token=document.getElementById('loginToken').value.trim();if(!email||!token)return toast('Preencha e-mail e token','error');const btn=document.getElementById('loginBtn');btn.textContent='Verificando...';btn.disabled=true;try{const res=await fetch('/.netlify/functions/client-portal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',email,clientToken:token})});const data=await res.json();if(!res.ok||!data.success)throw new Error(data.error||'Credenciais inválidas');state.botId=data.bot.botId;state.clientToken=token;state.companyName=data.bot.companyName;localStorage.setItem('sb_session',JSON.stringify(state));showDashboard();toast('Bem-vindo, '+state.companyName+'!')}catch(e){toast(e.message,'error');btn.textContent='Entrar no Painel';btn.disabled=false}}
+    function doLogout(){localStorage.removeItem('sb_session');location.reload()}
+    function showDashboard(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('dashboard').classList.remove('hidden');document.getElementById('headerCompany').textContent=state.companyName;loadStats();loadFiles();updateWidgetCode()}
+    function showTab(tab){['overview','knowledge','intelligence','history','widget'].forEach(t=>{document.getElementById('tab-'+t).className=t===tab?'tab-active pb-3 text-sm font-bold whitespace-nowrap':'tab-inactive pb-3 text-sm font-bold whitespace-nowrap';document.getElementById('tab-content-'+t).classList.toggle('hidden',t!==tab)});state.currentTab=tab;if(tab==='history')loadHistory();if(tab==='knowledge')loadFiles()}
+    async function loadStats(){try{const res=await fetch('/.netlify/functions/client-portal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_stats',botId:state.botId,clientToken:state.clientToken})});const d=await res.json();statTotal.textContent=d.totalConversations||0;statWeek.textContent=d.conversationsThisWeek||0;statUsers.textContent=d.uniqueUsers||0;statFiles.textContent=d.trainingFiles||0;statLeads.textContent=d.leads||0;const st=document.getElementById('headerStatus');if(d.botStatus==='active'){st.textContent='● Ativo';st.className='pill ok'}else{st.textContent='● Preparando';st.className='pill warn'}stepSite.textContent=d.knowledgeStatus==='ok'?'✅ Site importado':'⚠️ Site pendente';stepDocs.textContent=(d.trainingFiles||0)>0||d.uploadedFileName?'✅ Documentos adicionados':'📄 Documentos opcionais'}catch(e){console.error(e)}}
+    function handleDragOver(e){e.preventDefault();uploadZone.classList.add('dragover')} function handleDragLeave(e){uploadZone.classList.remove('dragover')} function handleDrop(e){e.preventDefault();uploadZone.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)setFile(f)} function handleFileSelect(e){const f=e.target.files[0];if(f)setFile(f)} function setFile(f){state.selectedFile=f;fileName.textContent=f.name;fileSize.textContent=(f.size/1024).toFixed(1)+' KB';filePreview.classList.remove('hidden');uploadBtn.disabled=false} function clearFile(){state.selectedFile=null;filePreview.classList.add('hidden');uploadBtn.disabled=true;fileInput.value=''}
+    function readFileBase64(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]);r.onerror=()=>reject(new Error('Falha ao ler arquivo'));r.readAsDataURL(file)})}
+    async function uploadFile(){if(!state.selectedFile)return;const btn=uploadBtn;btn.innerHTML='<span class="spin"></span> Salvando documento...';btn.disabled=true;try{const base64=await readFileBase64(state.selectedFile);const res=await fetch('/.netlify/functions/train-bot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'upload_file',botId:state.botId,clientToken:state.clientToken,fileData:base64,fileName:state.selectedFile.name})});const data=await res.json();if(!res.ok||data.success===false)throw new Error(data.error||'Falha ao salvar documento');toast(data.message||'Documento salvo','success');clearFile();await loadFiles();await loadStats()}catch(e){toast(e.message,'error')}finally{btn.textContent='Adicionar documento à base';btn.disabled=!state.selectedFile}}
+    async function loadFiles(){const c=filesList;c.innerHTML='<div class="text-center py-4 text-gray-500"><span class="spin"></span><div class="mt-2">Carregando...</div></div>';try{const res=await fetch('/.netlify/functions/train-bot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list_files',botId:state.botId,clientToken:state.clientToken})});const data=await res.json();const files=(data.files||[]).filter(f=>f.status==='active');if(!files.length){c.innerHTML='<div class="text-center py-8 text-gray-500"><div class="text-3xl mb-2">📂</div><div>Nenhum documento adicional ainda</div><div class="text-xs mt-1">O site já foi importado. Envie PDFs ou FAQs para melhorar o bot.</div></div>';return}c.innerHTML=files.map(f=>`<div class="flex items-center justify-between p-3 bg-white/5 rounded-xl mb-2"><div class="flex gap-3 items-center"><span>📄</span><div><div class="text-sm font-bold">${f.file_name}</div><div class="text-xs text-gray-500">${((f.file_size_bytes||0)/1024).toFixed(1)} KB · ${new Date(f.created_at).toLocaleDateString('pt-BR')}</div></div></div><button onclick="removeFile('${f.id}','${f.file_name}')" class="danger text-xs">Remover</button></div>`).join('')}catch(e){c.innerHTML='<div class="text-red-400 text-sm">Erro ao carregar documentos</div>'}}
+    async function removeFile(id,name){if(!confirm('Remover '+name+'?'))return;try{const res=await fetch('/.netlify/functions/train-bot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'remove_file',botId:state.botId,clientToken:state.clientToken,fileId:id})});const d=await res.json();if(!res.ok)throw new Error(d.error||'Erro ao remover');toast(d.message||'Removido','success');loadFiles();loadStats()}catch(e){toast(e.message,'error')}}
+    function applyTemplate(){const v=configSegment.value;const t=templates[v];templatePreview.textContent=t?t.text:'Escolha um segmento para ver perguntas e objetivos sugeridos.';if(t&&!configInstructions.value)configInstructions.value=t.text;stepTemplate.textContent=t?'✅ Template escolhido':'🎯 Template de atuação'}
+    async function saveConfig(){const goals=[];const payload={action:'update_config',botId:state.botId,clientToken:state.clientToken,config:{botName:configBotName.value,tone:configTone.value,language:configLanguage.value,instructions:configInstructions.value,segment:configSegment.value,goals}};try{const res=await fetch('/.netlify/functions/client-portal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await res.json();if(!res.ok)throw new Error(d.error||'Erro ao salvar');toast(d.message||'Configurações salvas','success');stepTemplate.textContent='✅ Inteligência configurada'}catch(e){toast(e.message,'error')}}
+    async function loadHistory(){const c=historyList;c.innerHTML='<div class="text-center py-8 text-gray-500"><span class="spin"></span><div class="mt-2">Carregando...</div></div>';try{const res=await fetch('/.netlify/functions/client-portal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_history',botId:state.botId,clientToken:state.clientToken})});const d=await res.json();const h=d.history||[];if(!h.length){c.innerHTML='<div class="text-center py-8 text-gray-500">Nenhuma conversa ainda.</div>';return}c.innerHTML=h.map(x=>`<div class="p-4 bg-white/5 rounded-xl mb-2"><div class="text-xs text-gray-500 mb-2">${new Date(x.created_at).toLocaleString('pt-BR')}</div><div class="text-green-400 font-bold">👤 ${x.user_message||''}</div><div class="text-gray-300 mt-2">🤖 ${(x.bot_reply||x.bot_response||'').slice(0,240)}</div></div>`).join('')}catch(e){c.innerHTML='<div class="text-red-400">Erro ao carregar conversas</div>'}}
+    function updateWidgetCode(){const code=`<!-- SmartBots Widget -->\n<script src="https://smartbots.club/widget.js"><\/script>\n<script>\n  SmartBots.init({\n    botId: '${state.botId}',\n    position: 'bottom-right',\n    primaryColor: '#00FF88',\n    greeting: 'Olá! Como posso ajudar?'\n  });\n<\/script>`;widgetCode.textContent=code;displayBotId.textContent=state.botId}
+    function copyWidget(){navigator.clipboard.writeText(widgetCode.textContent).then(()=>{toast('Código copiado!','success');stepWidget.textContent='✅ Código copiado'})}
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!loginScreen.classList.contains('hidden'))doLogin()});
+  </script>
 </body>
 </html>
