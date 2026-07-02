@@ -1,0 +1,5 @@
+function botId(){var q=new URLSearchParams(location.search).get('botId');if(q)return q;var p=location.pathname.split('/').filter(Boolean);return p[0]==='b'?p.slice(1).join('/'):''}
+var bot=botId(),visitor='pub-'+Date.now()+'-'+Math.random().toString(16).slice(2);
+function add(t,u){var d=document.createElement('div');d.className=(u?'bg-green-400 text-black self-end':'bg-white/10 self-start')+' rounded-xl p-3 max-w-[85%]';d.textContent=t;chat.appendChild(d);chat.scrollTop=chat.scrollHeight}
+async function send(m){if(!bot){add('Bot não informado.',0);return}if(!m)return;add(m,1);add('Pensando...',0);var w=chat.lastChild;try{var r=await fetch('/.netlify/functions/smartbot-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({botId:bot,visitorId:visitor,channel:'site',message:m})});var j=await r.json();w.textContent=j.reply||j.error||'A equipe vai retornar.'}catch(e){w.textContent='Erro. Deixe seu nome e WhatsApp.'}}
+form.onsubmit=function(e){e.preventDefault();var m=text.value.trim();text.value='';send(m)};
