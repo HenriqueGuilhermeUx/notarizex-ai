@@ -27,8 +27,10 @@ async function getBot(botId, token) {
 }
 
 function message(type, company) {
-  if (type === 'indicacao') return 'Oi, tudo bem? Que bom que voce gostou do atendimento da ' + company + '. Voce conhece alguem que tambem poderia se beneficiar desse servico?';
-  return 'Oi, tudo bem? Aqui e da ' + company + '. Vi que voce demonstrou interesse anteriormente e queria saber se ainda faz sentido conversarmos sobre isso.';
+  if (type === 'indicacao') {
+    return 'Oi, tudo bem? Aqui é da ' + company + '. Ficamos muito felizes com a sua confiança no nosso atendimento. Você conhece alguém que também poderia precisar da nossa ajuda? Se lembrar de alguém, pode me passar o nome e o WhatsApp por aqui que nossa equipe cuida do contato com carinho.';
+  }
+  return 'Oi, tudo bem? Aqui é da ' + company + '. Vi aqui que você já demonstrou interesse anteriormente e queria saber se ainda faz sentido conversarmos sobre isso. Posso te ajudar a retomar esse assunto ou prefere que eu avise alguém da equipe para falar com você?';
 }
 
 exports.handler = async (event) => {
@@ -43,7 +45,7 @@ exports.handler = async (event) => {
     if (!bot) return reply(403, { success: false, error: 'Acesso nao autorizado.' });
     const record = {
       bot_id: botId,
-      name: clean(body.name || (type === 'indicacao' ? 'Indique e Ganhe' : 'Campanha de Reativacao')),
+      name: clean(body.name || (type === 'indicacao' ? 'Indique e Ganhe' : 'Campanha de Reativação')),
       campaign_type: type,
       audience_count: Number(body.audienceCount || 0),
       suggested_message: clean(body.message) || message(type, bot.company_name || 'empresa'),
