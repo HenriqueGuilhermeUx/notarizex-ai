@@ -1,8 +1,15 @@
 function getSession(){try{return JSON.parse(localStorage.getItem('sb_session')||'{}')}catch(e){return {}}}
+
+function normalizeHeader(h){
+  h=String(h||'').trim().toLowerCase();
+  const map={nome:'name',telefone:'phone',whatsapp:'phone',celular:'phone',email:'email','e-mail':'email',interesse:'interest',servico:'interest','serviço':'interest',observacao:'notes','observação':'notes',obs:'notes'};
+  return map[h]||h;
+}
+
 function parseCsv(text){
   const lines=String(text||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
   if(!lines.length)return [];
-  const header=lines.shift().split(',').map(h=>h.trim().toLowerCase());
+  const header=lines.shift().split(',').map(normalizeHeader);
   return lines.map(line=>{
     const parts=line.split(',').map(p=>p.trim());
     const obj={};
@@ -10,6 +17,16 @@ function parseCsv(text){
     return obj;
   });
 }
+
+function loadCsvFile(event){
+  const file=event.target.files&&event.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{csv.value=String(reader.result||'');result.textContent='Arquivo carregado. Confira os dados e clique em importar.'};
+  reader.onerror=()=>{result.textContent='Erro ao ler o arquivo.'};
+  reader.readAsText(file,'UTF-8');
+}
+
 async function importContacts(){
   const s=getSession();
   if(!s.botId||!s.clientToken){result.textContent='Entre pelo painel primeiro.';return}
