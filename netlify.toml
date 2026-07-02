@@ -8,6 +8,11 @@
   node_bundler = "esbuild"
 
 [[redirects]]
+  from = "/b/*"
+  to = "/bot-publico.html"
+  status = 200
+
+[[redirects]]
   from = "/dashboard-cliente"
   to = "/dashboard-cliente.html"
   status = 200
