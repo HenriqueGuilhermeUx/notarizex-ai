@@ -78,24 +78,48 @@ async function createPaymentLink({ botId, ownerName, ownerEmail, companyName }) 
   return data.init_point || data.sandbox_init_point || null;
 }
 
-async function saveWebsiteBot(record) {
+async function supabase(path, options = {}) {
   const baseUrl = process.env.SUPABASE_URL;
   const apiKey = process.env.SUPABASE_ANON_KEY;
   if (!baseUrl || !apiKey) throw new Error('Supabase não configurado.');
 
-  const response = await fetch(`${baseUrl}/rest/v1/website_bots`, {
-    method: 'POST',
+  return fetch(`${baseUrl}/rest/v1/${path}`, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       apikey: apiKey,
       Authorization: `Bearer ${apiKey}`,
-      Prefer: 'return=representation'
-    },
+      ...(options.headers || {})
+    }
+  });
+}
+
+async function saveWebsiteBot(record) {
+  const response = await supabase('website_bots', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
     body: JSON.stringify(record)
   });
 
   if (!response.ok) throw new Error('Falha ao salvar Bot para Site: ' + await response.text());
   return response.json();
+}
+
+async function saveInitialTrainingFile({ botId, fileName, uploaded }) {
+  if (!uploaded || !fileName) return;
+  const localFileId = `initial-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+  await supabase('bot_training_files', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      bot_id: botId,
+      openai_file_id: localFileId,
+      file_name: fileName,
+      file_size_bytes: uploaded.size,
+      status: 'active',
+      created_at: new Date().toISOString()
+    })
+  }).catch((error) => console.error('[Initial training file]', error.message));
 }
 
 exports.handler = async (event) => {
@@ -160,6 +184,8 @@ exports.handler = async (event) => {
       payment_link: paymentLink || '',
       created_at: new Date().toISOString()
     });
+
+    await saveInitialTrainingFile({ botId, fileName, uploaded });
 
     return reply(200, {
       success: true,
