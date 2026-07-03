@@ -104,5 +104,6 @@
     function copyWidget(){navigator.clipboard.writeText(widgetCode.textContent).then(()=>{toast('Código copiado!','success');stepWidget.textContent='✅ Código copiado'})}
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!loginScreen.classList.contains('hidden'))doLogin()});
   </script>
-</body>
-</html>
+  <script src="/dashboard-ops-patch.js"></script>
+  </body>
+  </html>
