@@ -7,4 +7,7 @@ document.addEventListener('DOMContentLoaded',function(){
   set('notes','notes');
   var msg=document.getElementById('msg');
   if(msg&&(p.get('name')||p.get('phone')))msg.textContent='Dados do cliente carregados. Escolha data e horário para salvar.';
+  var sc=document.createElement('script');
+  sc.src='/agenda-crm-sync.js';
+  document.body.appendChild(sc);
 });
