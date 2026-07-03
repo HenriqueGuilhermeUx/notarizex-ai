@@ -5,6 +5,7 @@ function html(value) { return String(value || '').replace(/[&<>]/g, c => ({ '&':
 function js(value) { return html(value).replace(/'/g, '&#39;').replace(/\n/g, ' '); }
 function onlyDigits(v) { return String(v || '').replace(/\D/g, ''); }
 function wa(phone, text) { let p = onlyDigits(phone); if (!p) return '#'; if (!p.startsWith('55') && p.length >= 10) p = '55' + p; return 'https://wa.me/' + p + '?text=' + encodeURIComponent(text || 'Olá, tudo bem? Aqui é da equipe.'); }
+function agendaUrl(lead) { const p = new URLSearchParams(); p.set('name', lead.name || ''); p.set('phone', lead.phone || ''); p.set('service', lead.service_name || lead.interest || ''); p.set('notes', lead.owner_notes || lead.notes || ''); return '/agenda.html?' + p.toString(); }
 async function api(payload) { const session = getSession(); const response = await fetch('/.netlify/functions/opportunities', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, botId: session.botId, clientToken: session.clientToken }) }); return response.json(); }
 async function moveLead(id, status) { await api({ action: 'update', leadId: id, status }); loadBoard(); }
 async function addNote(id, current) { const notes = prompt('Observação sobre este cliente:', current || ''); if (notes === null) return; await api({ action: 'update', leadId: id, notes }); loadBoard(); }
@@ -26,6 +27,7 @@ function card(lead) {
     <p class="text-xs text-green-400 mt-1">${html(lead.intent)} · ${html(lead.lead_temperature)}</p>${ret}${obs}
     <div class="grid grid-cols-2 gap-1 mt-3 text-xs">
       <button class="bg-green-400 text-black rounded p-2 text-center font-bold" onclick="openWhats('${lead.id}','${html(phone)}','${html(msg)}')">WhatsApp</button>
+      <a class="bg-blue-400 text-black rounded p-2 text-center font-bold" href="${agendaUrl(lead)}">Agendar</a>
       <button class="bg-white/10 rounded p-2" onclick="addNote('${lead.id}','${js(note)}')">Obs.</button>
       <button class="bg-white/10 rounded p-2" onclick="moveLead('${lead.id}','contatado')">Contatado</button>
       <button class="bg-white/10 rounded p-2" onclick="moveLead('${lead.id}','agendado')">Agendado</button>
