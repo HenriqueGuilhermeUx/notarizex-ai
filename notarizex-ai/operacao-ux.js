@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded',function(){
   var box=document.createElement('section');
   box.id='uxGuide';
   box.className='grid md:grid-cols-3 gap-3 mb-5';
-  box.innerHTML='<div class="bg-slate-900 border border-white/10 rounded-xl p-4"><b>1. Comece no Hoje</b><p class="text-gray-400 text-sm">Veja quem precisa ser chamado.</p></div><div class="bg-slate-900 border border-white/10 rounded-xl p-4"><b>2. Envie mensagens</b><p class="text-gray-400 text-sm">Use mensagens assistidas ou campanhas.</p></div><div class="bg-slate-900 border border-white/10 rounded-xl p-4"><b>3. Atualize o CRM</b><p class="text-gray-400 text-sm">Marque retorno, agendado ou perdido.</p></div>';
+  box.innerHTML='<a href="/comecar.html" class="bg-green-400 text-black rounded-xl p-4 block"><b>Começar</b><p class="text-black/70 text-sm">Checklist inicial do cliente.</p></a><a href="/hoje.html" class="bg-slate-900 border border-white/10 rounded-xl p-4 block"><b>Rotina do dia</b><p class="text-gray-400 text-sm">Veja quem precisa ser chamado.</p></a><a href="/divulgar-bot.html" class="bg-slate-900 border border-white/10 rounded-xl p-4 block"><b>Divulgar bot</b><p class="text-gray-400 text-sm">Link, QR Code e instruções.</p></a>';
   var hero=main.querySelector('section');
   if(hero&&hero.nextSibling)main.insertBefore(box,hero.nextSibling);
 });
