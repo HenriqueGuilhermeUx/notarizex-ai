@@ -21,3 +21,13 @@
   from = "/painel"
   to = "/dashboard-cliente.html"
   status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/dashboard-cliente.html"
+  status = 200
+
+[[redirects]]
+  from = "/entrar"
+  to = "/dashboard-cliente.html"
+  status = 200
