@@ -1,5 +1,7 @@
 function getSession(){try{return JSON.parse(localStorage.getItem('sb_session')||'{}')}catch(e){return {}}}
 
+document.addEventListener('DOMContentLoaded',function(){var g=document.createElement('script');g.src='/auth-guard.js';document.body.appendChild(g)});
+
 function normalizeHeader(h){
   h=String(h||'').trim().toLowerCase();
   const map={nome:'name',telefone:'phone',whatsapp:'phone',celular:'phone',email:'email','e-mail':'email',interesse:'interest',servico:'interest','serviço':'interest',observacao:'notes','observação':'notes',obs:'notes'};
