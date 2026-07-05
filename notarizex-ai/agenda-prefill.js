@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded',function(){
+  var g=document.createElement('script');
+  g.src='/auth-guard.js';
+  document.body.appendChild(g);
   var p=new URLSearchParams(location.search);
   function set(id,key){var el=document.getElementById(id);var v=p.get(key);if(el&&v)el.value=v}
   set('name','name');
