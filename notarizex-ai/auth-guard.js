@@ -1,6 +1,12 @@
 document.addEventListener('DOMContentLoaded',function(){
   var s={};try{s=JSON.parse(localStorage.getItem('sb_session')||'{}')}catch(e){}
-  if(s.botId||document.getElementById('sbLoginNotice'))return;
+  if(s.botId){
+    var x=document.createElement('script');
+    x.src='/subscription-guard.js';
+    document.body.appendChild(x);
+    return;
+  }
+  if(document.getElementById('sbLoginNotice'))return;
   var m=document.querySelector('main')||document.body;
   var b=document.createElement('section');
   b.id='sbLoginNotice';
