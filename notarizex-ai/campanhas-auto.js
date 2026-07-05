@@ -5,4 +5,9 @@ function startCampanhasDireto(){
   if(!t||allow.indexOf(t)<0)return;
   if(typeof createCampaign==='function')createCampaign(t);
 }
-window.addEventListener('load',startCampanhasDireto);
+window.addEventListener('load',function(){
+  var g=document.createElement('script');
+  g.src='/auth-guard.js';
+  document.body.appendChild(g);
+  startCampanhasDireto();
+});
