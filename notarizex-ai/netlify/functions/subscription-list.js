@@ -1,0 +1,7 @@
+const fetch=require('node-fetch');
+const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'OPTIONS,POST'};
+function reply(c,b){return{statusCode:c,headers,body:JSON.stringify(b)}}
+function clean(v){return String(v||'').trim()}
+function admin(t){const a=process.env.SMARTBOTS_ADMIN_TOKEN||process.env.ADMIN_TOKEN;return a&&t&&t===a}
+async function sb(path,opt={}){const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_ANON_KEY;if(!url||!key)throw new Error('Supabase nao configurado.');return fetch(url+'/rest/v1/'+path,{...opt,headers:{'Content-Type':'application/json',apikey:key,Authorization:'Bearer '+key,...(opt.headers||{})}})}
+exports.handler=async(event)=>{if(event.httpMethod==='OPTIONS')return{statusCode:204,headers,body:''};if(event.httpMethod!=='POST')return reply(405,{success:false,error:'Method Not Allowed'});try{const b=JSON.parse(event.body||'{}');if(!admin(clean(b.adminToken)))return reply(403,{success:false,error:'Admin token invalido.'});let path='smartbot_subscriptions?select=*&order=updated_at.desc&limit=200';if(b.status)path+='&status=eq.'+encodeURIComponent(clean(b.status));const r=await sb(path);if(!r.ok)throw new Error(await r.text());const items=await r.json();const totals={active:0,pending:0,overdue:0,canceled:0,trial:0,total:items.length};items.forEach(x=>{totals[x.status]=(totals[x.status]||0)+1});return reply(200,{success:true,totals,items})}catch(e){return reply(500,{success:false,error:e.message})}};
