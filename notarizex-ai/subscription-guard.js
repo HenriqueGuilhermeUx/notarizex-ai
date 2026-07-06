@@ -7,6 +7,10 @@ async function sbSubscriptionGuard(){
     if(!j.success)return;
     var st=(j.subscription&&j.subscription.status)||'pending';
     if(st==='active'||st==='trial')return;
+    if(location.pathname!=='/assinatura.html'&&location.pathname!=='/cobranca.html'&&location.pathname!=='/plano.html'){
+      location.href='/assinatura.html';
+      return;
+    }
     var main=document.querySelector('main')||document.body;
     var box=document.createElement('section');
     box.id='subGuardNotice';
