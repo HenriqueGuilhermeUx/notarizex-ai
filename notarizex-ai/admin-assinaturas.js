@@ -10,4 +10,4 @@ async function callSub(action){
 }
 function saveSub(){callSub('upsert')}
 function getSub(){callSub('get')}
-document.addEventListener('DOMContentLoaded',function(){var t=localStorage.getItem('sb_admin_token');if(t)adminToken.value=t;adminToken.addEventListener('input',function(){localStorage.setItem('sb_admin_token',adminToken.value)})});
+document.addEventListener('DOMContentLoaded',function(){var t=localStorage.getItem('sb_admin_token');if(t)adminToken.value=t;var p=new URLSearchParams(location.search);if(p.get('botId'))botId.value=p.get('botId');adminToken.addEventListener('input',function(){localStorage.setItem('sb_admin_token',adminToken.value)})});
