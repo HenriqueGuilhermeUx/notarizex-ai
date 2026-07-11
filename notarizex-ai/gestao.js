@@ -1,0 +1,6 @@
+function S(){try{return JSON.parse(localStorage.getItem('sb_session')||'{}')}catch(e){return {}}}
+async function post(url,b){var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});return r.json()}
+async function loadGestao(){result.innerHTML='Carregando...';var s=S();var cv=await post('/.netlify/functions/smartbot-conversations',{botId:s.botId,clientToken:s.clientToken});var ev=await post('/.netlify/functions/smartbot-events',{botId:s.botId,clientToken:s.clientToken});var c=(cv.conversations||[]).length,e=(ev.events||[]).filter(function(x){return (x.status||'pending')==='pending'}).length;result.innerHTML='<p>Conversas: '+c+'</p><p>Ações pendentes: '+e+'</p><p>Use SmartBots Hoje e Ações para vender melhor hoje.</p>';renderLocal()}
+function saveLocal(){var a=JSON.parse(localStorage.getItem('sb_fin')||'[]');a.push({desc:desc.value,valor:valor.value,dt:new Date().toLocaleDateString('pt-BR')});localStorage.setItem('sb_fin',JSON.stringify(a));desc.value='';valor.value='';renderLocal()}
+function renderLocal(){var a=JSON.parse(localStorage.getItem('sb_fin')||'[]');local.innerHTML=a.map(function(x){return '<p>'+x.dt+' - '+x.desc+' - '+x.valor+'</p>'}).join('')}
+document.addEventListener('DOMContentLoaded',loadGestao);
