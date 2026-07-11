@@ -1,0 +1,1 @@
+async function loadEvents(){var s=JSON.parse(localStorage.getItem('sb_session')||'{}');var r=await fetch('/.netlify/functions/smartbot-events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({botId:s.botId,clientToken:s.clientToken})});result.innerText=JSON.stringify(await r.json(),null,2)}
