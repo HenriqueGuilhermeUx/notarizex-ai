@@ -8,4 +8,5 @@ document.addEventListener('DOMContentLoaded',function(){
   var guide=document.getElementById('uxGuide');
   if(guide&&guide.nextSibling)main.insertBefore(s,guide.nextSibling);else main.appendChild(s);
   var x=document.createElement('script');x.src='/operacao-fase2-resumo.js';document.body.appendChild(x);
+  var y=document.createElement('script');y.src='/implantacao-card.js';document.body.appendChild(y);
 });
