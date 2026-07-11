@@ -9,4 +9,5 @@ document.addEventListener('DOMContentLoaded',function(){
   if(guide&&guide.nextSibling)main.insertBefore(s,guide.nextSibling);else main.appendChild(s);
   var x=document.createElement('script');x.src='/operacao-fase2-resumo.js';document.body.appendChild(x);
   var y=document.createElement('script');y.src='/implantacao-card.js';document.body.appendChild(y);
+  var z=document.createElement('script');z.src='/operacao-core.js';document.body.appendChild(z);
 });
