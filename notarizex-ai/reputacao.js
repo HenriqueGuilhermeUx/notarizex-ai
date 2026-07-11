@@ -1,0 +1,3 @@
+function buildRep(){var n=nome.value||'Tudo bem';var l=link.value||'[link de avaliação]';if(tipo.value==='indicacao')msg.value='Olá, '+n+'! Se você gostou do nosso atendimento, poderia indicar nosso contato para alguém que precise? Ficaremos muito felizes em ajudar.';else if(tipo.value==='agradecimento')msg.value='Olá, '+n+'! Obrigado pela confiança. Foi um prazer atender você. Conte conosco sempre que precisar.';else msg.value='Olá, '+n+'! Você poderia deixar uma avaliação rápida sobre nosso atendimento? Isso ajuda muito nosso negócio. Link: '+l}
+function copyRep(){navigator.clipboard.writeText(msg.value);alert('Mensagem copiada')}
+document.addEventListener('DOMContentLoaded',function(){document.body.addEventListener('input',buildRep);buildRep()});
