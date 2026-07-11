@@ -5,7 +5,14 @@ async function callKnowledge(action){
   var body={action:action,botId:s.botId,clientToken:s.clientToken,title:title.value,content:content.value};
   var r=await fetch('/.netlify/functions/smartbot-knowledge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   var j=await r.json();
-  result.innerText=JSON.stringify(j,null,2);
+  if(!j.success){result.innerText='Erro: '+j.error;return j}
+  result.innerText='OK';
+  return j;
 }
-function saveKnowledge(){callKnowledge('save')}
-function loadKnowledge(){callKnowledge('list')}
+async function saveKnowledge(){await callKnowledge('save')}
+async function loadKnowledge(){
+  var j=await callKnowledge('list');
+  var arr=j.items||j.knowledge||[];
+  if(arr[0]){title.value=arr[0].title||'Base principal';content.value=arr[0].content||'';result.innerText='Base carregada.'}else{result.innerText='Nenhuma base cadastrada ainda.'}
+}
+document.addEventListener('DOMContentLoaded',loadKnowledge);
