@@ -1,0 +1,4 @@
+function S(){return JSON.parse(localStorage.getItem('sb_session')||'{}')}
+function esc(v){return String(v||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+async function loadWAInbox(){var s=S();result.innerHTML='Carregando...';var r=await fetch('/.netlify/functions/smartbot-conversations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({botId:s.botId,clientToken:s.clientToken})});var j=await r.json();var arr=(j.conversations||[]).filter(function(x){return x.channel==='whatsapp'});result.innerHTML=arr.map(function(x){return '<div class="sb-card"><b>'+esc(x.customer_name||x.customer_phone||x.visitor_id)+'</b><p>'+esc(x.intent||'')+'</p><p>'+esc(x.last_message||'')+'</p></div>'}).join('')||'Nenhuma conversa WhatsApp ainda.'}
+document.addEventListener('DOMContentLoaded',loadWAInbox);
