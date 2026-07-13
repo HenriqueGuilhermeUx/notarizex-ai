@@ -1,0 +1,2 @@
+function S(){return JSON.parse(localStorage.getItem('sb_session')||'{}')}
+async function sendWA(){var s=S();result.innerText='Gerando...';var r=await fetch('/.netlify/functions/whatsapp-send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({botId:s.botId,clientToken:s.clientToken,phone:phone.value,message:message.value})});var j=await r.json();if(j.waLink){result.innerHTML='<a class="sb-btn" target="_blank" href="'+j.waLink+'">Abrir WhatsApp</a><pre>'+JSON.stringify(j,null,2)+'</pre>'}else{result.innerText=JSON.stringify(j,null,2)}}
