@@ -1,0 +1,1 @@
+async function sendTwilio(){result.innerText='Enviando...';try{var r=await fetch('/.netlify/functions/whatsapp-twilio-send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:to.value,message:msg.value})});var j=await r.json();result.innerText=JSON.stringify(j,null,2)}catch(e){result.innerText='Erro: '+e.message}}
