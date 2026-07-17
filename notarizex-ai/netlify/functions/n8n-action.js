@@ -1,0 +1,5 @@
+const fetch=require('node-fetch');
+const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type,x-n8n-secret','Access-Control-Allow-Methods':'OPTIONS,POST'};
+function r(c,b){return{statusCode:c,headers,body:JSON.stringify(b)}}
+async function db(p,o={}){const u=process.env.SUPABASE_URL,k=process.env.SUPABASE_ANON_KEY;return fetch(u+'/rest/v1/'+p,{...o,headers:{'Content-Type':'application/json',apikey:k,Authorization:'Bearer '+k,...(o.headers||{})}})}
+exports.handler=async(e)=>{if(e.httpMethod==='OPTIONS')return{statusCode:204,headers,body:''};try{const sec=process.env.N8N_WEBHOOK_SECRET;if(sec&&e.headers['x-n8n-secret']!==sec)return r(401,{success:false});const b=JSON.parse(e.body||'{}');if(!b.botId)return r(400,{success:false,error:'botId'});const q=await db('smartbot_automation_events',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({bot_id:b.botId,event_type:b.type||'n8n_action',payload:b,status:'pending'})});return r(200,{success:q.ok})}catch(err){return r(500,{success:false,error:err.message})}};
