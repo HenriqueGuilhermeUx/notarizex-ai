@@ -1,0 +1,5 @@
+var lastItems=[];
+async function post(url,body){var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return r.json()}
+function row(x){var n=x.title||x.name||x.businessName||x.business_name||'Sem nome';var p=x.phone||x.phoneNumber||'';var w=x.website||x.url||'';return '<div class="sb-card"><b>'+n+'</b><p>'+p+'</p><p>'+w+'</p></div>'}
+async function runProspecting(){result.innerHTML='Buscando...';var seg=segment.value.trim(),cidade=city.value.trim(),q=seg+' em '+cidade;var j=await post('/.netlify/functions/apify-run-task',{task:'prospects',limit:Number(limit.value||30),input:{query:q,queries:q,search:q,location:cidade,segment:seg}});if(!j.success){result.innerHTML='Erro: '+j.error;return}lastItems=j.items||[];result.innerHTML='<h2>Resultados</h2>'+(lastItems.map(row).join('')||'Nada encontrado')}
+async function importProspects(){if(!lastItems.length){result.innerHTML+=' <p>Busque antes de importar.</p>';return}var j=await post('/.netlify/functions/apify-import-prospects',{segment:segment.value,city:city.value,items:lastItems});result.innerHTML+='<p>Importados: '+(j.count||0)+'</p>'}
