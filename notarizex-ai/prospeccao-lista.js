@@ -1,0 +1,6 @@
+function S(){try{return JSON.parse(localStorage.getItem('sb_session')||'{}')}catch(e){return {}}}
+function phone(x){return String(x.phone||'').replace(/\D/g,'')}
+function msg(n){return 'Olá, tudo bem? Vi o contato de '+(n||'sua empresa')+' e queria apresentar uma solução simples para ajudar com atendimento, orçamento e agendamento. Posso te mandar mais detalhes?'}
+function card(x){var n=x.business_name||'Sem nome';var p=phone(x);var m=msg(n);var wa=p?'<a class="sb-btn" target="_blank" href="https://wa.me/'+p+'?text='+encodeURIComponent(m)+'">WhatsApp</a>':'';return '<div class="sb-card"><b>'+n+'</b><p>'+[x.city,x.segment,x.phone,x.website].filter(Boolean).join(' • ')+'</p><textarea rows="4">'+m+'</textarea><div class="sb-actions">'+wa+'<button class="sb-pill" onclick="navigator.clipboard.writeText(`'+m.replace(/`/g,'')+'`)">Copiar</button></div></div>'}
+async function loadList(){result.innerHTML='Carregando...';var s=S();if(!s.botId){result.innerHTML='Entre no painel primeiro.';return}var r=await fetch('/.netlify/functions/prospects-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({botId:s.botId})});var j=await r.json();if(!j.success){result.innerHTML='Erro: '+j.error;return}result.innerHTML=(j.items||[]).map(card).join('')||'Nenhuma oportunidade salva.'}
+document.addEventListener('DOMContentLoaded',loadList);
