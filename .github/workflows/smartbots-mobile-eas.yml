@@ -19,6 +19,8 @@ jobs:
     defaults:
       run:
         working-directory: smartbots-mobile
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN || secrets.EAS_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -40,14 +42,13 @@ jobs:
       - name: Validate Expo config
         run: npx expo config --type public
 
-      - name: Check EAS token
+      - name: Check Expo token
         run: |
-          if [ -z "${{ secrets.EAS_TOKEN }}" ]; then
-            echo "EAS_TOKEN não configurado em Settings > Secrets and variables > Actions."
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "Token não configurado. Crie um secret chamado EXPO_TOKEN ou EAS_TOKEN em Settings > Secrets and variables > Actions."
             exit 1
           fi
+          echo "Expo token encontrado."
 
       - name: Run EAS Android build
-        env:
-          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: npx eas build -p android --profile ${{ inputs.profile }} --non-interactive --wait
