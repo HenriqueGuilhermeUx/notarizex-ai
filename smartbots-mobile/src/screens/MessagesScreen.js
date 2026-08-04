@@ -1,0 +1,9 @@
+import React,{useState}from 'react';
+import {ScrollView,TextInput,StyleSheet} from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import {Screen,H1,Muted,Card,Button,Row} from '../components';
+import {colors} from '../theme';
+import {openWhatsApp} from '../services/whatsapp';
+const templates=['Oi, tudo bem? Vi seu contato por aqui e queria entender melhor como posso ajudar.','Oi! Passando para confirmar seu horário. Pode me confirmar por aqui?','Oi! Sobre o orçamento que você pediu, posso te passar os detalhes agora.','Oi! Passando para saber se ainda faz sentido retomarmos esse atendimento.','Oi! Obrigado pela confiança. Se puder deixar uma avaliação, ajuda muito nosso negócio.'];
+export default function MessagesScreen(){const[phone,setPhone]=useState('');const[msg,setMsg]=useState(templates[0]);async function copy(){await Clipboard.setStringAsync(msg)}return <Screen><ScrollView><H1>Mensagens</H1><Muted>Modelos rápidos para copiar ou abrir no WhatsApp do cliente.</Muted><Card><TextInput value={phone} onChangeText={setPhone} placeholder="WhatsApp do cliente" placeholderTextColor={colors.muted} keyboardType="phone-pad" style={st.input}/><TextInput value={msg} onChangeText={setMsg} multiline placeholder="Mensagem" placeholderTextColor={colors.muted} style={[st.input,{height:120}]}/><Button onPress={copy}>Copiar</Button><Button secondary onPress={()=>openWhatsApp(phone,msg)}>Abrir WhatsApp</Button></Card>{templates.map((t,i)=><Row key={i} title={'Modelo '+(i+1)} subtitle={t} onPress={()=>setMsg(t)}/>)}</ScrollView></Screen>}
+const st=StyleSheet.create({input:{backgroundColor:'#020617',borderColor:colors.line,borderWidth:1,borderRadius:14,padding:13,color:colors.text,marginBottom:10}});
