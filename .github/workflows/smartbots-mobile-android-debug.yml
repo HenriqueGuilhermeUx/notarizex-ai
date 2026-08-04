@@ -1,4 +1,4 @@
-name: SmartBots Mobile - Android Debug APK
+name: SmartBots Mobile - Android Installable APK
 
 on:
   workflow_dispatch:
@@ -8,8 +8,8 @@ on:
       - '.github/workflows/smartbots-mobile-android-debug.yml'
 
 jobs:
-  build-debug-apk:
-    name: Build Android Debug APK
+  build-installable-apk:
+    name: Build Android Installable APK
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.13.1
           cache: npm
           cache-dependency-path: smartbots-mobile/package.json
 
@@ -36,7 +36,9 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: npm install
+        env:
+          NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
+        run: npm install --legacy-peer-deps
 
       - name: Generate assets
         run: npm run assets
@@ -47,7 +49,18 @@ jobs:
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
 
-      - name: Build debug APK
+      - name: Bundle JavaScript into APK
+        run: |
+          mkdir -p android/app/src/main/assets
+          mkdir -p android/app/src/main/res
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+
+      - name: Build installable APK
         run: |
           cd android
           chmod +x ./gradlew
@@ -56,6 +69,6 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: smartbots-hoje-debug-apk
+          name: smartbots-hoje-installable-apk
           path: smartbots-mobile/android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
