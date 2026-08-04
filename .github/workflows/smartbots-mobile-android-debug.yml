@@ -49,11 +49,11 @@ jobs:
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
 
-      - name: Bundle JavaScript into APK
+      - name: Bundle JavaScript into APK with Expo
         run: |
           mkdir -p android/app/src/main/assets
           mkdir -p android/app/src/main/res
-          npx react-native bundle \
+          npx expo export:embed \
             --platform android \
             --dev false \
             --entry-file index.js \
