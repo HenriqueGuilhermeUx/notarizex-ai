@@ -1,0 +1,7 @@
+import React,{useState}from 'react';
+import {TextInput,Text,StyleSheet,KeyboardAvoidingView,Platform} from 'react-native';
+import {Screen,H1,Muted,Button,Card} from '../components';
+import {colors} from '../theme';
+import {saveSession} from '../services/session';
+export default function LoginScreen({onLogin}){const[botId,setBotId]=useState('');const[token,setToken]=useState('');async function enter(){const s={botId:botId.trim(),clientToken:token.trim()};if(!s.botId||!s.clientToken)return;await saveSession(s);onLogin(s)}return <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':undefined} style={{flex:1}}><Screen><H1>SmartBots Hoje</H1><Muted>Entre com os dados do seu bot para acessar CRM, ações, mensagens e WhatsApp assistido.</Muted><Card><Text style={st.label}>Bot ID</Text><TextInput value={botId} onChangeText={setBotId} placeholder="ex: cliente-salao" placeholderTextColor={colors.muted} autoCapitalize="none" style={st.input}/><Text style={st.label}>Token do cliente</Text><TextInput value={token} onChangeText={setToken} placeholder="client token" placeholderTextColor={colors.muted} autoCapitalize="none" secureTextEntry style={st.input}/><Button onPress={enter}>Entrar</Button></Card><Muted>Versão inicial Android. O envio final de mensagens acontece pelo WhatsApp do cliente.</Muted></Screen></KeyboardAvoidingView>}
+const st=StyleSheet.create({label:{color:colors.text,fontWeight:'800',marginTop:8},input:{backgroundColor:'#020617',borderColor:colors.line,borderWidth:1,borderRadius:14,padding:13,color:colors.text,marginTop:6,marginBottom:6}});
