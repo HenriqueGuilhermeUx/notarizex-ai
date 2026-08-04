@@ -1,0 +1,53 @@
+name: SmartBots Mobile - EAS Android Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Build profile: preview gera APK; production gera AAB'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+
+jobs:
+  eas-android-build:
+    name: EAS Android Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: smartbots-mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: smartbots-mobile/package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate assets
+        run: npm run assets
+
+      - name: Validate Expo config
+        run: npx expo config --type public
+
+      - name: Check EAS token
+        run: |
+          if [ -z "${{ secrets.EAS_TOKEN }}" ]; then
+            echo "EAS_TOKEN não configurado em Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Run EAS Android build
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+        run: npx eas build -p android --profile ${{ inputs.profile }} --non-interactive --wait
