@@ -1,0 +1,59 @@
+name: SmartBots Mobile - EAS APK and AAB
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'smartbots-mobile/**'
+      - '.github/workflows/smartbots-mobile-eas-apk-aab.yml'
+
+jobs:
+  eas-builds:
+    name: EAS ${{ matrix.profile }} build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: preview
+            label: APK
+          - profile: production
+            label: AAB
+    defaults:
+      run:
+        working-directory: smartbots-mobile
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN || secrets.EAS_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: smartbots-mobile/package.json
+
+      - name: Install dependencies
+        env:
+          NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
+        run: npm install --legacy-peer-deps
+
+      - name: Generate assets
+        run: npm run assets
+
+      - name: Validate Expo config
+        run: npx expo config --type public
+
+      - name: Check Expo token
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "EXPO_TOKEN/EAS_TOKEN nao configurado."
+            exit 1
+          fi
+          echo "Expo token encontrado."
+
+      - name: Run EAS ${{ matrix.label }} build
+        run: npx eas build -p android --profile ${{ matrix.profile }} --non-interactive --wait
