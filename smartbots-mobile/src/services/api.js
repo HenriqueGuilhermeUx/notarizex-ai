@@ -1,5 +1,6 @@
 import {apiBase} from '../theme';
 export async function post(path,body){const r=await fetch(apiBase+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});let j={};try{j=await r.json()}catch(e){}if(!r.ok&&!j.error)j.error='Erro '+r.status;return j}
+export async function mobileSignup(input){return post('/.netlify/functions/mobile-signup',input)}
 export async function crmSummary(session){return post('/.netlify/functions/crm-smartbots-summary',{botId:session.botId,clientToken:session.clientToken})}
 export async function events(session){return post('/.netlify/functions/smartbot-events',{botId:session.botId,clientToken:session.clientToken})}
 export async function conversations(session){return post('/.netlify/functions/smartbot-conversations',{botId:session.botId,clientToken:session.clientToken})}
