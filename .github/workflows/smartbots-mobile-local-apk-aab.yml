@@ -1,0 +1,69 @@
+name: SmartBots Mobile - Local APK and AAB
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'smartbots-mobile/**'
+      - '.github/workflows/smartbots-mobile-local-apk-aab.yml'
+
+jobs:
+  local-android-build:
+    name: Local Android APK and AAB
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: smartbots-mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: smartbots-mobile/package.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        env:
+          NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
+        run: npm install --legacy-peer-deps
+
+      - name: Generate app assets
+        run: npm run assets
+
+      - name: Validate Expo config
+        run: npx expo config --type public
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --clean
+
+      - name: Build APK and AAB with Gradle
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew :app:assembleRelease :app:bundleRelease --stacktrace
+
+      - name: Collect Android outputs
+        run: |
+          mkdir -p build-output
+          find android/app/build/outputs -type f \( -name '*.apk' -o -name '*.aab' \) -print -exec cp {} build-output/ \;
+          ls -lah build-output
+
+      - name: Upload local APK and AAB artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: smartbots-local-apk-aab
+          path: smartbots-mobile/build-output/*
+          if-no-files-found: error
