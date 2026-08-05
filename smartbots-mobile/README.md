@@ -2,49 +2,70 @@
 
 App mobile da SmartBots para Android, feito em Expo/React Native.
 
-## Funções do MVP
+## Identidade do app
 
+- Nome: SmartBots Hoje
+- Pacote Android: `club.smartbots.app`
+- Slug EAS: `smartbots`
+- Project ID EAS: `6893b421-ca62-4c5b-8fb0-20425a493b10`
+- Política de Privacidade: `https://smartbots.club/politica-privacidade-app.html`
+- Exclusão de conta/dados: `https://smartbots.club/excluir-conta.html`
+- Termos: `https://smartbots.club/termos-app.html`
+
+## Funções do MVP completo
+
+- Cadastro de novo negócio pelo app
+- Login amigável por código da empresa e código de acesso
+- Acesso técnico por botId/clientToken
 - Hoje: resumo diário do negócio
 - CRM: contatos, oportunidades e prospects
 - Ações: agenda, vendas, dúvidas, retorno e humano
 - Mensagens: modelos prontos + abrir WhatsApp
 - Prospecção: busca de oportunidades via Apify
 - Agenda Pro: link Cal.com ou agenda externa
-- Meu Bot: link do mini site para bio, QR e teste
+- Meu Bot: mini site para bio, QR e teste
+- Mais: painel web, políticas, exclusão de conta e termos
 
-## Gerar pelo GitHub Actions
+## GitHub Actions
 
-### APK de teste, sem EAS
+### APK instalável
 
-1. Abra o repositório no GitHub.
-2. Vá em **Actions**.
-3. Escolha **SmartBots Mobile - Android Debug APK**.
-4. Clique em **Run workflow**.
-5. Quando terminar, baixe o artifact **smartbots-hoje-debug-apk**.
+Use o workflow:
 
-Esse APK serve para instalar em aparelhos Android e testar o app.
+```text
+SmartBots Mobile - Android Installable APK
+```
 
-### APK/AAB assinado com EAS
+Ele gera o artifact:
 
-Para build assinado via Expo/EAS:
+```text
+smartbots-hoje-installable-apk
+```
 
-1. Crie/configure o projeto no Expo/EAS.
-2. Gere um token EAS.
-3. No GitHub, vá em **Settings > Secrets and variables > Actions**.
-4. Crie o secret:
+### APK e AAB via EAS
+
+Use o workflow:
+
+```text
+SmartBots Mobile - EAS APK and AAB
+```
+
+Ele roda dois builds:
+
+- `preview`: APK
+- `production`: AAB
+
+Requer secret no GitHub:
+
+```text
+EXPO_TOKEN=seu_token_expo
+```
+
+ou:
 
 ```text
 EAS_TOKEN=seu_token_eas
 ```
-
-Depois:
-
-1. Vá em **Actions**.
-2. Escolha **SmartBots Mobile - EAS Android Build**.
-3. Clique em **Run workflow**.
-4. Escolha:
-   - `preview` para APK
-   - `production` para AAB
 
 ## Rodar localmente
 
@@ -54,13 +75,15 @@ npm install
 npx expo start
 ```
 
-## Gerar APK local/EAS
+## Build manual pelo EAS
+
+APK:
 
 ```bash
 npm run build:apk
 ```
 
-## Gerar AAB local/EAS
+AAB:
 
 ```bash
 npm run build:aab
@@ -72,3 +95,4 @@ npm run build:aab
 - AAB: formato usado para publicação na Google Play.
 - O envio de mensagens abre o WhatsApp do cliente.
 - A SmartBots não dispara mensagens automaticamente nesta versão.
+- Algumas configurações avançadas continuam no painel web.
