@@ -17,8 +17,10 @@ jobs:
         include:
           - profile: preview
             label: APK
+            ext: apk
           - profile: production
             label: AAB
+            ext: aab
     defaults:
       run:
         working-directory: smartbots-mobile
@@ -56,4 +58,66 @@ jobs:
           echo "Expo token encontrado."
 
       - name: Run EAS ${{ matrix.label }} build
-        run: npx eas build -p android --profile ${{ matrix.profile }} --non-interactive --wait
+        run: |
+          mkdir -p build-output
+          npx eas build -p android --profile ${{ matrix.profile }} --non-interactive --wait --json > build-output/eas-${{ matrix.profile }}.json
+
+      - name: Extract artifact URL
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const profile = '${{ matrix.profile }}';
+          const ext = '${{ matrix.ext }}';
+          const file = path.join('build-output', `eas-${profile}.json`);
+          const raw = fs.readFileSync(file, 'utf8').trim();
+          let data;
+          try {
+            data = JSON.parse(raw);
+          } catch (error) {
+            console.error('Nao foi possivel ler JSON do EAS. Conteudo recebido:');
+            console.error(raw);
+            process.exit(1);
+          }
+          const urls = [];
+          function walk(value) {
+            if (!value) return;
+            if (typeof value === 'string') {
+              if (/^https?:\/\//.test(value)) urls.push(value);
+              return;
+            }
+            if (Array.isArray(value)) return value.forEach(walk);
+            if (typeof value === 'object') return Object.values(value).forEach(walk);
+          }
+          walk(data);
+          const archiveUrl = urls.find((url) => url.includes(`.${ext}`))
+            || urls.find((url) => /applicationArchive|artifacts|expo\.dev/.test(url));
+          if (!archiveUrl) {
+            console.error('Build terminou, mas nao encontrei URL do arquivo final no JSON do EAS.');
+            console.error(raw);
+            process.exit(1);
+          }
+          fs.writeFileSync(path.join('build-output', `artifact-${profile}.url`), archiveUrl + '\n');
+          console.log(`ARTIFACT_URL=${archiveUrl}`);
+          NODE
+
+      - name: Download ${{ matrix.label }} from EAS
+        run: |
+          URL="$(cat build-output/artifact-${{ matrix.profile }}.url)"
+          echo "Baixando ${{ matrix.label }} do EAS..."
+          curl -L --fail "$URL" -o "build-output/smartbots-${{ matrix.profile }}.${{ matrix.ext }}"
+          ls -lh build-output
+
+      - name: Upload ${{ matrix.label }} artifact to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: smartbots-${{ matrix.profile }}-${{ matrix.label }}
+          path: smartbots-mobile/build-output/smartbots-${{ matrix.profile }}.${{ matrix.ext }}
+          if-no-files-found: error
+
+      - name: Upload EAS metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: smartbots-${{ matrix.profile }}-eas-metadata
+          path: smartbots-mobile/build-output/eas-${{ matrix.profile }}.json
+          if-no-files-found: warn
