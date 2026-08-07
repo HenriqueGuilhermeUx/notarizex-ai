@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22.13.1
+          node-version: 20.20.2
           cache: npm
           cache-dependency-path: smartbots-mobile/package.json
 
@@ -46,6 +46,16 @@ jobs:
       - name: Validate Expo config
         run: npx expo config --type public
 
+      - name: Diagnose React Native config
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -v
+          npm -v
+          npx react-native config > /tmp/smartbots-rn-config.json
+          head -c 2000 /tmp/smartbots-rn-config.json || true
+          echo "\nReact Native config OK."
+
       - name: Validate JS bundle before Gradle
         shell: bash
         run: |
@@ -62,6 +72,21 @@ jobs:
 
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
+
+      - name: Embed JS bundle into Android project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android/app/src/main/assets android/app/src/main/res
+          npx expo export:embed \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+          test -s android/app/src/main/assets/index.android.bundle
+          node scripts/patch-android-disable-auto-bundle.js
+          echo "Bundle JS embutido no projeto Android."
 
       - name: Build APK and AAB with Gradle
         shell: bash
