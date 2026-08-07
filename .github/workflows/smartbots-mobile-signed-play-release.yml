@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22.13.1
+          node-version: 20.20.2
           cache: npm
           cache-dependency-path: smartbots-mobile/package.json
 
@@ -52,6 +52,16 @@ jobs:
       - name: Validate Expo config
         run: npx expo config --type public
 
+      - name: Diagnose React Native config
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -v
+          npm -v
+          npx react-native config > /tmp/smartbots-rn-config.json
+          head -c 2000 /tmp/smartbots-rn-config.json || true
+          echo "\nReact Native config OK."
+
       - name: Validate JS bundle before Gradle
         shell: bash
         run: |
@@ -68,6 +78,21 @@ jobs:
 
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
+
+      - name: Embed JS bundle into Android project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android/app/src/main/assets android/app/src/main/res
+          npx expo export:embed \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+          test -s android/app/src/main/assets/index.android.bundle
+          node scripts/patch-android-disable-auto-bundle.js
+          echo "Bundle JS embutido no projeto Android."
 
       - name: Configure release keystore
         shell: bash
@@ -88,7 +113,7 @@ jobs:
           set -euo pipefail
           cd android
           chmod +x ./gradlew
-          ./gradlew clean :app:assembleRelease :app:bundleRelease --stacktrace --info
+          ./gradlew clean :app:assembleRelease :app:bundleRelease --stacktrace --info --warning-mode all
 
       - name: Verify release signing
         shell: bash
@@ -106,27 +131,29 @@ jobs:
           echo "Assinatura release verificada."
 
       - name: Collect release files
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p play-release
-          cp android/app/build/outputs/apk/release/*.apk play-release/smartbots-hoje-release.apk
-          cp android/app/build/outputs/bundle/release/*.aab play-release/smartbots-hoje-release.aab
-          cp ../smartbots-mobile-signing-report.txt play-release/signing-report.txt
+          find android/app/build/outputs -type f \( -name '*.apk' -o -name '*.aab' \) -print -exec cp {} play-release/ \; || true
+          if [ -f ../smartbots-mobile-signing-report.txt ]; then cp ../smartbots-mobile-signing-report.txt play-release/signing-report.txt; fi
+          if [ -d android/build/reports ]; then cp -R android/build/reports play-release/gradle-root-reports || true; fi
+          if [ -d android/app/build/reports ]; then cp -R android/app/build/reports play-release/gradle-app-reports || true; fi
           cat > play-release/README.txt <<EOF
           SmartBots Hoje - Release assinado para Google Play
 
           Pacote Android: club.smartbots.app
-          Arquivo para Play Console: smartbots-hoje-release.aab
-          APK de teste assinado: smartbots-hoje-release.apk
-
+          Arquivo esperado para Play Console: app-release.aab ou smartbots-hoje-release.aab
           Confira signing-report.txt antes de enviar.
           EOF
+          ls -lah play-release || true
 
       - name: Upload signed Play release artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: smartbots-hoje-signed-play-release
           path: smartbots-mobile/play-release/*
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
