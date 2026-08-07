@@ -96,16 +96,17 @@ jobs:
 
       - name: Configure release keystore
         shell: bash
+        env:
+          SMARTBOTS_UPLOAD_STORE_FILE: smartbots-upload-key.jks
+          SMARTBOTS_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          SMARTBOTS_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SMARTBOTS_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          echo '${{ secrets.ANDROID_KEYSTORE_BASE64 }}' | base64 -d > android/app/smartbots-upload-key.jks
-          cat >> android/gradle.properties <<EOF
-          SMARTBOTS_UPLOAD_STORE_FILE=smartbots-upload-key.jks
-          SMARTBOTS_UPLOAD_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          SMARTBOTS_UPLOAD_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}
-          SMARTBOTS_UPLOAD_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}
-          EOF
+          printf '%s' '${{ secrets.ANDROID_KEYSTORE_BASE64 }}' | base64 -d > android/app/smartbots-upload-key.jks
+          node scripts/write-android-signing-properties.js
           node scripts/patch-android-release-signing.js
+          echo "Propriedades de assinatura gravadas com quebra de linha segura."
 
       - name: Build signed release APK and AAB
         shell: bash
