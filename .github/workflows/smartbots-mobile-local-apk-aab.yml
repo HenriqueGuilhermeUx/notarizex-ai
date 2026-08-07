@@ -46,24 +46,46 @@ jobs:
       - name: Validate Expo config
         run: npx expo config --type public
 
+      - name: Validate JS bundle before Gradle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/smartbots-bundle/assets
+          npx expo export:embed \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output /tmp/smartbots-bundle/index.android.bundle \
+            --assets-dest /tmp/smartbots-bundle/assets
+          test -s /tmp/smartbots-bundle/index.android.bundle
+          echo "Bundle JS validado antes do Gradle."
+
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
 
       - name: Build APK and AAB with Gradle
+        shell: bash
         run: |
+          set -euo pipefail
           cd android
           chmod +x ./gradlew
-          ./gradlew :app:assembleRelease :app:bundleRelease --stacktrace
+          ./gradlew clean :app:assembleRelease :app:bundleRelease --stacktrace --info --warning-mode all
 
       - name: Collect Android outputs
+        if: always()
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p build-output
-          find android/app/build/outputs -type f \( -name '*.apk' -o -name '*.aab' \) -print -exec cp {} build-output/ \;
-          ls -lah build-output
+          find android/app/build/outputs -type f \( -name '*.apk' -o -name '*.aab' \) -print -exec cp {} build-output/ \; || true
+          if [ -d android/build/reports ]; then cp -R android/build/reports build-output/gradle-root-reports || true; fi
+          if [ -d android/app/build/reports ]; then cp -R android/app/build/reports build-output/gradle-app-reports || true; fi
+          ls -lah build-output || true
 
       - name: Upload local APK and AAB artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: smartbots-local-apk-aab
           path: smartbots-mobile/build-output/*
-          if-no-files-found: error
+          if-no-files-found: warn
