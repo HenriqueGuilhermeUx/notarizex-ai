@@ -1,0 +1,118 @@
+name: SmartBots Mobile - Signed Play Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  signed-play-release:
+    name: Build signed APK and AAB for Play
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: smartbots-mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: smartbots-mobile/package.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Check signing secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" || (echo "ANDROID_KEYSTORE_BASE64 ausente" && exit 1)
+          test -n "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" || (echo "ANDROID_KEYSTORE_PASSWORD ausente" && exit 1)
+          test -n "${{ secrets.ANDROID_KEY_ALIAS }}" || (echo "ANDROID_KEY_ALIAS ausente" && exit 1)
+          test -n "${{ secrets.ANDROID_KEY_PASSWORD }}" || (echo "ANDROID_KEY_PASSWORD ausente" && exit 1)
+          echo "Signing secrets encontrados."
+
+      - name: Install dependencies
+        env:
+          NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
+        run: npm install --legacy-peer-deps
+
+      - name: Generate app assets
+        run: npm run assets
+
+      - name: Validate Expo config
+        run: npx expo config --type public
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --clean
+
+      - name: Configure release keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '${{ secrets.ANDROID_KEYSTORE_BASE64 }}' | base64 -d > android/app/smartbots-upload-key.jks
+          cat >> android/gradle.properties <<EOF
+          SMARTBOTS_UPLOAD_STORE_FILE=smartbots-upload-key.jks
+          SMARTBOTS_UPLOAD_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          SMARTBOTS_UPLOAD_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}
+          SMARTBOTS_UPLOAD_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+          node scripts/patch-android-release-signing.js
+
+      - name: Build signed release APK and AAB
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd android
+          chmod +x ./gradlew
+          ./gradlew clean :app:assembleRelease :app:bundleRelease
+
+      - name: Verify release signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=$(ls android/app/build/outputs/apk/release/*.apk | head -n 1)
+          AAB=$(ls android/app/build/outputs/bundle/release/*.aab | head -n 1)
+          echo "APK gerado: $APK"
+          echo "AAB gerado: $AAB"
+          keytool -printcert -jarfile "$AAB" | tee ../smartbots-mobile-signing-report.txt
+          if grep -q "Android Debug" ../smartbots-mobile-signing-report.txt; then
+            echo "ERRO: AAB ainda parece assinado com debug."
+            exit 1
+          fi
+          echo "Assinatura release verificada."
+
+      - name: Collect release files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p play-release
+          cp android/app/build/outputs/apk/release/*.apk play-release/smartbots-hoje-release.apk
+          cp android/app/build/outputs/bundle/release/*.aab play-release/smartbots-hoje-release.aab
+          cp ../smartbots-mobile-signing-report.txt play-release/signing-report.txt
+          cat > play-release/README.txt <<EOF
+          SmartBots Hoje - Release assinado para Google Play
+
+          Pacote Android: club.smartbots.app
+          Arquivo para Play Console: smartbots-hoje-release.aab
+          APK de teste assinado: smartbots-hoje-release.apk
+
+          Confira signing-report.txt antes de enviar.
+          EOF
+
+      - name: Upload signed Play release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smartbots-hoje-signed-play-release
+          path: smartbots-mobile/play-release/*
+          if-no-files-found: error
+          retention-days: 30
