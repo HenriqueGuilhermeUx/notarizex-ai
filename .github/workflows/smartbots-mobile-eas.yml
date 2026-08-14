@@ -1,4 +1,4 @@
-name: SmartBots Mobile - EAS Android Build
+name: NAO USAR AGORA - SmartBots Mobile - EAS Android Build
 
 on:
   workflow_dispatch:
@@ -11,6 +11,11 @@ on:
         options:
           - preview
           - production
+      confirm_use_eas_quota:
+        description: 'Digite USAR-EAS para confirmar que quer consumir cota Expo/EAS'
+        required: true
+        default: 'NAO-USAR'
+        type: string
 
 jobs:
   eas-android-build:
@@ -24,13 +29,22 @@ jobs:
       NPM_CONFIG_LEGACY_PEER_DEPS: true
 
     steps:
+      - name: Stop unless explicitly confirmed
+        run: |
+          if [ "${{ inputs.confirm_use_eas_quota }}" != "USAR-EAS" ]; then
+            echo "EAS temporariamente bloqueado: conta Expo sem cota Android."
+            echo "Use o workflow: SmartBots Mobile - Signed Play Release"
+            exit 1
+          fi
+          echo "Uso de EAS confirmado manualmente."
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22.13.1
+          node-version: 20.20.2
           cache: npm
           cache-dependency-path: smartbots-mobile/package.json
 
