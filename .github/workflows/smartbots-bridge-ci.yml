@@ -1,0 +1,32 @@
+name: SmartBots Bridge CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'notarizex-ai/netlify/functions/nexoffice-bridge.mjs'
+      - '.github/workflows/smartbots-bridge-ci.yml'
+  pull_request:
+    paths:
+      - 'notarizex-ai/netlify/functions/nexoffice-bridge.mjs'
+      - '.github/workflows/smartbots-bridge-ci.yml'
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: node --check notarizex-ai/netlify/functions/nexoffice-bridge.mjs
+      - name: Validate exported handler
+        run: |
+          node --input-type=module - <<'NODE'
+          globalThis.Netlify = { env: { get: () => '' } };
+          const mod = await import('./notarizex-ai/netlify/functions/nexoffice-bridge.mjs');
+          if (typeof mod.default !== 'function') throw new Error('Missing default handler');
+          if (!Array.isArray(mod.config?.path) || mod.config.path.length !== 2) throw new Error('Missing bridge routes');
+          console.log('SmartBots NexOffice bridge exports OK');
+          NODE
