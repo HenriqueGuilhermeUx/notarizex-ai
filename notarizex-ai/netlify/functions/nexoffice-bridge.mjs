@@ -60,31 +60,120 @@ async function db(path, options = {}) {
   });
 }
 
+async function rows(response, label) {
+  if (!response.ok) throw new Error(`${label}:${response.status}:${(await response.text()).slice(0, 500)}`);
+  const raw = await response.text();
+  return raw ? JSON.parse(raw) : [];
+}
+
 async function findBot(botId) {
-  for (const table of ['whatsapp_bots', 'website_bots']) {
-    const response = await db(`${table}?bot_id=eq.${encodeURIComponent(botId)}&select=bot_id&limit=1`);
-    if (!response.ok) continue;
-    const rows = await response.json();
-    if (rows[0]) return { table, bot: rows[0] };
+  const response = await db(`website_bots?bot_id=eq.${encodeURIComponent(botId)}&select=bot_id,company_name,status&limit=1`);
+  const data = await rows(response, 'bot_lookup_failed');
+  return data[0] || null;
+}
+
+async function verifyClientToken(botId, clientToken) {
+  if (!botId || !clientToken) return false;
+  const response = await db(`website_bots?bot_id=eq.${encodeURIComponent(botId)}&client_token=eq.${encodeURIComponent(clientToken)}&select=bot_id&limit=1`);
+  if (!response.ok) return false;
+  const data = await response.json();
+  return Boolean(data[0]);
+}
+
+async function workspaceBinding(workspaceId) {
+  const response = await db(`smartbot_nexoffice_bindings?workspace_id=eq.${encodeURIComponent(workspaceId)}&status=eq.active&select=id,workspace_id,bot_id,status,updated_at&limit=1`);
+  const data = await rows(response, 'binding_lookup_failed');
+  return data[0] || null;
+}
+
+async function botBinding(botId) {
+  const response = await db(`smartbot_nexoffice_bindings?bot_id=eq.${encodeURIComponent(botId)}&status=eq.active&select=id,workspace_id,bot_id,status&limit=1`);
+  const data = await rows(response, 'bot_binding_lookup_failed');
+  return data[0] || null;
+}
+
+async function bindWorkspace(workspaceId, botId, clientToken) {
+  if (!await verifyClientToken(botId, clientToken)) {
+    return { ok: false, status: 403, error: 'invalid_bot_credentials' };
   }
-  return null;
+  const alreadyForBot = await botBinding(botId);
+  if (alreadyForBot && alreadyForBot.workspace_id !== workspaceId) {
+    return { ok: false, status: 409, error: 'bot_already_bound_to_another_workspace' };
+  }
+  const response = await db('smartbot_nexoffice_bindings?on_conflict=workspace_id', {
+    method: 'POST',
+    headers: { prefer: 'resolution=merge-duplicates,return=representation' },
+    body: JSON.stringify({
+      workspace_id: workspaceId,
+      bot_id: botId,
+      status: 'active',
+      updated_at: new Date().toISOString(),
+    }),
+  });
+  const data = await rows(response, 'binding_save_failed');
+  return { ok: true, binding: data[0] || { workspace_id: workspaceId, bot_id: botId, status: 'active' } };
 }
 
-async function findReceipt(botId, correlationId) {
-  const path = `smartbot_whatsapp_messages?bot_id=eq.${encodeURIComponent(botId)}&provider=eq.nexoffice&payload->>nexofficeCorrelationId=eq.${encodeURIComponent(correlationId)}&select=id,payload&limit=1`;
-  const response = await db(path);
-  if (!response.ok) throw new Error(`idempotency_lookup_failed:${response.status}`);
-  const rows = await response.json();
-  return rows[0] || null;
+async function whatsappConfig(botId) {
+  const response = await db(`smartbot_whatsapp_config?bot_id=eq.${encodeURIComponent(botId)}&select=bot_id,provider,status,provider_phone_number_id&limit=1`);
+  const data = await rows(response, 'whatsapp_config_lookup_failed');
+  return data[0] || null;
 }
 
-async function saveReceipt({ botId, phone, message, workspaceId, correlationId, commandActionId, approvalId, providerResponse }) {
+async function claimDispatch({ workspaceId, botId, correlationId, commandActionId, approvalId, phone }) {
+  const record = {
+    workspace_id: workspaceId,
+    bot_id: botId,
+    correlation_id: correlationId,
+    command_action_id: commandActionId || null,
+    approval_id: approvalId || null,
+    recipient: phone,
+    status: 'pending',
+  };
+  const response = await db('smartbot_nexoffice_dispatches', {
+    method: 'POST',
+    headers: { prefer: 'return=representation' },
+    body: JSON.stringify(record),
+  });
+  if (response.ok) {
+    const data = await response.json();
+    return { claimed: true, dispatch: data[0] || record };
+  }
+  if (response.status !== 409) throw new Error(`dispatch_claim_failed:${response.status}`);
+  const existingResponse = await db(`smartbot_nexoffice_dispatches?workspace_id=eq.${encodeURIComponent(workspaceId)}&correlation_id=eq.${encodeURIComponent(correlationId)}&select=*&limit=1`);
+  const existing = (await rows(existingResponse, 'dispatch_existing_lookup_failed'))[0];
+  if (!existing) throw new Error('dispatch_conflict_without_record');
+  if (existing.bot_id !== botId) return { claimed: false, conflict: true, error: 'correlation_bound_to_different_bot', dispatch: existing };
+  if (existing.status === 'sent') return { claimed: false, duplicate: true, dispatch: existing };
+  if (existing.status === 'pending') return { claimed: false, inProgress: true, dispatch: existing };
+  const retry = await db(`smartbot_nexoffice_dispatches?id=eq.${encodeURIComponent(existing.id)}&status=eq.failed`, {
+    method: 'PATCH',
+    headers: { prefer: 'return=representation' },
+    body: JSON.stringify({ status: 'pending', error: null, updated_at: new Date().toISOString() }),
+  });
+  const retried = await rows(retry, 'dispatch_retry_failed');
+  return { claimed: Boolean(retried[0]), dispatch: retried[0] || existing, inProgress: !retried[0] };
+}
+
+async function finishDispatch(id, patch) {
+  if (!id) return null;
+  const response = await db(`smartbot_nexoffice_dispatches?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { prefer: 'return=representation' },
+    body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
+  });
+  const data = await rows(response, 'dispatch_update_failed');
+  return data[0] || null;
+}
+
+async function saveMessageReceipt({ botId, phone, message, workspaceId, correlationId, commandActionId, approvalId, providerMessageId, providerResponse }) {
   const record = {
     bot_id: botId,
     direction: 'outbound',
     contact_phone: phone,
     message,
-    provider: 'nexoffice',
+    provider: 'kapso',
+    provider_message_id: providerMessageId || null,
     payload: {
       source: 'nexoffice',
       workspaceId,
@@ -101,57 +190,83 @@ async function saveReceipt({ botId, phone, message, workspaceId, correlationId, 
     headers: { prefer: 'return=representation' },
     body: JSON.stringify(record),
   });
-  if (!response.ok) throw new Error(`delivery_receipt_failed:${response.status}`);
-  const rows = await response.json();
-  return rows[0] || null;
+  if (!response.ok) {
+    console.error('[NexOffice SmartBots Bridge] delivery receipt failed', response.status);
+    return null;
+  }
+  const data = await response.json();
+  return data[0] || null;
 }
 
-async function sendProvider({ botId, phone, message, workspaceId, correlationId }) {
-  const providerUrl = env('WHATSAPP_PROVIDER_URL');
-  if (!providerUrl) throw new Error('whatsapp_provider_not_configured');
-  const providerKey = env('WHATSAPP_PROVIDER_API_KEY');
-  const headers = { 'content-type': 'application/json', accept: 'application/json' };
-  if (providerKey) headers.authorization = `Bearer ${providerKey}`;
-  const response = await fetch(providerUrl, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      phone,
-      message,
-      botId,
-      source: 'nexoffice',
-      workspaceId,
-      correlationId,
-    }),
-    signal: AbortSignal.timeout(20000),
-  });
-  const text = await response.text();
-  let payload;
-  try { payload = JSON.parse(text); } catch { payload = { text: text.slice(0, 1000) }; }
-  if (!response.ok) {
-    const error = new Error(payload?.error || payload?.message || `provider_http_${response.status}`);
-    error.httpStatus = response.status;
-    throw error;
+async function sendKapso({ botId, phone, message }) {
+  const apiKey = env('KAPSO_API_KEY');
+  if (!apiKey) throw new Error('kapso_not_configured');
+  const cfg = await whatsappConfig(botId);
+  if (!cfg || clean(cfg.provider).toLowerCase() !== 'kapso' || clean(cfg.status).toLowerCase() !== 'connected') {
+    throw new Error('bot_whatsapp_not_connected');
   }
-  return { httpStatus: response.status, payload };
+  const phoneNumberId = clean(cfg.provider_phone_number_id, 120);
+  if (!phoneNumberId) throw new Error('bot_kapso_phone_number_missing');
+  const mod = await import('@kapso/whatsapp-cloud-api');
+  const WhatsAppClient = mod.WhatsAppClient || mod.default?.WhatsAppClient;
+  if (!WhatsAppClient) throw new Error('kapso_client_unavailable');
+  const client = new WhatsAppClient({ baseUrl: 'https://api.kapso.ai/meta/whatsapp', kapsoApiKey: apiKey });
+  const sent = await client.messages.sendText({ phoneNumberId, to: phone, body: message });
+  const providerMessageId = clean(sent?.messages?.[0]?.id, 300) || null;
+  return { provider: 'kapso', providerMessageId, payload: sent };
 }
 
 async function health(req) {
   const ctx = serviceContext(req);
   if (ctx.error) return ctx.error;
   let supabase = false;
-  try { supabaseConfig(); supabase = true; } catch {}
+  let binding = null;
+  let whatsapp = null;
+  try {
+    supabaseConfig();
+    supabase = true;
+    binding = await workspaceBinding(ctx.workspaceId);
+    if (binding) whatsapp = await whatsappConfig(binding.bot_id);
+  } catch (error) {
+    console.error('[NexOffice SmartBots Bridge] health', error instanceof Error ? error.message : String(error));
+  }
+  const whatsappConnected = Boolean(whatsapp && clean(whatsapp.provider).toLowerCase() === 'kapso' && clean(whatsapp.status).toLowerCase() === 'connected' && clean(whatsapp.provider_phone_number_id));
   return json({
     success: true,
     service: 'SmartBots NexOffice Bridge',
     status: 'online',
     workspaceId: ctx.workspaceId,
-    capabilities: ['whatsapp.send.approved'],
+    workspaceBound: Boolean(binding),
+    botId: binding?.bot_id || null,
+    capabilities: ['workspace.binding', 'whatsapp.send.approved', 'idempotent.dispatch'],
     integrations: {
       supabase,
-      provider: Boolean(env('WHATSAPP_PROVIDER_URL')),
+      kapso: Boolean(env('KAPSO_API_KEY')),
+      whatsappConnected,
     },
   });
+}
+
+async function bind(req) {
+  const ctx = serviceContext(req);
+  if (ctx.error) return ctx.error;
+  if (req.method !== 'POST') return json({ success: false, error: 'method_not_allowed' }, 405);
+  let body;
+  try { body = await req.json(); } catch { return json({ success: false, error: 'invalid_json' }, 400); }
+  const botId = clean(body?.botId, 160);
+  const clientToken = clean(body?.clientToken, 300);
+  if (!botId || !clientToken) return json({ success: false, error: 'botId_and_clientToken_required' }, 400);
+  try {
+    const bot = await findBot(botId);
+    if (!bot) return json({ success: false, error: 'bot_not_found' }, 404);
+    const result = await bindWorkspace(ctx.workspaceId, botId, clientToken);
+    if (!result.ok) return json({ success: false, error: result.error }, result.status || 400);
+    return json({ success: true, provider: 'smartbots', workspaceId: ctx.workspaceId, botId, bound: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[NexOffice SmartBots Bridge] bind', message);
+    return json({ success: false, error: message }, 502);
+  }
 }
 
 async function sendMessage(req) {
@@ -162,7 +277,7 @@ async function sendMessage(req) {
   let body;
   try { body = await req.json(); } catch { return json({ success: false, error: 'invalid_json' }, 400); }
 
-  const botId = clean(body?.botId, 160);
+  const requestedBotId = clean(body?.botId, 160);
   const channel = clean(body?.channel || 'whatsapp', 30).toLowerCase();
   const phone = digits(body?.recipient || body?.phone);
   const message = clean(body?.message, 4000);
@@ -172,20 +287,46 @@ async function sendMessage(req) {
 
   if (body?.humanApproved !== true) return json({ success: false, error: 'human_approval_required' }, 409);
   if (channel !== 'whatsapp') return json({ success: false, error: 'unsupported_channel' }, 422);
-  if (!botId || !phone || !message || !correlationId) {
-    return json({ success: false, error: 'botId_recipient_message_and_correlation_required' }, 400);
-  }
+  if (!phone || !message || !correlationId) return json({ success: false, error: 'recipient_message_and_correlation_required' }, 400);
   if (phone.length < 10) return json({ success: false, error: 'invalid_recipient' }, 422);
 
+  let dispatch = null;
   try {
+    const binding = await workspaceBinding(ctx.workspaceId);
+    if (!binding) return json({ success: false, error: 'workspace_not_bound_to_smartbot' }, 403);
+    const botId = clean(binding.bot_id, 160);
+    if (requestedBotId && requestedBotId !== botId) return json({ success: false, error: 'bot_workspace_mismatch' }, 403);
     const bot = await findBot(botId);
-    if (!bot) return json({ success: false, error: 'bot_not_found' }, 404);
+    if (!bot) return json({ success: false, error: 'bound_bot_not_found' }, 404);
 
-    const prior = await findReceipt(botId, correlationId);
-    if (prior) return json({ success: true, sent: true, duplicate: true, receiptId: prior.id, correlationId });
+    const claim = await claimDispatch({ workspaceId: ctx.workspaceId, botId, correlationId, commandActionId, approvalId, phone });
+    dispatch = claim.dispatch;
+    if (claim.conflict) return json({ success: false, error: claim.error }, 409);
+    if (claim.duplicate) {
+      return json({
+        success: true,
+        sent: true,
+        duplicate: true,
+        provider: dispatch.provider || 'kapso',
+        botId,
+        workspaceId: ctx.workspaceId,
+        correlationId,
+        dispatchId: dispatch.id,
+        providerMessageId: dispatch.provider_message_id || null,
+      });
+    }
+    if (claim.inProgress || !claim.claimed) return json({ success: false, sent: false, error: 'dispatch_in_progress', correlationId }, 409);
 
-    const provider = await sendProvider({ botId, phone, message, workspaceId: ctx.workspaceId, correlationId });
-    const receipt = await saveReceipt({
+    const provider = await sendKapso({ botId, phone, message });
+    dispatch = await finishDispatch(dispatch?.id, {
+      status: 'sent',
+      provider: provider.provider,
+      provider_message_id: provider.providerMessageId,
+      provider_response: provider.payload,
+      error: null,
+    }) || dispatch;
+
+    const receipt = await saveMessageReceipt({
       botId,
       phone,
       message,
@@ -193,6 +334,7 @@ async function sendMessage(req) {
       correlationId,
       commandActionId,
       approvalId,
+      providerMessageId: provider.providerMessageId,
       providerResponse: provider.payload,
     });
 
@@ -200,16 +342,20 @@ async function sendMessage(req) {
       success: true,
       sent: true,
       duplicate: false,
-      provider: 'smartbots',
+      provider: provider.provider,
       botId,
       workspaceId: ctx.workspaceId,
       correlationId,
+      dispatchId: dispatch?.id || null,
       receiptId: receipt?.id || null,
-      providerResponse: provider.payload,
+      providerMessageId: provider.providerMessageId,
     });
   } catch (error) {
     const messageText = error instanceof Error ? error.message : String(error);
-    const status = Number(error?.httpStatus || (messageText === 'whatsapp_provider_not_configured' ? 409 : 502));
+    if (dispatch?.id) {
+      try { await finishDispatch(dispatch.id, { status: 'failed', error: messageText.slice(0, 1000) }); } catch {}
+    }
+    const status = messageText === 'bot_whatsapp_not_connected' || messageText === 'bot_kapso_phone_number_missing' ? 409 : 502;
     console.error('[NexOffice SmartBots Bridge]', messageText);
     return json({ success: false, sent: false, error: messageText }, status);
   }
@@ -218,10 +364,11 @@ async function sendMessage(req) {
 export default async (req) => {
   const pathname = new URL(req.url).pathname;
   if (pathname.endsWith('/health')) return health(req);
+  if (pathname.endsWith('/bind')) return bind(req);
   if (pathname.endsWith('/message')) return sendMessage(req);
   return json({ success: false, error: 'not_found' }, 404);
 };
 
 export const config = {
-  path: ['/api/internal/nexoffice/health', '/api/internal/nexoffice/message'],
+  path: ['/api/internal/nexoffice/health', '/api/internal/nexoffice/bind', '/api/internal/nexoffice/message'],
 };
