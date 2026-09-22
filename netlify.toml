@@ -13,6 +13,11 @@
   status = 200
 
 [[redirects]]
+  from = "/criar"
+  to = "/onboarding-inteligente.html"
+  status = 200
+
+[[redirects]]
   from = "/dashboard-cliente"
   to = "/dashboard-cliente.html"
   status = 200
