@@ -1,0 +1,38 @@
+name: SmartBots v2 syntax smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/smartbot-v2-syntax-smoke.yml'
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate server and widget JavaScript
+        run: |
+          node --check notarizex-ai/netlify/functions/smartbot-brain.js
+          node --check notarizex-ai/netlify/functions/client-portal.js
+          node --check notarizex-ai/netlify/functions/train-bot.js
+          node --check notarizex-ai/netlify/functions/payment-webhook.js
+          node --check notarizex-ai/netlify/functions/website-bot-onboarding.js
+          node --check notarizex-ai/netlify/functions/whatsapp-bot-onboarding.js
+          node --check notarizex-ai/widget-v2.js
+      - name: Validate dashboard inline JavaScript
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html=Path('notarizex-ai/dashboard-cliente.html').read_text(encoding='utf-8')
+          blocks=[]
+          for attrs,body in re.findall(r'<script([^>]*)>(.*?)</script>', html, re.S|re.I):
+              if 'src=' not in attrs.lower() and body.strip():
+                  blocks.append(body)
+          if not blocks:
+              raise SystemExit('no inline script found')
+          Path('/tmp/dashboard-inline.js').write_text('\n'.join(blocks),encoding='utf-8')
+          PY
+          node --check /tmp/dashboard-inline.js
