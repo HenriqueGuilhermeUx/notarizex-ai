@@ -15,7 +15,9 @@ jobs:
           CUSTOM='https://smartbots.club'
           DEPLOY='https://6ab3018b7dc7e50008bab2b7--notarizex-ai.netlify.app'
           probe_get() {
-            local name="$1" url="$2" file="/tmp/${name}.txt"
+            local name="$1"
+            local url="$2"
+            local file="/tmp/${name}.txt"
             local code
             code=$(curl -sS -o "$file" -w '%{http_code}' "$url" || true)
             echo "${name}_STATUS=$code"
@@ -27,7 +29,9 @@ jobs:
           MY_VISITOR="iso-mydata-${GITHUB_RUN_ID}"
           BODY=$(jq -nc --arg bot 'site-1783003313164-9eb4cb8d' --arg visitor "$MY_VISITOR" --arg msg 'Resuma em uma frase o que sua empresa faz.' '{botId:$bot,visitorId:$visitor,channel:"site",message:$msg}')
           probe_post() {
-            local name="$1" url="$2" file="/tmp/${name}.txt"
+            local name="$1"
+            local url="$2"
+            local file="/tmp/${name}.txt"
             local code
             code=$(curl -sS -o "$file" -w '%{http_code}' -X POST "$url" -H 'Content-Type: application/json' --data "$BODY" || true)
             echo "${name}_STATUS=$code"
