@@ -6,6 +6,9 @@
   "scripts": {
     "test": "echo \"No tests specified\""
   },
+  "engines": {
+    "node": ">=20.19"
+  },
   "keywords": [
     "chatbot",
     "ai",
@@ -22,6 +25,7 @@
     "pdf-lib": "^1.17.1",
     "openai": "^4.104.0",
     "@supabase/supabase-js": "^2.45.4",
+    "@kapso/whatsapp-cloud-api": "^0.3.0",
     "twilio": "^5.3.4"
   }
 }
