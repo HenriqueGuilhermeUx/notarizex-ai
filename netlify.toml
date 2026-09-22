@@ -7,6 +7,12 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[functions."website-bot-onboarding"]
+  external_node_modules = ["pdf-parse"]
+
+[functions."train-bot"]
+  external_node_modules = ["pdf-parse"]
+
 [[redirects]]
   from = "/b/*"
   to = "/bot-publico.html"
