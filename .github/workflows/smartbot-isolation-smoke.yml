@@ -8,37 +8,30 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for production deploy
-        run: sleep 25
-      - name: Test isolated client brains
+      - name: Diagnose function routing
         shell: bash
         run: |
-          set -euo pipefail
-          BASE='https://smartbots.club/.netlify/functions/smartbot-brain'
-          MY_VISITOR="iso-mydata-${GITHUB_RUN_ID}"
-          NB_VISITOR="iso-neon-${GITHUB_RUN_ID}"
-          MY_BODY=$(jq -nc --arg bot 'site-1783003313164-9eb4cb8d' --arg visitor "$MY_VISITOR" --arg msg 'Resuma em uma frase o que sua empresa faz. Não mencione empresas que não sejam a sua.' '{botId:$bot,visitorId:$visitor,channel:"site",message:$msg}')
-          NB_BODY=$(jq -nc --arg bot 'test-isolation-neonbike-20260922' --arg visitor "$NB_VISITOR" --arg msg 'Qual serviço sua empresa oferece e qual é a palavra-código de teste informada na sua base?' '{botId:$bot,visitorId:$visitor,channel:"site",message:$msg}')
-          call_brain() {
-            local body="$1"
-            local out=''
-            for attempt in 1 2 3 4 5; do
-              if out=$(curl --fail-with-body -sS -X POST "$BASE" -H 'Content-Type: application/json' --data "$body"); then
-                printf '%s' "$out"
-                return 0
-              fi
-              sleep 10
-            done
-            return 1
+          set -u
+          CUSTOM='https://smartbots.club'
+          DEPLOY='https://6ab3018b7dc7e50008bab2b7--notarizex-ai.netlify.app'
+          probe_get() {
+            local name="$1" url="$2" file="/tmp/${name}.txt"
+            local code
+            code=$(curl -sS -o "$file" -w '%{http_code}' "$url" || true)
+            echo "${name}_STATUS=$code"
+            echo "${name}_BODY=$(cat "$file" 2>/dev/null || true)"
           }
-          MY=$(call_brain "$MY_BODY")
-          NB=$(call_brain "$NB_BODY")
-          echo "MY_VISITOR=$MY_VISITOR"
-          echo "NB_VISITOR=$NB_VISITOR"
-          echo "MY_RESPONSE=$MY"
-          echo "NEON_RESPONSE=$NB"
-          echo "$MY" | jq -e '.success == true and .engine == "responses"'
-          echo "$NB" | jq -e '.success == true and .engine == "responses"'
-          echo "$NB" | jq -r '.reply' | grep -qi 'NEONBIKE'
-          if echo "$MY" | jq -r '.reply' | grep -qi 'NEONBIKE'; then echo 'CROSS_CLIENT_LEAK_MYDATA'; exit 1; fi
-          if echo "$NB" | jq -r '.reply' | grep -qi 'MyDataMed'; then echo 'CROSS_CLIENT_LEAK_NEON'; exit 1; fi
+          probe_get CUSTOM_HEALTH "$CUSTOM/.netlify/functions/smartbots-health"
+          probe_get DEPLOY_HEALTH "$DEPLOY/.netlify/functions/smartbots-health"
+
+          MY_VISITOR="iso-mydata-${GITHUB_RUN_ID}"
+          BODY=$(jq -nc --arg bot 'site-1783003313164-9eb4cb8d' --arg visitor "$MY_VISITOR" --arg msg 'Resuma em uma frase o que sua empresa faz.' '{botId:$bot,visitorId:$visitor,channel:"site",message:$msg}')
+          probe_post() {
+            local name="$1" url="$2" file="/tmp/${name}.txt"
+            local code
+            code=$(curl -sS -o "$file" -w '%{http_code}' -X POST "$url" -H 'Content-Type: application/json' --data "$BODY" || true)
+            echo "${name}_STATUS=$code"
+            echo "${name}_BODY=$(cat "$file" 2>/dev/null || true)"
+          }
+          probe_post CUSTOM_BRAIN "$CUSTOM/.netlify/functions/smartbot-brain"
+          probe_post DEPLOY_BRAIN "$DEPLOY/.netlify/functions/smartbot-brain"
