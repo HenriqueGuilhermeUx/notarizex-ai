@@ -1,0 +1,21 @@
+name: SmartBots multi-client code smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/smartbot-code-smoke.yml'
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate SmartBots functions
+        run: |
+          node --check notarizex-ai/netlify/functions/smartbot-brain.js
+          node --check notarizex-ai/netlify/functions/client-portal.js
+          node --check notarizex-ai/netlify/functions/payment-webhook.js
+          node --check notarizex-ai/netlify/functions/website-bot-onboarding.js
+          node --check notarizex-ai/netlify/functions/whatsapp-bot-onboarding.js
