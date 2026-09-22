@@ -1,0 +1,32 @@
+name: Kapso Production Diagnostic
+
+on:
+  push:
+    paths:
+      - '.github/workflows/kapso-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call sanitized production diagnostic
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --silent \
+            https://smartbots.club/__sb-kapso-diag-9f7e2b \
+            -o kapso-diagnostic.json
+          cat kapso-diagnostic.json
+          jq -e '.supabase.reachable == true and .supabase.audit_insert == true and .kapso.reachable == true' kapso-diagnostic.json >/dev/null
+      - name: Upload diagnostic result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kapso-diagnostic
+          path: kapso-diagnostic.json
+          if-no-files-found: warn
+          retention-days: 1
