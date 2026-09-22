@@ -1,0 +1,61 @@
+name: SmartBots adaptive onboarding e2e
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/smartbot-onboarding-e2e.yml'
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for current deploy
+        run: sleep 20
+      - name: Check intelligent onboarding page
+        run: |
+          curl -fsS https://smartbots.club/criar -o /tmp/criar.html
+          grep -q 'Onboarding Inteligente' /tmp/criar.html
+      - name: Create disposable adaptive SmartBot
+        run: |
+          DOC=$(printf '%s' 'Documento QA. O código exclusivo de confirmação é ORION-5729. A clínica oferece o Programa Aurora somente mediante avaliação.' | base64 -w0)
+          jq -n --arg doc "$DOC" '{
+            name:"QA SmartBots",
+            whatsapp:"5513000000000",
+            companyName:"QA Aurora Clinic E2E",
+            businessType:"clinica",
+            businessDescription:"Cliente descartável de validação E2E. Nunca usar fora deste teste.",
+            adaptiveAnswers:{
+              primary_goal:"Orientar pacientes e conduzir para agendamento.",
+              human_contact:"WhatsApp da recepção QA",
+              specialties:["Fisioterapia Aurora","Avaliação funcional"],
+              appointment_types:["Avaliação inicial","Retorno"],
+              business_hours:"Segunda a sexta, 08:00 às 18:00.",
+              booking_rules:"Coletar preferência de dia e horário; confirmação final é feita pela recepção.",
+              urgent_cases:"Sintomas urgentes devem ser encaminhados imediatamente para atendimento humano."
+            },
+            documents:[{fileName:"qa-aurora.txt",mimeType:"text/plain",fileData:$doc}]
+          }' > /tmp/create.json
+          for i in $(seq 1 8); do
+            CODE=$(curl -sS -o /tmp/create-response.json -w '%{http_code}' -X POST 'https://smartbots.club/.netlify/functions/website-bot-onboarding' -H 'Content-Type: application/json' --data-binary @/tmp/create.json || true)
+            echo "create attempt=$i http=$CODE"
+            if [ "$CODE" = "200" ]; then break; fi
+            sleep 10
+          done
+          cat /tmp/create-response.json
+          test "$CODE" = "200"
+          BOT_ID=$(jq -r '.botId' /tmp/create-response.json)
+          test -n "$BOT_ID" && test "$BOT_ID" != "null"
+          echo "BOT_ID=$BOT_ID" >> "$GITHUB_ENV"
+          jq -e '.businessType == "clinica"' /tmp/create-response.json
+          jq -e '.intakeCompleteness >= 80' /tmp/create-response.json
+      - name: Ask Brain about form and document knowledge
+        run: |
+          jq -n --arg bot "$BOT_ID" '{botId:$bot,visitorId:"qa-onboarding-e2e",channel:"site",message:"Qual é o código exclusivo de confirmação do documento e qual é o horário de atendimento?"}' > /tmp/brain.json
+          CODE=$(curl -sS -o /tmp/brain-response.json -w '%{http_code}' -X POST 'https://smartbots.club/.netlify/functions/smartbot-brain' -H 'Content-Type: application/json' --data-binary @/tmp/brain.json)
+          echo "brain http=$CODE"
+          cat /tmp/brain-response.json
+          test "$CODE" = "200"
+          jq -e '.success == true' /tmp/brain-response.json
+          jq -e '.engine == "responses"' /tmp/brain-response.json
+          jq -e '.reply | contains("ORION-5729")' /tmp/brain-response.json
+          jq -e '.reply | test("08:00|18:00")' /tmp/brain-response.json
