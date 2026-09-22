@@ -95,7 +95,7 @@ export default async (request) => {
     );
     const endpoint = sanitizeUrl(verified?.url, token);
     const events = Array.isArray(verified?.events) ? verified.events : [];
-    const ok = Boolean(
+    const configured = Boolean(
       verified?.active === true &&
       verified?.payload_version === 'v2' &&
       events.includes('whatsapp.message.received') &&
@@ -104,13 +104,42 @@ export default async (request) => {
       endpoint.token_matches
     );
 
-    return json(ok ? 200 : 409, {
-      ok,
+    if (!configured) {
+      return json(409, {
+        ok: false,
+        stage: 'verify_config',
+        webhook_id: target.id,
+        active: verified?.active === true,
+        payload_version: verified?.payload_version || null,
+        has_received_event: events.includes('whatsapp.message.received'),
+        endpoint,
+      });
+    }
+
+    const testResponse = await kapso(
+      `/platform/v1/whatsapp/webhooks/${encodeURIComponent(target.id)}/test?event_type=${encodeURIComponent('whatsapp.message.received')}`,
+      { method: 'POST' }
+    );
+    const testText = await testResponse.text();
+    if (!testResponse.ok) {
+      return json(502, {
+        ok: false,
+        stage: 'delivery_test',
+        status: testResponse.status,
+        error: testText.slice(0, 300),
+        webhook_id: target.id,
+        endpoint,
+      });
+    }
+
+    return json(200, {
+      ok: true,
       webhook_id: target.id,
-      active: verified?.active === true,
-      payload_version: verified?.payload_version || null,
-      has_received_event: events.includes('whatsapp.message.received'),
+      active: true,
+      payload_version: 'v2',
+      has_received_event: true,
       endpoint,
+      delivery_test: { requested: true, status: testResponse.status },
     });
   } catch (error) {
     return json(500, { ok: false, error: clean(error?.message || error) });
