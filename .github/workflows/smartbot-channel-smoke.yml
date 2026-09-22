@@ -1,0 +1,21 @@
+name: SmartBots channel smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/smartbot-channel-smoke.yml'
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate updated SmartBots JavaScript
+        run: |
+          node --check notarizex-ai/netlify/functions/whatsapp-config.js
+          node --check notarizex-ai/whatsapp-config.js
+          node --check notarizex-ai/netlify/functions/train-bot.js
+          node --check notarizex-ai/widget-v2.js
+          node --check notarizex-ai/netlify/functions/client-portal.js
