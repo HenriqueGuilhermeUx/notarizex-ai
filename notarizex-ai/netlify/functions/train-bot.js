@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const pdfParse = require('pdf-parse');
 
 const headers = {
   'Content-Type': 'application/json',
@@ -15,34 +16,62 @@ function clean(value) {
   return String(value || '').trim();
 }
 
-function decodeBase64Size(base64) {
+function normalizeText(value, max = 180000) {
+  return String(value || '')
+    .replace(/\u0000/g, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{4,}/g, '\n\n\n')
+    .trim()
+    .slice(0, max);
+}
+
+function decodeFile(base64) {
   try {
-    return Buffer.from(String(base64 || ''), 'base64').length;
+    const buffer = Buffer.from(String(base64 || ''), 'base64');
+    return buffer.length ? buffer : null;
   } catch (_) {
-    return 0;
+    return null;
   }
 }
 
 async function supabase(path, options = {}) {
-  const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('Supabase não configurado.');
+  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY } = process.env;
+  const key = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+  if (!SUPABASE_URL || !key) throw new Error('Supabase não configurado.');
 
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
       ...(options.headers || {})
     }
   });
 }
 
+async function rows(res, label) {
+  if (!res.ok) throw new Error(`${label}: ${(await res.text()).slice(0, 700)}`);
+  const raw = await res.text();
+  return raw ? JSON.parse(raw) : [];
+}
+
 async function getBot(botId, clientToken) {
-  const res = await supabase(`website_bots?bot_id=eq.${encodeURIComponent(botId)}&client_token=eq.${encodeURIComponent(clientToken)}&select=*`);
-  if (!res.ok) throw new Error('Falha ao verificar autenticação do bot.');
-  const rows = await res.json();
-  return rows && rows[0] ? rows[0] : null;
+  const res = await supabase(`website_bots?bot_id=eq.${encodeURIComponent(botId)}&client_token=eq.${encodeURIComponent(clientToken)}&select=bot_id,company_name,client_token&limit=1`);
+  const data = await rows(res, 'Verificar autenticação do bot');
+  return data[0] || null;
+}
+
+async function extractText(buffer, ext) {
+  if (ext === '.pdf') {
+    const parsed = await pdfParse(buffer);
+    return normalizeText(parsed && parsed.text);
+  }
+  if (ext === '.txt' || ext === '.md') {
+    return normalizeText(buffer.toString('utf8'));
+  }
+  throw new Error('Tipo de arquivo ainda não processável. Use PDF, TXT ou MD.');
 }
 
 exports.handler = async (event) => {
@@ -69,7 +98,7 @@ exports.handler = async (event) => {
 
     if (action === 'list_files') {
       const filesRes = await supabase(`bot_training_files?bot_id=eq.${encodeURIComponent(botId)}&order=created_at.desc`);
-      const files = filesRes.ok ? await filesRes.json() : [];
+      const files = await rows(filesRes, 'Listar documentos');
       return reply(200, { success: true, files });
     }
 
@@ -78,71 +107,116 @@ exports.handler = async (event) => {
         return reply(400, { success: false, error: 'Escolha um arquivo para enviar.' });
       }
 
-      const allowedExtensions = ['.pdf', '.txt', '.docx', '.md'];
       const ext = fileName.includes('.') ? fileName.toLowerCase().slice(fileName.lastIndexOf('.')) : '';
+      const allowedExtensions = ['.pdf', '.txt', '.md'];
       if (!allowedExtensions.includes(ext)) {
-        return reply(400, { success: false, error: `Tipo de arquivo não suportado. Use: ${allowedExtensions.join(', ')}` });
+        return reply(400, {
+          success: false,
+          error: 'Nesta versão, o treinamento real aceita PDF, TXT e MD. DOCX será habilitado em uma próxima etapa.'
+        });
       }
 
-      const fileSizeBytes = decodeBase64Size(fileData);
-      if (!fileSizeBytes) {
+      const buffer = decodeFile(fileData);
+      if (!buffer) {
         return reply(400, { success: false, error: 'Não consegui ler o arquivo. Tente enviar novamente.' });
       }
-      if (fileSizeBytes > 20 * 1024 * 1024) {
-        return reply(400, { success: false, error: 'Arquivo muito grande. Máximo: 20MB.' });
+      if (buffer.length > 5 * 1024 * 1024) {
+        return reply(400, { success: false, error: 'Arquivo muito grande para treinamento direto. Máximo desta etapa: 5MB.' });
       }
 
-      const localFileId = `local-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+      const extracted = await extractText(buffer, ext);
+      if (extracted.length < 20) {
+        return reply(400, { success: false, error: 'O arquivo não contém texto suficiente para treinar o bot.' });
+      }
 
-      const insertRes = await supabase('bot_training_files', {
+      const localFileId = `knowledge-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+      const insertFileRes = await supabase('bot_training_files', {
         method: 'POST',
         headers: { Prefer: 'return=representation' },
         body: JSON.stringify({
           bot_id: botId,
           openai_file_id: localFileId,
           file_name: fileName,
-          file_size_bytes: fileSizeBytes,
+          file_size_bytes: buffer.length,
           status: 'active',
           created_at: new Date().toISOString()
         })
       });
+      const fileRows = await rows(insertFileRes, 'Salvar documento');
+      const savedFile = fileRows[0];
+      if (!savedFile || !savedFile.id) throw new Error('Documento salvo sem identificador.');
 
-      if (!insertRes.ok) {
-        throw new Error('Falha ao salvar arquivo no Supabase: ' + await insertRes.text());
+      try {
+        const knowledgeRes = await supabase('smartbot_knowledge', {
+          method: 'POST',
+          headers: { Prefer: 'return=representation' },
+          body: JSON.stringify({
+            bot_id: botId,
+            title: fileName,
+            content: extracted,
+            is_active: true,
+            source_type: 'file',
+            source_file_id: savedFile.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+        });
+        const knowledgeRows = await rows(knowledgeRes, 'Adicionar conteúdo à base do Brain');
+        if (!knowledgeRows[0] || !knowledgeRows[0].id) throw new Error('Conhecimento salvo sem identificador.');
+      } catch (knowledgeError) {
+        await supabase(`bot_training_files?id=eq.${encodeURIComponent(savedFile.id)}&bot_id=eq.${encodeURIComponent(botId)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ status: 'failed' })
+        }).catch(() => null);
+        throw knowledgeError;
       }
 
-      const existingKnowledge = clean(bot.knowledge_text || bot.business_description || '');
-      const docNote = `\n\n---\n\nDocumento recebido no painel: ${fileName} (${fileSizeBytes} bytes). Status: aguardando processamento avançado de IA.`;
       await supabase(`website_bots?bot_id=eq.${encodeURIComponent(botId)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
-          knowledge_text: (existingKnowledge + docNote).slice(0, 50000),
           uploaded_file_name: fileName,
-          uploaded_file_size_bytes: fileSizeBytes,
+          uploaded_file_size_bytes: buffer.length,
+          knowledge_status: 'ok',
           updated_at: new Date().toISOString()
         })
       }).catch(() => null);
 
       return reply(200, {
         success: true,
-        message: `Documento "${fileName}" recebido com sucesso. Ele já ficou registrado na base do bot.`,
-        fileId: localFileId,
-        aiStatus: 'pending_advanced_training'
+        message: `Documento "${fileName}" processado. O conteúdo já faz parte do conhecimento deste SmartBot.`,
+        fileId: savedFile.id,
+        knowledgeChars: extracted.length,
+        aiStatus: 'ready'
       });
     }
 
     if (action === 'remove_file') {
       if (!fileId) return reply(400, { success: false, error: 'fileId é obrigatório para remoção.' });
 
+      const ownedRes = await supabase(`bot_training_files?id=eq.${encodeURIComponent(fileId)}&bot_id=eq.${encodeURIComponent(botId)}&select=id,status&limit=1`);
+      const ownedRows = await rows(ownedRes, 'Validar documento');
+      if (!ownedRows[0]) return reply(404, { success: false, error: 'Documento não encontrado para este SmartBot.' });
+
       const updateRes = await supabase(`bot_training_files?id=eq.${encodeURIComponent(fileId)}&bot_id=eq.${encodeURIComponent(botId)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({ status: 'removed' })
       });
+      await rows(updateRes, 'Remover documento');
 
-      if (!updateRes.ok) throw new Error('Falha ao remover arquivo: ' + await updateRes.text());
-      return reply(200, { success: true, message: 'Arquivo removido com sucesso.' });
+      const knowledgeRes = await supabase(`smartbot_knowledge?bot_id=eq.${encodeURIComponent(botId)}&source_file_id=eq.${encodeURIComponent(fileId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ is_active: false, updated_at: new Date().toISOString() })
+      });
+      await rows(knowledgeRes, 'Desativar conhecimento do documento');
+
+      return reply(200, {
+        success: true,
+        message: 'Documento removido. O conteúdo associado deixou de ser usado pelo Brain.'
+      });
     }
 
     return reply(400, { success: false, error: `Ação desconhecida: ${action}.` });
