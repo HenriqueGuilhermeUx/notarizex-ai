@@ -6,7 +6,6 @@ on:
       - '.github/workflows/smartbot-profile-smoke.yml'
 jobs:
   smoke:
-    if: github.event.head_commit.message == 'test(smartbots): run profile smoke'
     runs-on: ubuntu-latest
     steps:
       - name: Wait for Netlify deploy
