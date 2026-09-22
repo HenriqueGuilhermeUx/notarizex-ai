@@ -1,0 +1,30 @@
+name: SmartBots client isolation smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/smartbot-isolation-smoke.yml'
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test isolated client brains
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://smartbots.club/.netlify/functions/smartbot-brain'
+          MY_VISITOR="iso-mydata-${GITHUB_RUN_ID}"
+          NB_VISITOR="iso-neon-${GITHUB_RUN_ID}"
+          MY_BODY=$(jq -nc --arg bot 'site-1783003313164-9eb4cb8d' --arg visitor "$MY_VISITOR" --arg msg 'Resuma em uma frase o que sua empresa faz. Não mencione empresas que não sejam a sua.' '{botId:$bot,visitorId:$visitor,channel:"site",message:$msg}')
+          NB_BODY=$(jq -nc --arg bot 'test-isolation-neonbike-20260922' --arg visitor "$NB_VISITOR" --arg msg 'Qual serviço sua empresa oferece e qual é a palavra-código de teste informada na sua base?' '{botId:$bot,visitorId:$visitor,channel:"site",message:$msg}')
+          MY=$(curl --fail-with-body -sS -X POST "$BASE" -H 'Content-Type: application/json' --data "$MY_BODY")
+          NB=$(curl --fail-with-body -sS -X POST "$BASE" -H 'Content-Type: application/json' --data "$NB_BODY")
+          echo "MY_VISITOR=$MY_VISITOR"
+          echo "NB_VISITOR=$NB_VISITOR"
+          echo "MY_RESPONSE=$MY"
+          echo "NEON_RESPONSE=$NB"
+          echo "$MY" | jq -e '.success == true and .engine == "responses"'
+          echo "$NB" | jq -e '.success == true and .engine == "responses"'
+          echo "$NB" | jq -r '.reply' | grep -qi 'NEONBIKE'
+          if echo "$MY" | jq -r '.reply' | grep -qi 'NEONBIKE'; then echo 'CROSS_CLIENT_LEAK_MYDATA'; exit 1; fi
+          if echo "$NB" | jq -r '.reply' | grep -qi 'MyDataMed'; then echo 'CROSS_CLIENT_LEAK_NEON'; exit 1; fi
