@@ -1,0 +1,24 @@
+name: SmartBots profile smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/smartbot-profile-smoke.yml'
+jobs:
+  smoke:
+    if: github.event.head_commit.message == 'test(smartbots): run profile smoke'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Netlify deploy
+        run: sleep 25
+      - name: Test production multi-client brain
+        shell: bash
+        run: |
+          set -euo pipefail
+          VISITOR="profile-smoke-${GITHUB_RUN_ID}"
+          BODY=$(jq -nc --arg bot "site-1783003313164-9eb4cb8d" --arg visitor "$VISITOR" --arg msg "O que a MyDataMed faz e para quem é a solução?" '{botId:$bot,visitorId:$visitor,channel:"site",message:$msg}')
+          RESP=$(curl --fail-with-body -sS -X POST 'https://smartbots.club/.netlify/functions/smartbot-brain' -H 'Content-Type: application/json' --data "$BODY")
+          echo "VISITOR=$VISITOR"
+          echo "RESPONSE=$RESP"
+          echo "$RESP" | jq -e '.success == true'
+          echo "$RESP" | jq -e '.reply | type == "string" and length > 0'
