@@ -21,12 +21,22 @@ jobs:
           node-version: 22
       - name: Syntax check
         run: node --check notarizex-ai/netlify/functions/nexoffice-bridge.mjs
-      - name: Validate exported handler
+      - name: Validate exported handler and auth contract
         run: |
           node --input-type=module - <<'NODE'
           globalThis.Netlify = { env: { get: () => '' } };
           const mod = await import('./notarizex-ai/netlify/functions/nexoffice-bridge.mjs');
           if (typeof mod.default !== 'function') throw new Error('Missing default handler');
-          if (!Array.isArray(mod.config?.path) || mod.config.path.length !== 2) throw new Error('Missing bridge routes');
-          console.log('SmartBots NexOffice bridge exports OK');
+          const expected = [
+            '/api/internal/nexoffice/health',
+            '/api/internal/nexoffice/bind',
+            '/api/internal/nexoffice/message'
+          ];
+          if (!Array.isArray(mod.config?.path) || mod.config.path.length !== expected.length) throw new Error('Missing bridge routes');
+          for (const path of expected) if (!mod.config.path.includes(path)) throw new Error(`Missing route ${path}`);
+          const response = await mod.default(new Request('https://smartbots.club/api/internal/nexoffice/health', {headers:{'x-nexoffice-workspace-id':'ci-workspace'}}));
+          if (response.status !== 503) throw new Error(`Expected unconfigured bridge 503, got ${response.status}`);
+          const payload = await response.json();
+          if (payload.error !== 'bridge_not_configured') throw new Error('Unexpected auth/config contract');
+          console.log('SmartBots NexOffice secure bridge contract OK');
           NODE
