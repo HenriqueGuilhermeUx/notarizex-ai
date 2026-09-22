@@ -1,0 +1,36 @@
+name: SmartBots intelligent onboarding smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/smartbot-onboarding-smoke.yml'
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate syntax
+        run: |
+          node --check notarizex-ai/netlify/functions/lib/scraper.js
+          node --check notarizex-ai/netlify/functions/lib/onboarding-intelligence.js
+          node --check notarizex-ai/netlify/functions/onboarding-discovery.js
+          node --check notarizex-ai/netlify/functions/website-bot-onboarding.js
+      - name: Wait for Netlify and test discovery
+        run: |
+          for i in $(seq 1 12); do
+            CODE=$(curl -sS -o /tmp/discovery.json -w '%{http_code}' -X POST 'https://smartbots.club/.netlify/functions/onboarding-discovery' \
+              -H 'Content-Type: application/json' \
+              --data '{"website":"https://smartbots.club","companyName":"SmartBots"}' || true)
+            echo "attempt=$i http=$CODE"
+            if [ "$CODE" = "200" ]; then break; fi
+            sleep 10
+          done
+          cat /tmp/discovery.json
+          test "$CODE" = "200"
+          jq -e '.success == true' /tmp/discovery.json
+          jq -e '.pageCount >= 1' /tmp/discovery.json
+          jq -e '(.businessType | type) == "string"' /tmp/discovery.json
+          jq -e '(.questionnaire | length) >= 5' /tmp/discovery.json
