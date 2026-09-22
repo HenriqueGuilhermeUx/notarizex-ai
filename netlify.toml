@@ -18,6 +18,11 @@
   status = 200
 
 [[redirects]]
+  from = "/dashboard"
+  to = "/dashboard-cliente.html"
+  status = 200
+
+[[redirects]]
   from = "/painel"
   to = "/dashboard-cliente.html"
   status = 200
