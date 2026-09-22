@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Criar SmartBot — Onboarding Inteligente</title>
+<meta name="robots" content="noindex,nofollow">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+*{font-family:Inter,sans-serif}body{background:#080b10;color:#fff}.card{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10);border-radius:20px}.field{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:12px;color:#fff;outline:none}.field:focus{border-color:#00ff88}.btn{background:linear-gradient(135deg,#00ff88,#00c96b);color:#06120b;font-weight:900;border-radius:12px;padding:13px 18px}.btn:disabled{opacity:.5;cursor:not-allowed}.soft{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 16px;font-weight:800}.step{height:6px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}.step>div{height:100%;background:#00ff88;transition:.3s}.badge{display:inline-flex;padding:5px 9px;border-radius:999px;background:rgba(0,255,136,.12);color:#00ff88;font-weight:800;font-size:12px}.spin{width:18px;height:18px;border:2px solid rgba(0,255,136,.25);border-top-color:#00ff88;border-radius:50%;display:inline-block;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}.toast{position:fixed;right:20px;bottom:20px;max-width:420px;padding:14px 18px;border-radius:12px;font-weight:800;display:none}.ok{background:#00ff88;color:#06120b}.err{background:#ef4444;color:white}
+</style>
+</head>
+<body class="min-h-screen">
+<header class="border-b border-white/10"><div class="max-w-5xl mx-auto px-5 py-4 flex justify-between items-center"><a href="/" class="text-xl font-black"><span class="text-green-400">Smart</span>Bots.club</a><span class="text-sm text-gray-400">Onboarding Inteligente</span></div></header>
+<main class="max-w-4xl mx-auto px-4 py-8">
+<div class="mb-7"><div class="flex justify-between text-xs text-gray-500 mb-2"><span id="stepLabel">1. Seu negócio</span><span id="stepCount">1/4</span></div><div class="step"><div id="progress" style="width:25%"></div></div></div>
+
+<section id="screen1" class="card p-6 md:p-8">
+  <span class="badge">DESCOBERTA AUTOMÁTICA</span>
+  <h1 class="text-3xl md:text-4xl font-black mt-4">Conte sobre sua empresa. O SmartBots faz o resto primeiro.</h1>
+  <p class="text-gray-400 mt-3">Se você tiver site, vamos ler as páginas importantes e chegar ao próximo passo já entendendo seu negócio.</p>
+  <div class="grid md:grid-cols-2 gap-4 mt-7">
+    <div><label class="text-sm font-bold text-gray-300">Seu nome</label><input id="ownerName" class="field mt-2" autocomplete="name"></div>
+    <div><label class="text-sm font-bold text-gray-300">E-mail</label><input id="ownerEmail" class="field mt-2" type="email" autocomplete="email"></div>
+    <div><label class="text-sm font-bold text-gray-300">WhatsApp</label><input id="ownerWhatsApp" class="field mt-2" placeholder="5513999999999"></div>
+    <div><label class="text-sm font-bold text-gray-300">Empresa</label><input id="companyName" class="field mt-2"></div>
+  </div>
+  <div class="mt-4"><label class="text-sm font-bold text-gray-300">Site da empresa <span class="text-gray-600">(opcional)</span></label><input id="website" class="field mt-2" placeholder="https://suaempresa.com.br"><p class="text-xs text-gray-500 mt-2">Sem site? Sem problema. O formulário e seus documentos criam a base.</p></div>
+  <div class="flex flex-col sm:flex-row gap-3 mt-7"><button class="soft flex-1" onclick="startManual()">Continuar sem analisar site</button><button id="analyzeBtn" class="btn flex-1" onclick="analyze()">Analisar meu negócio</button></div>
+</section>
+
+<section id="screen2" class="card p-6 md:p-8 hidden">
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4"><div><span class="badge">ENTENDIMENTO DO NEGÓCIO</span><h2 class="text-3xl font-black mt-3">Já entendemos uma parte. Complete o que só você sabe.</h2></div><button class="soft" onclick="go(1)">← Voltar</button></div>
+  <div id="discoverySummary" class="bg-white/5 rounded-2xl p-4 mt-6 text-sm text-gray-300"></div>
+  <div class="mt-5"><label class="text-sm font-bold text-gray-300">Tipo de negócio</label><select id="businessType" class="field mt-2" onchange="changeType()"><option value="clinica">Clínica / Consultório / Saúde</option><option value="advocacia">Advocacia / Jurídico</option><option value="imobiliaria">Imobiliária / Corretor</option><option value="ecommerce">Loja / E-commerce / Varejo</option><option value="restaurante">Restaurante / Bar / Alimentação</option><option value="beleza">Estética / Salão / Studio</option><option value="educacao">Educação / Cursos / Escola</option><option value="b2b">Empresa B2B / Software</option><option value="servicos">Serviços / Negócio local</option></select></div>
+  <div id="questions" class="space-y-4 mt-6"></div>
+  <div class="flex justify-end mt-7"><button class="btn" onclick="toDocuments()">Continuar →</button></div>
+</section>
+
+<section id="screen3" class="card p-6 md:p-8 hidden">
+  <div class="flex justify-between gap-4"><div><span class="badge">CONHECIMENTO EXTRA</span><h2 class="text-3xl font-black mt-3">Documentos e detalhes que deixam o bot muito melhor.</h2></div><button class="soft h-fit" onclick="go(2)">← Voltar</button></div>
+  <p class="text-gray-400 mt-3">Catálogo, FAQ, apresentação, tabela de serviços, cardápio, manual comercial ou políticas.</p>
+  <div class="mt-6"><label class="text-sm font-bold text-gray-300">Arquivos — até 4</label><input id="documents" class="field mt-2" type="file" multiple accept=".pdf,.txt,.md,.csv,application/pdf,text/plain"><p class="text-xs text-gray-500 mt-2">PDF, TXT, MD ou CSV. Até 3MB por arquivo.</p></div>
+  <div id="fileList" class="mt-3 text-sm text-gray-400"></div>
+  <div class="mt-5"><label class="text-sm font-bold text-gray-300">Algo importante que não está no site/documentos?</label><textarea id="businessDescription" rows="5" class="field mt-2" placeholder="Ex.: diferencial, política comercial, cidades atendidas, objeções comuns..."></textarea></div>
+  <div class="flex justify-end mt-7"><button class="btn" onclick="review()">Revisar SmartBot →</button></div>
+</section>
+
+<section id="screen4" class="card p-6 md:p-8 hidden">
+  <div class="flex justify-between gap-4"><div><span class="badge">PRONTO PARA CRIAR</span><h2 class="text-3xl font-black mt-3">Seu SmartBot vai nascer com contexto próprio.</h2></div><button class="soft h-fit" onclick="go(3)">← Voltar</button></div>
+  <div id="reviewBox" class="grid md:grid-cols-2 gap-4 mt-6"></div>
+  <div class="bg-green-400/10 border border-green-400/20 rounded-2xl p-4 mt-5 text-sm text-gray-300">O SmartBot terá <b class="text-green-400">perfil, conhecimento, regras e questionário próprios</b>. Site e WhatsApp poderão usar o mesmo cérebro depois.</div>
+  <button id="createBtn" class="btn w-full mt-6" onclick="createBot()">Criar meu SmartBot</button>
+  <div id="created" class="hidden mt-6 bg-white/5 rounded-2xl p-5"></div>
+</section>
+</main>
+<div id="toast" class="toast"></div>
+<script>
+const state={step:1,discovery:null,questionnaire:[],answers:{},documents:[]};
+const labels=['','1. Seu negócio','2. Particularidades','3. Documentos','4. Revisão'];
+function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type;t.style.display='block';setTimeout(()=>t.style.display='none',4500)}
+function go(n){state.step=n;for(let i=1;i<=4;i++)document.getElementById('screen'+i).classList.toggle('hidden',i!==n);progress.style.width=(n*25)+'%';stepLabel.textContent=labels[n];stepCount.textContent=n+'/4';window.scrollTo({top:0,behavior:'smooth'})}
+function requiredBase(){if(!ownerName.value.trim()||!ownerEmail.value.trim()||!ownerWhatsApp.value.trim()||!companyName.value.trim()){toast('Preencha nome, e-mail, WhatsApp e empresa.','err');return false}return true}
+async function discovery(payload){const r=await fetch('/.netlify/functions/onboarding-discovery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||'Falha ao analisar negócio');return d}
+async function analyze(){if(!requiredBase())return;if(!website.value.trim())return startManual();analyzeBtn.disabled=true;analyzeBtn.innerHTML='<span class="spin"></span> Lendo site...';try{const d=await discovery({website:website.value.trim(),companyName:companyName.value.trim()});applyDiscovery(d);go(2);toast('Site analisado. Agora confirme as particularidades.')}catch(e){toast(e.message,'err')}finally{analyzeBtn.disabled=false;analyzeBtn.textContent='Analisar meu negócio'}}
+async function startManual(){if(!requiredBase())return;try{const d=await discovery({companyName:companyName.value.trim(),businessType:'servicos'});applyDiscovery(d);go(2)}catch(e){toast(e.message,'err')}}
+function applyDiscovery(d){state.discovery=d;state.questionnaire=d.questionnaire||[];businessType.value=d.businessType||'servicos';const facts=d.facts||{},pages=d.pages||[];discoverySummary.innerHTML=`<div class="font-bold text-white">${d.mode==='website'?'✓ Site analisado':'Configuração sem site'}</div><div class="mt-2">Segmento sugerido: <b class="text-green-400">${esc(d.businessTypeLabel||d.businessType)}</b>${d.pageCount?` · ${d.pageCount} página(s) lida(s)`:''}</div>${pages.length?`<div class="mt-2 text-gray-500">${pages.slice(0,5).map(p=>esc(p.title||p.url)).join(' · ')}</div>`:''}<div class="mt-2 text-gray-500">${facts.hasPricing?'Preços detectados · ':''}${facts.hasScheduling?'Agendamento detectado · ':''}${facts.hasFaq?'FAQ detectada':''}</div>`;renderQuestions()}
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function saveCurrentAnswers(){document.querySelectorAll('[data-answer]').forEach(el=>{let v=el.value.trim();if(el.dataset.type==='list')v=v.split(/\n|,/).map(x=>x.trim()).filter(Boolean);state.answers[el.dataset.answer]=v})}
+function renderQuestions(){questions.innerHTML=state.questionnaire.map(q=>{const val=state.answers[q.key];const str=Array.isArray(val)?val.join(', '):(val||((q.key==='primary_goal'&&state.discovery&&state.discovery.suggestedProfile)?state.discovery.suggestedProfile.primaryGoal:''));const tag=q.type==='textarea'||q.type==='list'?`<textarea rows="${q.type==='list'?3:4}" class="field mt-2" data-answer="${q.key}" data-type="${q.type}">${esc(str)}</textarea>`:`<input class="field mt-2" value="${esc(str)}" data-answer="${q.key}" data-type="${q.type}">`;return `<div><label class="text-sm font-bold text-gray-300">${esc(q.label)} ${q.required?'<span class="text-green-400">*</span>':''}</label>${tag}${q.type==='list'?'<p class="text-xs text-gray-500 mt-1">Separe por vírgula ou uma opção por linha.</p>':''}</div>`}).join('')}
+async function changeType(){saveCurrentAnswers();try{const d=await discovery({companyName:companyName.value.trim(),businessType:businessType.value});state.questionnaire=d.questionnaire||[];if(state.discovery){state.discovery.businessType=businessType.value;state.discovery.businessTypeLabel=d.businessTypeLabel;state.discovery.suggestedProfile=d.suggestedProfile}renderQuestions()}catch(e){toast(e.message,'err')}}
+function validateAnswers(){saveCurrentAnswers();const missing=state.questionnaire.filter(q=>q.required).filter(q=>{const v=state.answers[q.key];return Array.isArray(v)?!v.length:!String(v||'').trim()});if(missing.length){toast('Complete os campos obrigatórios antes de continuar.','err');return false}return true}
+function toDocuments(){if(!validateAnswers())return;go(3)}
+documents.addEventListener('change',()=>{state.documents=[...documents.files].slice(0,4);fileList.innerHTML=state.documents.length?state.documents.map(f=>`<div>📄 ${esc(f.name)} · ${(f.size/1024/1024).toFixed(2)} MB</div>`).join(''):'Nenhum arquivo selecionado.'})
+function review(){state.documents=[...documents.files].slice(0,4);const tooBig=state.documents.find(f=>f.size>3*1024*1024);if(tooBig)return toast(`${tooBig.name} ultrapassa 3MB.`,'err');go(4);const d=state.discovery||{};reviewBox.innerHTML=`<div class="bg-white/5 rounded-2xl p-4"><div class="text-xs text-gray-500">EMPRESA</div><b>${esc(companyName.value)}</b><div class="text-gray-400 text-sm mt-1">${esc(d.businessTypeLabel||businessType.value)}</div></div><div class="bg-white/5 rounded-2xl p-4"><div class="text-xs text-gray-500">SITE</div><b>${website.value.trim()?esc(website.value):'Sem site'}</b><div class="text-gray-400 text-sm mt-1">${d.pageCount||0} página(s) identificadas</div></div><div class="bg-white/5 rounded-2xl p-4"><div class="text-xs text-gray-500">BRIEFING</div><b>${Object.keys(state.answers).length} respostas</b><div class="text-gray-400 text-sm mt-1">Personalização por segmento</div></div><div class="bg-white/5 rounded-2xl p-4"><div class="text-xs text-gray-500">DOCUMENTOS</div><b>${state.documents.length} arquivo(s)</b><div class="text-gray-400 text-sm mt-1">Conhecimento adicional</div></div>`}
+function readFile(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]);r.onerror=()=>reject(new Error('Falha ao ler '+file.name));r.readAsDataURL(file)})}
+async function createBot(){createBtn.disabled=true;createBtn.innerHTML='<span class="spin"></span> Criando cérebro do cliente...';try{const docs=[];for(const f of state.documents){docs.push({fileName:f.name,mimeType:f.type,fileData:await readFile(f)})}const payload={name:ownerName.value.trim(),email:ownerEmail.value.trim(),whatsapp:ownerWhatsApp.value.trim(),companyName:companyName.value.trim(),website:website.value.trim(),businessType:businessType.value,adaptiveAnswers:state.answers,businessDescription:businessDescription.value.trim(),documents:docs};const r=await fetch('/.netlify/functions/website-bot-onboarding',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Falha ao criar SmartBot');created.classList.remove('hidden');created.innerHTML=`<div class="text-green-400 font-black text-xl">✓ SmartBot criado</div><div class="text-gray-300 mt-2">Bot ID: <code>${esc(d.botId)}</code></div><div class="text-gray-400 mt-2">${esc(d.businessTypeLabel||'')} · ${d.pagesImported||0} páginas · ${d.knowledgeItems||0} fontes · briefing ${d.intakeCompleteness||0}%</div>${d.paymentLink?`<a class="btn inline-flex mt-4" href="${esc(d.paymentLink)}">Continuar para pagamento</a>`:'<div class="text-yellow-300 mt-4">Pagamento não gerado; a equipe poderá concluir a ativação.</div>'}`;createBtn.classList.add('hidden');toast('SmartBot criado com sucesso.')}catch(e){toast(e.message,'err');createBtn.disabled=false;createBtn.textContent='Criar meu SmartBot'}}
+</script>
+</body>
+</html>
