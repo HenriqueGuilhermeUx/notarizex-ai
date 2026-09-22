@@ -8,6 +8,8 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
+      - name: Wait for production deploy
+        run: sleep 25
       - name: Test isolated client brains
         shell: bash
         run: |
@@ -17,8 +19,20 @@ jobs:
           NB_VISITOR="iso-neon-${GITHUB_RUN_ID}"
           MY_BODY=$(jq -nc --arg bot 'site-1783003313164-9eb4cb8d' --arg visitor "$MY_VISITOR" --arg msg 'Resuma em uma frase o que sua empresa faz. Não mencione empresas que não sejam a sua.' '{botId:$bot,visitorId:$visitor,channel:"site",message:$msg}')
           NB_BODY=$(jq -nc --arg bot 'test-isolation-neonbike-20260922' --arg visitor "$NB_VISITOR" --arg msg 'Qual serviço sua empresa oferece e qual é a palavra-código de teste informada na sua base?' '{botId:$bot,visitorId:$visitor,channel:"site",message:$msg}')
-          MY=$(curl --fail-with-body -sS -X POST "$BASE" -H 'Content-Type: application/json' --data "$MY_BODY")
-          NB=$(curl --fail-with-body -sS -X POST "$BASE" -H 'Content-Type: application/json' --data "$NB_BODY")
+          call_brain() {
+            local body="$1"
+            local out=''
+            for attempt in 1 2 3 4 5; do
+              if out=$(curl --fail-with-body -sS -X POST "$BASE" -H 'Content-Type: application/json' --data "$body"); then
+                printf '%s' "$out"
+                return 0
+              fi
+              sleep 10
+            done
+            return 1
+          }
+          MY=$(call_brain "$MY_BODY")
+          NB=$(call_brain "$NB_BODY")
           echo "MY_VISITOR=$MY_VISITOR"
           echo "NB_VISITOR=$NB_VISITOR"
           echo "MY_RESPONSE=$MY"
