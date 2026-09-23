@@ -1,0 +1,30 @@
+name: SmartBots Multi-tenant Smoke
+on:
+  push:
+    paths:
+      - '.github/workflows/smartbots-multitenant-smoke.yml'
+      - 'notarizex-ai/netlify/functions/kapso-webhook.js'
+      - 'notarizex-ai/netlify/functions/kapso-platform-webhook.js'
+      - 'notarizex-ai/netlify/functions/whatsapp-config.js'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax check WhatsApp motor
+        run: |
+          node --check notarizex-ai/netlify/functions/kapso-webhook.js
+          node --check notarizex-ai/netlify/functions/kapso-platform-webhook.js
+          node --check notarizex-ai/netlify/functions/whatsapp-config.js
+      - name: Wait for Netlify auto-deploy
+        run: sleep 35
+      - name: Check production functions
+        run: |
+          set -euo pipefail
+          curl -fsS https://smartbots.club/.netlify/functions/kapso-webhook | grep -q 'success'
+          curl -fsS https://smartbots.club/.netlify/functions/kapso-platform-webhook | grep -q 'success'
+          echo 'SmartBots WhatsApp multi-tenant motor is reachable'
