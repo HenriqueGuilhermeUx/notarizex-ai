@@ -58,10 +58,12 @@ async function createActivationInvite(botId,companyName,dbKey,url){
 }
 
 async function sendActivationEmail(apiKey,email,companyName,activationUrl,expiresAt){
-  if(!apiKey||!email)return;
+  if(!apiKey||!email)return{sent:false,reason:'not_configured'};
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);
   try{
-    await fetch('https://api.resend.com/emails',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiKey}`},body:JSON.stringify({from:'SmartBots <noreply@smartbots.club>',to:email,subject:`Seu SmartBot da ${companyName} está pronto para ativação`,text:`Seu SmartBot foi criado. Continue a ativação pelo link abaixo:\n\n${activationUrl}\n\nVocê poderá conectar o WhatsApp, testar o assistente e ativar o atendimento. O link expira em ${new Date(expiresAt).toLocaleString('pt-BR')}. Não compartilhe este link.`})});
+    const response=await fetch('https://api.resend.com/emails',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiKey}`},body:JSON.stringify({from:'SmartBots <noreply@smartbots.club>',to:email,subject:`Seu SmartBot da ${companyName} está pronto para ativação`,text:`Seu SmartBot foi criado. Continue a ativação pelo link abaixo:\n\n${activationUrl}\n\nVocê poderá conectar o WhatsApp, testar o assistente e ativar o atendimento. O link expira em ${new Date(expiresAt).toLocaleString('pt-BR')}. Não compartilhe este link.`})});
+    if(!response.ok)throw new Error(`Resend ${response.status}: ${(await response.text()).slice(0,300)}`);
+    return{sent:true};
   }finally{clearTimeout(timer)}
 }
 
@@ -109,7 +111,10 @@ exports.handler=async(event)=>{
     await mustOk(await supabase('smartbot_onboarding_intakes',dbKey,SUPABASE_URL,{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({bot_id:botId,business_type:businessType,detected_facts:facts,source_pages:crawl?crawl.pages.map(p=>({url:p.url,title:p.title})).slice(0,12):[],questionnaire,answers:adaptiveAnswers,completeness:intakeCompleteness,discovery_version:'v1'})}),'Salvar smartbot_onboarding_intakes');
 
     let activation=null;
-    if(!adminProvision){activation=await createActivationInvite(botId,companyName,dbKey,SUPABASE_URL);sendActivationEmail(RESEND_API_KEY,email,companyName,activation.activationUrl,activation.expiresAt).catch(e=>console.error('[Website Bot Onboarding] activation email:',e.message))}
+    if(!adminProvision){
+      activation=await createActivationInvite(botId,companyName,dbKey,SUPABASE_URL);
+      try{await sendActivationEmail(RESEND_API_KEY,email,companyName,activation.activationUrl,activation.expiresAt)}catch(e){console.error('[Website Bot Onboarding] activation email:',e.message)}
+    }
 
     if(RESEND_API_KEY){try{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);await fetch('https://api.resend.com/emails',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${RESEND_API_KEY}`},body:JSON.stringify({from:'SmartBots <noreply@smartbots.club>',to:'henriquecampos66@gmail.com',subject:`Novo SmartBot: ${companyName}`,text:`Novo cliente SmartBots\nEmpresa: ${companyName}\nBot: ${botId}\nTipo: ${TYPES[businessType].label}\nPáginas: ${crawl?crawl.pageCount:0}\nConhecimentos: ${knowledgeItems.length}\nBriefing: ${intakeCompleteness}%\nOrigem: ${adminProvision?'provisionamento administrativo':'self-service trial'}\nCobrança: definida somente após escolha/configuração do plano.`})});clearTimeout(timer)}catch(e){console.error('[Website Bot Onboarding] admin email:',e.message)}}
 
