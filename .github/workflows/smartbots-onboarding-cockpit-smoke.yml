@@ -1,0 +1,37 @@
+name: SmartBots onboarding cockpit smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'notarizex-ai/netlify/functions/smartbots-admin-auth.js'
+      - 'notarizex-ai/netlify/functions/admin-smartbots-clients.js'
+      - 'notarizex-ai/netlify/functions/whatsapp-connect-invite.js'
+      - 'notarizex-ai/netlify/functions/website-bot-onboarding.js'
+      - 'notarizex-ai/admin-clientes.js'
+      - 'notarizex-ai/conectar-whatsapp.html'
+      - '.github/workflows/smartbots-onboarding-cockpit-smoke.yml'
+  workflow_dispatch:
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check server and browser JavaScript
+        run: |
+          node --check notarizex-ai/netlify/functions/smartbots-admin-auth.js
+          node --check notarizex-ai/netlify/functions/admin-smartbots-clients.js
+          node --check notarizex-ai/netlify/functions/whatsapp-connect-invite.js
+          node --check notarizex-ai/netlify/functions/website-bot-onboarding.js
+          node --check notarizex-ai/admin-clientes.js
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('notarizex-ai/conectar-whatsapp.html').read_text()
+          scripts=re.findall(r'<script>(.*?)</script>',html,re.S)
+          assert scripts, 'inline script missing'
+          Path('/tmp/connect-inline.js').write_text('\n'.join(scripts))
+          PY
+          node --check /tmp/connect-inline.js
