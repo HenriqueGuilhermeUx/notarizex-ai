@@ -27,6 +27,16 @@
   status = 200
 
 [[redirects]]
+  from = "/admin/clientes"
+  to = "/admin-clientes.html"
+  status = 200
+
+[[redirects]]
+  from = "/conectar-whatsapp"
+  to = "/conectar-whatsapp.html"
+  status = 200
+
+[[redirects]]
   from = "/dashboard-cliente"
   to = "/dashboard-cliente.html"
   status = 200
