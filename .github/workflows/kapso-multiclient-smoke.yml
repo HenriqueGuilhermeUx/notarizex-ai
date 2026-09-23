@@ -4,18 +4,20 @@ on:
   push:
     paths:
       - '.github/workflows/kapso-multiclient-smoke.yml'
+      - 'notarizex-ai/netlify/functions/kapso-multiclient-smoke.js'
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Validate production Kapso multi-client motor
+      - name: Wait for production deploy and validate Kapso multi-client motor
         shell: bash
         run: |
           set -euo pipefail
-          JSON="$(curl -fsS --retry 4 --retry-delay 5 https://smartbots.club/.netlify/functions/kapso-multiclient-smoke)"
-          echo "$JSON" | jq '{ok, kapsoApi, dbConfigFound, customerMapped, customerPhoneLookupOk, projectLifecycleWebhookActive, pilotMessageWebhookActive, setupLinksReadApiAvailable, noSecretsReturned}'
+          sleep 25
+          JSON="$(curl -fsS --retry 6 --retry-delay 5 https://smartbots.club/.netlify/functions/kapso-multiclient-smoke)"
+          echo "$JSON" | jq '{ok, kapsoApi, dbConfigFound, customerMapped, customerPhoneLookupOk, projectLifecycleWebhookActive, pilotMessageWebhookActive, setupLinksReadHttpStatus, setupLinksReadApiAvailable, noSecretsReturned}'
           echo "$JSON" | jq -e '
             .ok == true and
             .kapsoApi == true and
