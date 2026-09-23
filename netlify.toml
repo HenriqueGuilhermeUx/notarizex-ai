@@ -16,6 +16,9 @@
 [functions."smartbot-followup-scan"]
   schedule = "*/15 * * * *"
 
+[functions."smartbot-trial-scan"]
+  schedule = "0 13 * * *"
+
 [[redirects]]
   from = "/b/*"
   to = "/bot-publico.html"
