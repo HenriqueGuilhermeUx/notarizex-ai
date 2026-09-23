@@ -25,20 +25,31 @@ jobs:
       - name: Validate opaque activation and Brain test
         run: |
           set -euo pipefail
-          curl -fsS https://smartbots.club/ativar | grep -q 'Ativação segura'
-          curl -fsS -X POST https://smartbots.club/.netlify/functions/self-service-session-create \
+          page_code=$(curl -sS -o /tmp/page.html -w '%{http_code}' https://smartbots.club/ativar)
+          echo "activation page HTTP=$page_code"
+          grep -q 'Ativação segura' /tmp/page.html
+          session_code=$(curl -sS -o /tmp/session.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/self-service-session-create \
             -H 'Content-Type: application/json' \
-            --data '{"botId":"qa-selfservice-20260923","email":"qa-selfservice@example.invalid","whatsapp":"5511000000000"}' -o /tmp/session.json
+            --data '{"botId":"qa-selfservice-20260923","email":"qa-selfservice@example.invalid","whatsapp":"5511000000000"}')
+          echo "session HTTP=$session_code"
+          cat /tmp/session.json
+          test "$session_code" = "200"
           jq -e '.success == true and (.activationUrl | contains("/ativar?token=")) and (.botId == null) and (.clientToken == null)' /tmp/session.json >/dev/null
           token=$(jq -r '.activationUrl' /tmp/session.json | sed 's/.*token=//')
           test -n "$token"
-          curl -fsS -X POST https://smartbots.club/.netlify/functions/self-service-activation \
+          status_code=$(curl -sS -o /tmp/status.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/self-service-activation \
             -H 'Content-Type: application/json' \
-            --data "{\"action\":\"status\",\"token\":\"$token\"}" -o /tmp/status.json
+            --data "{\"action\":\"status\",\"token\":\"$token\"}")
+          echo "status HTTP=$status_code"
+          cat /tmp/status.json
+          test "$status_code" = "200"
           jq -e '.success == true and .companyName == "Aurora Self Service QA" and .preflight.checks.brainReady == true and .preflight.checks.knowledgeReady == true and .preflight.checks.whatsappConnected == false and (.botId == null) and (.clientToken == null)' /tmp/status.json >/dev/null
-          curl -fsS -X POST https://smartbots.club/.netlify/functions/self-service-activation \
+          test_code=$(curl -sS -o /tmp/test.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/self-service-activation \
             -H 'Content-Type: application/json' \
-            --data "{\"action\":\"test\",\"token\":\"$token\",\"message\":\"Qual é o código interno de validação?\"}" -o /tmp/test.json
+            --data "{\"action\":\"test\",\"token\":\"$token\",\"message\":\"Qual é o código interno de validação?\"}")
+          echo "brain test HTTP=$test_code"
+          cat /tmp/test.json
+          test "$test_code" = "200"
           jq -e '.success == true and .test.engine == "responses"' /tmp/test.json >/dev/null
           jq -r '.test.reply' /tmp/test.json | grep -q 'SELFSERVICE-9321'
           echo 'Self-service activation E2E passed'
