@@ -1,0 +1,53 @@
+name: SmartBots Commercial E2E
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  commercial-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for production deploy
+        run: sleep 25
+      - name: Exercise one lead across multiple turns
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://smartbots.club/.netlify/functions/smartbot-brain"
+          BOT="site-1783003313164-9eb4cb8d"
+          VISITOR="qa_commercial_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+
+          call_brain() {
+            local msg="$1"
+            curl --fail-with-body --retry 4 --retry-all-errors --retry-delay 5 -sS \
+              -H 'content-type: application/json' \
+              -d "$(jq -nc --arg bot "$BOT" --arg visitor "$VISITOR" --arg msg "$msg" '{botId:$bot,visitorId:$visitor,channel:"site",message:$msg}')" \
+              "$BASE"
+          }
+
+          R1="$(call_brain 'Olá, meu nome é Cliente QA Comercial. Quero entender os serviços e tenho interesse em contratar.')"
+          echo "TURN1=$(echo "$R1" | jq -c '{success,intent,leadId,pipelineStatus,leadTemperature,handoffRequested,engine,model}')"
+          test "$(echo "$R1" | jq -r '.success')" = "true"
+          test "$(echo "$R1" | jq -r '.engine')" = "responses"
+          LEAD1="$(echo "$R1" | jq -r '.leadId')"
+          test -n "$LEAD1" && test "$LEAD1" != "null"
+
+          R2="$(call_brain 'Quanto custa? Quero um orçamento e entender o próximo passo.')"
+          echo "TURN2=$(echo "$R2" | jq -c '{success,intent,leadId,pipelineStatus,leadTemperature,handoffRequested,engine,model}')"
+          test "$(echo "$R2" | jq -r '.success')" = "true"
+          test "$(echo "$R2" | jq -r '.engine')" = "responses"
+          LEAD2="$(echo "$R2" | jq -r '.leadId')"
+          test "$LEAD1" = "$LEAD2"
+
+          R3="$(call_brain 'Quero falar com uma pessoa da equipe para continuar.')"
+          echo "TURN3=$(echo "$R3" | jq -c '{success,intent,leadId,pipelineStatus,leadTemperature,handoffRequested,engine,model}')"
+          test "$(echo "$R3" | jq -r '.success')" = "true"
+          test "$(echo "$R3" | jq -r '.engine')" = "responses"
+          LEAD3="$(echo "$R3" | jq -r '.leadId')"
+          test "$LEAD1" = "$LEAD3"
+          test "$(echo "$R3" | jq -r '.handoffRequested')" = "true"
+
+          echo "QA_VISITOR=$VISITOR"
+          echo "QA_LEAD=$LEAD1"
