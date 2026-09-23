@@ -1,0 +1,29 @@
+name: Kapso Multi-client Smoke
+
+on:
+  push:
+    paths:
+      - '.github/workflows/kapso-multiclient-smoke.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate production Kapso multi-client motor
+        shell: bash
+        run: |
+          set -euo pipefail
+          JSON="$(curl -fsS --retry 4 --retry-delay 5 https://smartbots.club/.netlify/functions/kapso-multiclient-smoke)"
+          echo "$JSON" | jq '{ok, kapsoApi, dbConfigFound, customerMapped, customerPhoneLookupOk, projectLifecycleWebhookActive, pilotMessageWebhookActive, setupLinksReadApiAvailable, noSecretsReturned}'
+          echo "$JSON" | jq -e '
+            .ok == true and
+            .kapsoApi == true and
+            .dbConfigFound == true and
+            .customerMapped == true and
+            .customerPhoneLookupOk == true and
+            .projectLifecycleWebhookActive == true and
+            .pilotMessageWebhookActive == true and
+            .setupLinksReadApiAvailable == true and
+            .noSecretsReturned == true
+          '
