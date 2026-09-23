@@ -1,0 +1,25 @@
+name: SmartBots Kapso engine smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'notarizex-ai/netlify/functions/whatsapp-config.js'
+      - 'notarizex-ai/netlify/functions/kapso-platform-webhook.js'
+      - 'notarizex-ai/netlify/functions/kapso-webhook.js'
+      - '.github/workflows/smartbots-kapso-engine-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check SmartBots Kapso engine syntax
+        run: |
+          node --check notarizex-ai/netlify/functions/whatsapp-config.js
+          node --check notarizex-ai/netlify/functions/kapso-platform-webhook.js
+          node --check notarizex-ai/netlify/functions/kapso-webhook.js
