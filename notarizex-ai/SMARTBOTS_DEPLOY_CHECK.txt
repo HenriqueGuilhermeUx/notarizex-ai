@@ -1,1 +1,1 @@
-SmartBots cleanup deploy check.
+SmartBots production env refresh: 2026-09-23.
