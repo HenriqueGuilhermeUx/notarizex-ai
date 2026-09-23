@@ -37,6 +37,11 @@
   status = 200
 
 [[redirects]]
+  from = "/catalogo"
+  to = "/catalogo-cliente.html"
+  status = 200
+
+[[redirects]]
   from = "/dashboard-cliente"
   to = "/dashboard-cliente.html"
   status = 200
