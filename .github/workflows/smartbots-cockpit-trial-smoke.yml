@@ -29,8 +29,10 @@ jobs:
       - name: Validate protected production cockpit
         run: |
           set -euo pipefail
-          curl -fsS https://smartbots.club/admin/clientes | grep -q 'Ação comercial'
-          curl -fsS https://smartbots.club/admin-clientes.js | grep -q 'Trial expirado'
+          curl -fsS https://smartbots.club/admin/clientes -o /tmp/cockpit.html
+          grep -q 'Ação comercial' /tmp/cockpit.html
+          curl -fsS https://smartbots.club/admin-clientes.js -o /tmp/cockpit.js
+          grep -q 'Trial expirado' /tmp/cockpit.js
           code=$(curl -sS -o /tmp/admin.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/admin-smartbots-clients -H 'Content-Type: application/json' --data '{"action":"list"}')
           test "$code" = "401"
           echo 'Cockpit trial visibility is live and protected'
