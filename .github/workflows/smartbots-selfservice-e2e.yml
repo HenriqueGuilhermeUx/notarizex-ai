@@ -21,34 +21,30 @@ jobs:
           node --check notarizex-ai/netlify/functions/self-service-session-create.js
           node --check notarizex-ai/netlify/functions/self-service-activation.js
       - name: Wait for Netlify deploy
-        run: sleep 40
-      - name: Validate opaque activation and Brain test
+        run: sleep 45
+      - name: Validate activation route and opaque flow
         run: |
           set -euo pipefail
-          page_code=$(curl -sS -o /tmp/page.html -w '%{http_code}' https://smartbots.club/ativar)
-          echo "activation page HTTP=$page_code"
-          grep -q 'Ativação segura' /tmp/page.html
-          session_code=$(curl -sS -o /tmp/session.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/self-service-session-create \
-            -H 'Content-Type: application/json' \
-            --data '{"botId":"qa-selfservice-20260923","email":"qa-selfservice@example.invalid","whatsapp":"5511000000000"}')
-          echo "session HTTP=$session_code"
-          cat /tmp/session.json
+          direct_code=$(curl -sS -o /tmp/direct.html -w '%{http_code}' https://smartbots.club/ativar-smartbot.html)
+          route_code=$(curl -sS -o /tmp/route.html -w '%{http_code}' https://smartbots.club/ativar)
+          echo "direct HTTP=$direct_code bytes=$(wc -c </tmp/direct.html)"
+          echo "route HTTP=$route_code bytes=$(wc -c </tmp/route.html)"
+          echo "direct title: $(grep -o '<title>[^<]*' /tmp/direct.html | head -1 || true)"
+          echo "route title: $(grep -o '<title>[^<]*' /tmp/route.html | head -1 || true)"
+          test "$direct_code" = "200"
+          grep -q 'Ativação segura' /tmp/direct.html
+          grep -q 'Ativação segura' /tmp/route.html
+          session_code=$(curl -sS -o /tmp/session.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/self-service-session-create -H 'Content-Type: application/json' --data '{"botId":"qa-selfservice-20260923","email":"qa-selfservice@example.invalid","whatsapp":"5511000000000"}')
+          echo "session HTTP=$session_code"; cat /tmp/session.json
           test "$session_code" = "200"
           jq -e '.success == true and (.activationUrl | contains("/ativar?token=")) and (.botId == null) and (.clientToken == null)' /tmp/session.json >/dev/null
           token=$(jq -r '.activationUrl' /tmp/session.json | sed 's/.*token=//')
-          test -n "$token"
-          status_code=$(curl -sS -o /tmp/status.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/self-service-activation \
-            -H 'Content-Type: application/json' \
-            --data "{\"action\":\"status\",\"token\":\"$token\"}")
-          echo "status HTTP=$status_code"
-          cat /tmp/status.json
+          status_code=$(curl -sS -o /tmp/status.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/self-service-activation -H 'Content-Type: application/json' --data "{\"action\":\"status\",\"token\":\"$token\"}")
+          echo "status HTTP=$status_code"; cat /tmp/status.json
           test "$status_code" = "200"
           jq -e '.success == true and .companyName == "Aurora Self Service QA" and .preflight.checks.brainReady == true and .preflight.checks.knowledgeReady == true and .preflight.checks.whatsappConnected == false and (.botId == null) and (.clientToken == null)' /tmp/status.json >/dev/null
-          test_code=$(curl -sS -o /tmp/test.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/self-service-activation \
-            -H 'Content-Type: application/json' \
-            --data "{\"action\":\"test\",\"token\":\"$token\",\"message\":\"Qual é o código interno de validação?\"}")
-          echo "brain test HTTP=$test_code"
-          cat /tmp/test.json
+          test_code=$(curl -sS -o /tmp/test.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/self-service-activation -H 'Content-Type: application/json' --data "{\"action\":\"test\",\"token\":\"$token\",\"message\":\"Qual é o código interno de validação?\"}")
+          echo "brain test HTTP=$test_code"; cat /tmp/test.json
           test "$test_code" = "200"
           jq -e '.success == true and .test.engine == "responses"' /tmp/test.json >/dev/null
           jq -r '.test.reply' /tmp/test.json | grep -q 'SELFSERVICE-9321'
