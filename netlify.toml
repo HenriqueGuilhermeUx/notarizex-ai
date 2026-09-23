@@ -47,6 +47,11 @@
   status = 200
 
 [[redirects]]
+  from = "/economia"
+  to = "/economia-cliente.html"
+  status = 200
+
+[[redirects]]
   from = "/login"
   to = "/dashboard-cliente.html"
   status = 200
