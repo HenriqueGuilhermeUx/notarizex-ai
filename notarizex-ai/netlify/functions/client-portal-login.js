@@ -67,7 +67,9 @@ async function sendLoginEmail(email, companyName, accessUrl) {
         Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        from: 'SmartBots <noreply@smartbots.club>',
+        // Temporary verified sender. Keep the SmartBots display name while
+        // smartbots.club is prepared in Resend/DNS for first-party sending.
+        from: 'SmartBots <smartbots@auth.f-insight.org>',
         to: email,
         subject: `Acesse o painel da ${companyName}`,
         text: `Seu acesso seguro ao SmartBots está pronto.\n\nAbra o link abaixo para entrar no painel da ${companyName}:\n\n${accessUrl}\n\nO link é de uso único e expira em 20 minutos. Se você não solicitou este acesso, ignore esta mensagem.`
@@ -116,7 +118,9 @@ async function requestLogin(email) {
   });
   if (!invite.ok) throw new Error(`Criar link de acesso: ${(await invite.text()).slice(0, 700)}`);
 
-  const accessUrl = `https://smartbots.club/painel?access=${encodeURIComponent(token)}`;
+  // Use the concrete page so the single-use token never depends on redirect
+  // query-string forwarding behavior.
+  const accessUrl = `https://smartbots.club/portal-login.html?access=${encodeURIComponent(token)}&next=${encodeURIComponent('/dashboard-cliente.html')}`;
   await sendLoginEmail(email, bot.company_name || 'seu negócio', accessUrl);
 }
 
