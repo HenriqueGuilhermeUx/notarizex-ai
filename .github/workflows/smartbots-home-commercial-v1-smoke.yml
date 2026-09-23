@@ -23,14 +23,12 @@ jobs:
           const onboarding = fs.readFileSync('notarizex-ai/onboarding-inteligente.html','utf8');
           const netlify = fs.readFileSync('netlify.toml','utf8');
           const must = (cond,msg) => { if(!cond) throw new Error(msg); };
-
           must(home.includes('href="/criar"'), 'home CTA must route to /criar');
           must(home.includes('7 dias'), 'home must communicate 7-day trial');
           must(!/R\$\s*79|R\$\s*129/.test(home), 'legacy hardcoded prices remain on home');
           must(!home.includes('Bot para Site'), 'home still sells site bot as separate product');
           must(!home.includes('Bot WhatsApp'), 'home still sells WhatsApp bot as separate product');
           must(!/clientToken|paymentLink|botId/.test(home), 'home exposes technical/payment internals');
-
           must(netlify.includes('from = "/criar"') && netlify.includes('to = "/onboarding-inteligente.html"'), '/criar redirect is missing');
           must(onboarding.includes('/.netlify/functions/website-bot-onboarding'), 'modern onboarding function is not used');
           must(onboarding.includes('activationUrl'), 'onboarding must consume opaque activationUrl');
@@ -39,28 +37,38 @@ jobs:
           console.log('Commercial V1 source contracts OK');
           NODE
 
-      - name: Validate production home and create route
+      - name: Diagnose production availability and validate Commercial V1
         run: |
           node <<'NODE'
-          const base='https://smartbots.club';
           const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-          async function get(path){
+          async function get(url){
             let last;
             for(let i=1;i<=4;i++){
               try{
-                const r=await fetch(base+path,{redirect:'follow',signal:AbortSignal.timeout(15000),headers:{'cache-control':'no-cache','user-agent':'smartbots-commercial-v1-smoke'}});
-                return {status:r.status,url:r.url,text:await r.text()};
-              }catch(e){last=e;if(i<4)await sleep(i*1000)}
+                const r=await fetch(url,{redirect:'follow',signal:AbortSignal.timeout(15000),headers:{'cache-control':'no-cache','user-agent':'smartbots-commercial-v1-smoke'}});
+                const text=await r.text();
+                if(r.status>=500 && i<4){last={status:r.status,url:r.url,text};await sleep(i*1500);continue;}
+                return {status:r.status,url:r.url,text};
+              }catch(e){last=e;if(i<4)await sleep(i*1500);else throw e}
             }
-            throw last;
+            return last;
           }
+          function summary(label,r){console.log(label,{status:r.status,url:r.url,length:r.text?.length||0,body:(r.text||'').slice(0,300)});}
           (async()=>{
-            const home=await get('/?smoke='+Date.now());
-            const create=await get('/criar?smoke='+Date.now());
-            console.log('home', {status:home.status,url:home.url,length:home.text.length});
-            console.log('create', {status:create.status,url:create.url,length:create.text.length});
-            if(home.status!==200) throw new Error('home status '+home.status);
-            if(create.status!==200) throw new Error('/criar status '+create.status);
+            const stamp=Date.now();
+            const customHome=await get('https://smartbots.club/?smoke='+stamp);
+            const customCreate=await get('https://smartbots.club/criar?smoke='+stamp);
+            const branchHome=await get('https://main--notarizex-ai.netlify.app/?smoke='+stamp);
+            const deployHome=await get('https://6ab40e800fcf350008d594bc--notarizex-ai.netlify.app/?smoke='+stamp);
+            summary('custom home',customHome);
+            summary('custom create',customCreate);
+            summary('branch home',branchHome);
+            summary('deploy home',deployHome);
+            if(customHome.status!==200 || customCreate.status!==200){
+              const sameInfraFailure=branchHome.status>=500 && deployHome.status>=500;
+              throw new Error(sameInfraFailure ? 'Netlify site availability failure affects custom, branch and deploy URLs' : 'custom-domain production availability failure');
+            }
+            const home=customHome, create=customCreate;
             if(!home.text.includes('Um SmartBot próprio para o seu negócio')) throw new Error('new Commercial V1 home not published');
             if(!home.text.includes('href="/criar"')) throw new Error('home CTA /criar missing');
             if(/R\$\s*79|R\$\s*129/.test(home.text)) throw new Error('legacy prices still public');
