@@ -19,21 +19,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Syntax check Commercial V1
+      - name: Syntax check Commercial V1 current head
         run: |
           node --check notarizex-ai/netlify/functions/subscription-admin.js
           node --check notarizex-ai/netlify/functions/admin-smartbots-clients.js
           node --check notarizex-ai/admin-assinaturas.js
           node --check notarizex-ai/admin-clientes.js
       - name: Wait for Netlify auto-deploy
-        run: sleep 35
+        run: sleep 40
       - name: Check production commercial admin and activation gate
         run: |
           set -euo pipefail
           curl -fsS https://smartbots.club/admin/planos | grep -q 'Planos, preços e limites'
           curl -fsS https://smartbots.club/admin/clientes | grep -q 'Cockpit de onboarding'
+          curl -fsS https://smartbots.club/admin-clientes.js | grep -q 'Pronto para ativar'
           curl -sS -o /tmp/sub.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/subscription-admin -H 'Content-Type: application/json' --data '{"action":"get","botId":"site-1783003313164-9eb4cb8d"}' > /tmp/sub-status
           test "$(cat /tmp/sub-status)" = "401"
           curl -sS -o /tmp/preflight.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/admin-smartbots-clients -H 'Content-Type: application/json' --data '{"action":"preflight","botId":"site-1783003313164-9eb4cb8d"}' > /tmp/preflight-status
           test "$(cat /tmp/preflight-status)" = "401"
-          echo 'Commercial V1 and activation gate are live and protected'
+          echo 'Commercial V1 current head is live and protected'
