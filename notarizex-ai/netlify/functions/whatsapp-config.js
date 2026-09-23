@@ -183,24 +183,74 @@ async function findKapsoCustomer(botId) {
   return Array.isArray(result.data) ? result.data[0] || null : null;
 }
 
-async function ensureKapsoCustomer(bot, existing) {
-  if (existing?.provider_customer_id) return existing.provider_customer_id;
-
-  let customer = await findKapsoCustomer(bot.bot_id);
-  if (!customer) {
-    const created = await kapso('/customers', {
-      method: 'POST',
-      body: JSON.stringify({
-        customer: {
-          name: clean(bot.company_name, 200) || bot.bot_id,
-          external_customer_id: bot.bot_id
-        }
-      })
-    });
-    customer = created.data;
+async function validKapsoCustomer(customerId) {
+  if (!customerId) return null;
+  try {
+    const result = await kapso(`/customers/${encodeURIComponent(customerId)}`);
+    return result.data || null;
+  } catch (_) {
+    return null;
   }
+}
+
+async function ensureKapsoCustomer(bot, existing) {
+  const byExternalId = await findKapsoCustomer(bot.bot_id);
+  if (byExternalId?.id) return byExternalId.id;
+
+  const legacyCandidate = await validKapsoCustomer(existing?.provider_customer_id);
+  if (legacyCandidate?.id) return legacyCandidate.id;
+
+  const created = await kapso('/customers', {
+    method: 'POST',
+    body: JSON.stringify({
+      customer: {
+        name: clean(bot.company_name, 200) || bot.bot_id,
+        external_customer_id: bot.bot_id
+      }
+    })
+  });
+  const customer = created.data;
   if (!customer?.id) throw new Error('Kapso não retornou customer_id.');
   return customer.id;
+}
+
+function kapsoPhoneId(phone) {
+  return clean(phone?.phone_number_id || phone?.id);
+}
+
+async function persistConnectedPhone(bot, existing, connected) {
+  const phoneNumberId = kapsoPhoneId(connected);
+  if (!phoneNumberId) throw new Error('Kapso retornou número conectado sem phone_number_id.');
+
+  const now = new Date().toISOString();
+  const messageWebhook = await ensureMessageWebhook(phoneNumberId);
+  const saved = await saveConnection(bot, existing, {
+    provider_phone_number_id: phoneNumberId,
+    provider_waba_id: clean(connected.business_account_id) || existing?.provider_waba_id || null,
+    phone: clean(connected.display_phone_number_normalized || connected.display_phone_number) || existing?.phone || null,
+    business_name: existing?.business_name || clean(connected.verified_name || connected.display_name) || bot.company_name,
+    status: 'connected',
+    connected_at: existing?.connected_at || now,
+    connection_last_checked_at: now,
+    connection_error: null,
+    connection_type: connected.is_coexistence === true ? 'coexistence' : (existing?.connection_type || 'dedicated'),
+    provider_lifecycle_status: 'connected',
+    provider_message_webhook_id: messageWebhook?.id || existing?.provider_message_webhook_id || null,
+    provider_message_webhook_status: messageWebhook?.active === true ? 'active' : 'unknown',
+    provider_message_webhook_checked_at: now,
+    auto_reply: existing?.auto_reply === true
+  });
+
+  return {
+    config: publicConfig(saved, bot.company_name),
+    setupStatus: 'completed',
+    phone: {
+      displayPhoneNumber: connected.display_phone_number || connected.display_phone_number_normalized || saved.phone || null,
+      verifiedName: connected.verified_name || connected.display_name || saved.business_name || null,
+      qualityRating: connected.quality_rating || null,
+      connectionType: connected.is_coexistence === true ? 'coexistence' : (saved.connection_type || 'dedicated')
+    }
+  };
 }
 
 async function startConnection(bot, existing) {
@@ -266,7 +316,29 @@ async function startConnection(bot, existing) {
 }
 
 async function connectionStatus(bot, existing) {
-  if (!existing?.provider_customer_id) {
+  if (!existing) {
+    return { config: publicConfig(null, bot.company_name), setupStatus: 'not_started' };
+  }
+
+  // Legacy-safe path: a number that is already connected is validated directly by
+  // phone_number_id. It must never depend on a Setup Link/Customer created later.
+  if (existing.status === 'connected' && existing.provider_phone_number_id) {
+    try {
+      const direct = await kapso(`/whatsapp/phone_numbers/${encodeURIComponent(existing.provider_phone_number_id)}`);
+      const phone = direct.data || {};
+      if (!kapsoPhoneId(phone)) phone.phone_number_id = existing.provider_phone_number_id;
+      return await persistConnectedPhone(bot, existing, phone);
+    } catch (error) {
+      // A transient/provider lookup failure must not downgrade an already working number.
+      return {
+        config: publicConfig(existing, bot.company_name),
+        setupStatus: 'connected_verification_pending',
+        setupError: error.message
+      };
+    }
+  }
+
+  if (!existing.provider_customer_id) {
     return { config: publicConfig(existing, bot.company_name), setupStatus: 'not_started' };
   }
 
@@ -277,37 +349,7 @@ async function connectionStatus(bot, existing) {
   const now = new Date().toISOString();
 
   if (connected) {
-    const phoneNumberId = clean(connected.phone_number_id || connected.id);
-    if (!phoneNumberId) throw new Error('Kapso retornou número conectado sem phone_number_id.');
-
-    const messageWebhook = await ensureMessageWebhook(phoneNumberId);
-    const saved = await saveConnection(bot, existing, {
-      provider_phone_number_id: phoneNumberId,
-      provider_waba_id: clean(connected.business_account_id) || null,
-      phone: clean(connected.display_phone_number_normalized || connected.display_phone_number) || existing.phone || null,
-      business_name: existing.business_name || clean(connected.verified_name || connected.display_name) || bot.company_name,
-      status: 'connected',
-      connected_at: existing.connected_at || now,
-      connection_last_checked_at: now,
-      connection_error: null,
-      connection_type: connected.is_coexistence === true ? 'coexistence' : 'dedicated',
-      provider_lifecycle_status: 'connected',
-      provider_message_webhook_id: messageWebhook?.id || null,
-      provider_message_webhook_status: messageWebhook?.active === true ? 'active' : 'unknown',
-      provider_message_webhook_checked_at: now,
-      auto_reply: existing.auto_reply === true
-    });
-
-    return {
-      config: publicConfig(saved, bot.company_name),
-      setupStatus: 'completed',
-      phone: {
-        displayPhoneNumber: connected.display_phone_number || connected.display_phone_number_normalized || null,
-        verifiedName: connected.verified_name || connected.display_name || null,
-        qualityRating: connected.quality_rating || null,
-        connectionType: connected.is_coexistence === true ? 'coexistence' : 'dedicated'
-      }
-    };
+    return persistConnectedPhone(bot, existing, connected);
   }
 
   let setupStatus = 'pending';
