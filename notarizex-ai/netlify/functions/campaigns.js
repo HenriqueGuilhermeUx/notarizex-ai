@@ -12,8 +12,8 @@ function clean(v) { return String(v || '').trim(); }
 
 async function supabase(path, options = {}) {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error('Supabase nao configurado.');
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('Supabase server-side nao configurado.');
   return fetch(url + '/rest/v1/' + path, {
     ...options,
     headers: { 'Content-Type': 'application/json', apikey: key, Authorization: 'Bearer ' + key, ...(options.headers || {}) }
