@@ -64,18 +64,23 @@ jobs:
           const base = 'https://6ab40e800fcf350008d594bc--notarizex-ai.netlify.app';
           async function request(path, options={}) {
             const r = await fetch(base+path,{...options,signal:AbortSignal.timeout(15000),headers:{...(options.headers||{}),'cache-control':'no-cache'}});
-            return {status:r.status,text:await r.text()};
+            return {status:r.status,url:r.url,text:await r.text()};
           }
           (async()=>{
             const d=await request('/dashboard');
             const o=await request('/operacao');
+            console.log('dashboard', {status:d.status,url:d.url,portalToken:d.text.includes('portalToken'),legacyState:d.text.includes('state.clientToken'),length:d.text.length});
+            console.log('operation', {status:o.status,url:o.url,portalToken:o.text.includes('portalToken'),legacyState:o.text.includes('state.clientToken'),length:o.text.length});
             if(d.status!==200 || !d.text.includes('portalToken') || d.text.includes('state.clientToken')) throw new Error('deployed dashboard contract failed');
             if(o.status!==200 || !o.text.includes('portalToken') || o.text.includes('state.clientToken')) throw new Error('deployed operation contract failed');
             const activation=await request('/.netlify/functions/self-service-activation',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+            console.log('activation guard',activation.status,activation.text.slice(0,180));
             if(activation.status!==422 || /clientToken|service_role|SUPABASE/i.test(activation.text)) throw new Error(`activation guard failed: ${activation.status} ${activation.text}`);
             const portal=await request('/.netlify/functions/client-portal',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'get_stats'})});
+            console.log('portal guard',portal.status,portal.text.slice(0,180));
             if(portal.status!==403 || /clientToken|service_role|SUPABASE/i.test(portal.text)) throw new Error(`portal guard failed: ${portal.status} ${portal.text}`);
             const agenda=await request('/.netlify/functions/agenda-pro-config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'list'})});
+            console.log('agenda guard',agenda.status,agenda.text.slice(0,180));
             if(agenda.status!==403 || /clientToken|service_role|SUPABASE/i.test(agenda.text)) throw new Error(`agenda guard failed: ${agenda.status} ${agenda.text}`);
             console.log('deployed opaque-session guardrails OK');
           })().catch(e=>{console.error(e);process.exit(1)});
