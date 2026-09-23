@@ -1,0 +1,74 @@
+name: SmartBots Home Commercial V1 Smoke
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate source contracts
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const home = fs.readFileSync('notarizex-ai/index.html','utf8');
+          const onboarding = fs.readFileSync('notarizex-ai/onboarding-inteligente.html','utf8');
+          const netlify = fs.readFileSync('netlify.toml','utf8');
+          const must = (cond,msg) => { if(!cond) throw new Error(msg); };
+
+          must(home.includes('href="/criar"'), 'home CTA must route to /criar');
+          must(home.includes('7 dias'), 'home must communicate 7-day trial');
+          must(!/R\$\s*79|R\$\s*129/.test(home), 'legacy hardcoded prices remain on home');
+          must(!home.includes('Bot para Site'), 'home still sells site bot as separate product');
+          must(!home.includes('Bot WhatsApp'), 'home still sells WhatsApp bot as separate product');
+          must(!/clientToken|paymentLink|botId/.test(home), 'home exposes technical/payment internals');
+
+          must(netlify.includes('from = "/criar"') && netlify.includes('to = "/onboarding-inteligente.html"'), '/criar redirect is missing');
+          must(onboarding.includes('/.netlify/functions/website-bot-onboarding'), 'modern onboarding function is not used');
+          must(onboarding.includes('activationUrl'), 'onboarding must consume opaque activationUrl');
+          must(!/R\$\s*79|R\$\s*129/.test(onboarding), 'legacy hardcoded prices remain in onboarding');
+          must(!onboarding.includes('paymentLink'), 'onboarding still expects paymentLink');
+          console.log('Commercial V1 source contracts OK');
+          NODE
+
+      - name: Validate production home and create route
+        run: |
+          node <<'NODE'
+          const base='https://smartbots.club';
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function get(path){
+            let last;
+            for(let i=1;i<=4;i++){
+              try{
+                const r=await fetch(base+path,{redirect:'follow',signal:AbortSignal.timeout(15000),headers:{'cache-control':'no-cache','user-agent':'smartbots-commercial-v1-smoke'}});
+                return {status:r.status,url:r.url,text:await r.text()};
+              }catch(e){last=e;if(i<4)await sleep(i*1000)}
+            }
+            throw last;
+          }
+          (async()=>{
+            const home=await get('/?smoke='+Date.now());
+            const create=await get('/criar?smoke='+Date.now());
+            console.log('home', {status:home.status,url:home.url,length:home.text.length});
+            console.log('create', {status:create.status,url:create.url,length:create.text.length});
+            if(home.status!==200) throw new Error('home status '+home.status);
+            if(create.status!==200) throw new Error('/criar status '+create.status);
+            if(!home.text.includes('Um SmartBot próprio para o seu negócio')) throw new Error('new Commercial V1 home not published');
+            if(!home.text.includes('href="/criar"')) throw new Error('home CTA /criar missing');
+            if(/R\$\s*79|R\$\s*129/.test(home.text)) throw new Error('legacy prices still public');
+            if(home.text.includes('Bot para Site') || home.text.includes('Bot WhatsApp')) throw new Error('legacy split-product copy still public');
+            if(/clientToken|paymentLink|botId/.test(home.text)) throw new Error('technical/payment internals exposed on home');
+            if(!create.text.includes('Onboarding Inteligente')) throw new Error('/criar does not serve modern onboarding');
+            if(!create.text.includes('activationUrl')) throw new Error('/criar does not consume activationUrl');
+            if(create.text.includes('paymentLink')) throw new Error('/criar still expects paymentLink');
+            console.log('Commercial V1 production home OK');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
