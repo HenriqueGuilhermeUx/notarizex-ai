@@ -89,7 +89,9 @@ function publicConfig(config, companyName) {
     metaBillingMode: c.meta_billing_mode || 'customer_managed',
     connectionError: c.connection_error || null,
     connectedAt: c.connected_at || null,
-    lastCheckedAt: c.connection_last_checked_at || null
+    lastCheckedAt: c.connection_last_checked_at || null,
+    lifecycleStatus: c.provider_lifecycle_status || null,
+    messageWebhookStatus: c.provider_message_webhook_status || null
   };
 }
 
@@ -110,6 +112,70 @@ async function saveConnection(bot, existing, patch) {
         method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(payload)
       });
   return (await rows(res, 'Salvar conexão WhatsApp'))[0];
+}
+
+function webhookSecret() {
+  const secret = clean(process.env.KAPSO_WEBHOOK_TOKEN);
+  if (!secret) throw new Error('KAPSO_WEBHOOK_TOKEN não configurado.');
+  return secret;
+}
+
+async function ensureProjectWebhook() {
+  const target = 'https://smartbots.club/.netlify/functions/kapso-platform-webhook';
+  const secret = webhookSecret();
+  const listed = await kapso('/whatsapp/webhooks?per_page=100');
+  const hooks = Array.isArray(listed.data) ? listed.data : [];
+  const existing = hooks.find(h => !h.phone_number_id && h.kind === 'kapso' && h.active === true && clean(h.url) === target);
+  if (existing) return existing;
+
+  const created = await kapso('/whatsapp/webhooks', {
+    method: 'POST',
+    body: JSON.stringify({
+      whatsapp_webhook: {
+        url: target,
+        secret_key: secret,
+        events: [
+          'whatsapp.phone_number.created',
+          'whatsapp.phone_number.deleted',
+          'whatsapp.phone_number.offboarded',
+          'whatsapp.phone_number.disconnected',
+          'whatsapp.phone_number.reconnected'
+        ],
+        active: true,
+        payload_version: 'v2'
+      }
+    })
+  });
+  return created.data;
+}
+
+async function ensureMessageWebhook(phoneNumberId) {
+  const secret = webhookSecret();
+  const target = `https://smartbots.club/.netlify/functions/kapso-webhook?token=${encodeURIComponent(secret)}`;
+  const listed = await kapso(`/whatsapp/phone_numbers/${encodeURIComponent(phoneNumberId)}/webhooks?per_page=100`);
+  const hooks = Array.isArray(listed.data) ? listed.data : [];
+  const existing = hooks.find(h => h.kind === 'kapso' && h.active === true && clean(h.url) === target);
+  if (existing) return existing;
+
+  const created = await kapso(`/whatsapp/phone_numbers/${encodeURIComponent(phoneNumberId)}/webhooks`, {
+    method: 'POST',
+    body: JSON.stringify({
+      whatsapp_webhook: {
+        url: target,
+        secret_key: secret,
+        events: [
+          'whatsapp.message.received',
+          'whatsapp.message.sent',
+          'whatsapp.message.delivered',
+          'whatsapp.message.read',
+          'whatsapp.message.failed'
+        ],
+        active: true,
+        payload_version: 'v2'
+      }
+    })
+  });
+  return created.data;
 }
 
 async function findKapsoCustomer(botId) {
@@ -140,6 +206,12 @@ async function ensureKapsoCustomer(bot, existing) {
 async function startConnection(bot, existing) {
   if (existing?.status === 'connected' && existing?.provider_phone_number_id) {
     return { alreadyConnected: true, config: publicConfig(existing, bot.company_name) };
+  }
+
+  try {
+    await ensureProjectWebhook();
+  } catch (error) {
+    console.error('[WhatsAppConfig] lifecycle webhook:', error.message);
   }
 
   const customerId = await ensureKapsoCustomer(bot, existing);
@@ -208,6 +280,7 @@ async function connectionStatus(bot, existing) {
     const phoneNumberId = clean(connected.phone_number_id || connected.id);
     if (!phoneNumberId) throw new Error('Kapso retornou número conectado sem phone_number_id.');
 
+    const messageWebhook = await ensureMessageWebhook(phoneNumberId);
     const saved = await saveConnection(bot, existing, {
       provider_phone_number_id: phoneNumberId,
       provider_waba_id: clean(connected.business_account_id) || null,
@@ -218,6 +291,10 @@ async function connectionStatus(bot, existing) {
       connection_last_checked_at: now,
       connection_error: null,
       connection_type: connected.is_coexistence === true ? 'coexistence' : 'dedicated',
+      provider_lifecycle_status: 'connected',
+      provider_message_webhook_id: messageWebhook?.id || null,
+      provider_message_webhook_status: messageWebhook?.active === true ? 'active' : 'unknown',
+      provider_message_webhook_checked_at: now,
       auto_reply: existing.auto_reply === true
     });
 
@@ -273,7 +350,7 @@ exports.handler = async (event) => {
     const bot = await auth(botId, clientToken);
     if (!bot) return reply(403, { success: false, error: 'Acesso negado.' });
 
-    let existing = await currentConfig(botId);
+    const existing = await currentConfig(botId);
 
     if (action === 'connect_start') {
       const result = await startConnection(bot, existing);
