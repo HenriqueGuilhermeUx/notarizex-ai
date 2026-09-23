@@ -3,30 +3,66 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>WhatsApp — SmartBots</title>
+  <title>Conectar WhatsApp — SmartBots</title>
   <link rel="stylesheet" href="/app-ux.css">
   <style>
-    body{background:#0f1115;color:#fff;font-family:Inter,Arial,sans-serif}.wa-wrap{max-width:820px;margin:0 auto;padding:28px 16px 60px}.wa-card{background:#171a20;border:1px solid #2a2f38;border-radius:18px;padding:22px;margin-top:18px}.wa-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.wa-field{width:100%;background:#101318;color:#fff;border:1px solid #343b46;border-radius:10px;padding:12px}.wa-field:focus{outline:none;border-color:#00ff88}.wa-label{display:block;font-size:13px;font-weight:800;margin-bottom:6px}.wa-help{font-size:12px;color:#8b94a3;margin-top:5px}.wa-status{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 12px;font-weight:900;font-size:12px}.connected{background:rgba(0,255,136,.12);color:#00ff88}.pending{background:rgba(251,191,36,.12);color:#fbbf24}.wa-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.wa-btn{border:0;border-radius:10px;padding:12px 16px;font-weight:900;cursor:pointer;background:#00ff88;color:#06120b}.wa-btn2{border:1px solid #343b46;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer;background:#20252d;color:#fff}.wa-note{background:#101318;border-left:3px solid #00ff88;padding:13px 15px;border-radius:10px;color:#cbd5e1;font-size:13px}.wa-toggle{display:flex;align-items:center;gap:10px;background:#101318;border:1px solid #343b46;border-radius:10px;padding:12px}.wa-toggle input{width:18px;height:18px}.wa-provider{font-family:monospace;color:#00ff88}.wa-error{color:#f87171}.wa-ok{color:#00ff88}@media(max-width:650px){.wa-grid{grid-template-columns:1fr}}
+    body{background:#0f1115;color:#fff;font-family:Inter,Arial,sans-serif}.wa-wrap{max-width:900px;margin:0 auto;padding:28px 16px 60px}.wa-card{background:#171a20;border:1px solid #2a2f38;border-radius:18px;padding:22px;margin-top:18px}.wa-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.wa-field{width:100%;box-sizing:border-box;background:#101318;color:#fff;border:1px solid #343b46;border-radius:10px;padding:12px}.wa-field:focus{outline:none;border-color:#00ff88}.wa-field[readonly]{color:#aab3c2}.wa-label{display:block;font-size:13px;font-weight:800;margin-bottom:6px}.wa-help{font-size:12px;color:#8b94a3;margin-top:5px;line-height:1.5}.wa-status{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 12px;font-weight:900;font-size:12px}.connected{background:rgba(0,255,136,.12);color:#00ff88}.pending{background:rgba(251,191,36,.12);color:#fbbf24}.failed{background:rgba(248,113,113,.12);color:#f87171}.wa-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.wa-btn{border:0;border-radius:10px;padding:12px 16px;font-weight:900;cursor:pointer;background:#00ff88;color:#06120b}.wa-btn:disabled{opacity:.5;cursor:not-allowed}.wa-btn2{border:1px solid #343b46;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer;background:#20252d;color:#fff}.wa-note{background:#101318;border-left:3px solid #00ff88;padding:13px 15px;border-radius:10px;color:#cbd5e1;font-size:13px;line-height:1.55}.wa-toggle{display:flex;align-items:center;gap:10px;background:#101318;border:1px solid #343b46;border-radius:10px;padding:12px}.wa-toggle input{width:18px;height:18px}.wa-provider{font-family:monospace;color:#00ff88}.wa-error{color:#f87171}.wa-ok{color:#00ff88}.wa-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.wa-step{background:#101318;border:1px solid #2b313b;border-radius:12px;padding:14px}.wa-step b{display:block;margin-bottom:5px;color:#fff}.wa-step span{font-size:12px;color:#8b94a3;line-height:1.45}.wa-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.wa-choice>div{background:#101318;border:1px solid #2b313b;border-radius:12px;padding:14px}.wa-choice strong{color:#00ff88}.checklist{margin:10px 0 0;padding-left:20px;color:#cbd5e1;font-size:13px;line-height:1.7}@media(max-width:650px){.wa-grid,.wa-steps,.wa-choice{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 <div class="wa-wrap">
   <div class="sb-top"><a class="sb-brand" href="/painel"><span>Smart</span>Bots</a><a class="sb-pill" href="/painel">← Painel</a></div>
-  <section class="sb-hero"><h1>Canal WhatsApp</h1><p>O WhatsApp usa o mesmo Brain, conhecimento e regras do seu SmartBot.</p></section>
+  <section class="sb-hero"><h1>Conectar WhatsApp</h1><p>Conecte o número da sua empresa ao mesmo Brain, conhecimento, CRM e regras do seu SmartBot.</p></section>
 
   <section class="wa-card">
     <div style="display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap">
-      <div><h2 style="margin:0 0 5px">Estado da conexão</h2><div id="providerLine" class="wa-help">Carregando provedor...</div></div>
+      <div><h2 style="margin:0 0 5px">Conexão</h2><div id="providerLine" class="wa-help">Verificando...</div></div>
       <div id="statusBadge" class="wa-status pending">● Verificando</div>
     </div>
-    <div id="connectionNote" class="wa-note" style="margin-top:16px">A conexão do número é validada pelo provedor. O navegador do cliente não pode escolher um ID técnico de telefone livremente.</div>
+    <div id="connectionNote" class="wa-note" style="margin-top:16px">O SmartBots cria uma conexão segura na Kapso e abre o fluxo oficial da Meta. Sua senha do Facebook nunca passa pelo SmartBots.</div>
+
+    <div id="notConnectedBox">
+      <div class="wa-steps">
+        <div class="wa-step"><b>1. Clique em conectar</b><span>Geramos um link exclusivo para este SmartBot.</span></div>
+        <div class="wa-step"><b>2. Entre com a Meta</b><span>Escolha o negócio e o WhatsApp que você administra.</span></div>
+        <div class="wa-step"><b>3. Volte ao SmartBots</b><span>Confirmamos o número diretamente na Kapso e vinculamos ao bot certo.</span></div>
+      </div>
+      <div class="wa-choice">
+        <div><strong>Coexistência</strong><div class="wa-help">Continua usando o WhatsApp Business App no celular e também usa o SmartBots. Bom para pequenos negócios.</div></div>
+        <div><strong>Dedicado</strong><div class="wa-help">Número passa a operar pela Cloud API, focado em automação e maior estabilidade/escala.</div></div>
+      </div>
+      <div class="wa-actions">
+        <button id="connectBtn" class="wa-btn" onclick="startConnection()">Conectar meu WhatsApp</button>
+        <button id="verifyBtn" class="wa-btn2" onclick="checkConnection()">Já conectei — verificar</button>
+      </div>
+      <div id="setupInfo" class="wa-help"></div>
+    </div>
+
+    <div id="connectedBox" style="display:none;margin-top:16px">
+      <div class="wa-grid">
+        <div><label class="wa-label">Número conectado</label><input id="connectedPhone" class="wa-field" readonly></div>
+        <div><label class="wa-label">Tipo de conexão</label><input id="connectedType" class="wa-field" readonly></div>
+      </div>
+      <div class="wa-help" style="margin-top:10px">Cada número é vinculado exclusivamente ao <b>bot_id</b> deste cliente. Mensagens desse número nunca são roteadas para outro SmartBot.</div>
+    </div>
+  </section>
+
+  <section class="wa-card">
+    <h2>Antes de conectar</h2>
+    <ul class="checklist">
+      <li>Tenha acesso ao Facebook que administra o Meta Business Portfolio da empresa.</li>
+      <li>Use o número que realmente pertence ao negócio.</li>
+      <li>Se quiser continuar usando o WhatsApp Business App no celular, escolha <b>Coexistência</b>.</li>
+      <li>Se o número já estiver conectado a outro provedor de API, pode ser necessário desconectá-lo de lá primeiro.</li>
+      <li>No modo dedicado, o número pode precisar receber SMS ou ligação de verificação da Meta.</li>
+    </ul>
   </section>
 
   <section class="wa-card">
     <h2>Preferências de atendimento</h2>
-    <p class="wa-help" style="margin-bottom:18px">Essas preferências pertencem somente a este SmartBot.</p>
+    <p class="wa-help" style="margin-bottom:18px">Você pode configurar agora. A resposta automática só fica disponível depois que a conexão for confirmada.</p>
     <div class="wa-grid">
-      <div><label class="wa-label">Número exibido</label><input id="phone" class="wa-field" placeholder="5511999999999"><div class="wa-help">Somente referência visual/operacional. Não vincula o número ao provedor.</div></div>
+      <div><label class="wa-label">Número</label><input id="phone" class="wa-field" readonly placeholder="Será preenchido após a conexão"><div class="wa-help">Preenchido automaticamente pela Kapso.</div></div>
       <div><label class="wa-label">Nome do negócio</label><input id="businessName" class="wa-field" placeholder="Nome da empresa"></div>
     </div>
     <div style="margin-top:16px"><label class="wa-label">Modo</label><select id="mode" class="wa-field"><option value="assisted">Assistido</option><option value="automatic">Automático</option></select></div>
@@ -40,7 +76,7 @@
     <div id="result" class="wa-help" style="margin-top:14px"></div>
   </section>
 
-  <section class="wa-card"><h2>Como funciona</h2><div class="wa-note">1. O cliente cria/configura seu SmartBot. 2. O número WhatsApp é conectado e validado no provedor. 3. O SmartBots associa esse número ao <b>bot_id</b> correto. 4. Mensagens recebidas entram no mesmo Brain usado pelo site. 5. O auto-reply só é liberado após a conexão ficar <b>connected</b>.</div></section>
+  <section class="wa-card"><h2>Custos da Meta</h2><div class="wa-note">Por padrão, o SmartBots conecta cada cliente em <b>customer-managed billing</b>: as tarifas de mensagens da Meta ficam vinculadas ao próprio negócio do cliente. A infraestrutura SmartBots/Kapso continua centralizada conosco.</div></section>
 </div>
 <script src="/whatsapp-config.js"></script>
 <script src="/app-ux.js"></script>
