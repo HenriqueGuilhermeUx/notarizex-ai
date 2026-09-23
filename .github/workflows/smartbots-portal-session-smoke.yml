@@ -24,7 +24,7 @@ jobs:
           node --check notarizex-ai/agenda-pro.js
           node <<'NODE'
           const fs = require('fs');
-          for (const file of ['notarizex-ai/dashboard-cliente.html','notarizex-ai/operacao-cliente.html','notarizex-ai/ativar-smartbot.html']) {
+          for (const file of ['notarizex-ai/dashboard-cliente.html','notarizex-ai/operacao-cliente.html','notarizex-ai/ativar-smartbot.html','notarizex-ai/operacao.html']) {
             const html = fs.readFileSync(file,'utf8');
             const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);
             if (!scripts.length) throw new Error(`No inline script found in ${file}`);
@@ -41,6 +41,7 @@ jobs:
           const activation = read('notarizex-ai/netlify/functions/self-service-activation.js');
           const dashboard = read('notarizex-ai/dashboard-cliente.html');
           const operation = read('notarizex-ai/operacao-cliente.html');
+          const operationEntry = read('notarizex-ai/operacao.html');
           const portal = read('notarizex-ai/netlify/functions/client-portal.js');
           const agenda = read('notarizex-ai/agenda-pro.js');
           function must(cond,msg){ if(!cond) throw new Error(msg); }
@@ -52,36 +53,45 @@ jobs:
           must(operation.includes('portalToken'), 'operation missing portalToken session');
           must(!operation.includes('state.clientToken'), 'operation persists clientToken state');
           must(!operation.includes('state.botId'), 'operation persists botId state');
+          must(operationEntry.includes("window.location.replace('/operacao-cliente.html')"), 'legacy /operacao entry does not route to secure operation');
           must(portal.includes('resolvePortalSession(portalToken)'), 'client portal does not resolve opaque session server-side');
           must(portal.includes('portalSession: await createPortalSession(bot)'), 'legacy login does not upgrade to opaque session');
           must(agenda.includes('portalToken'), 'agenda still depends on technical credentials');
           console.log('opaque-session contracts OK');
           NODE
 
-      - name: Validate deployed Netlify guardrails
+      - name: Validate current production guardrails
         run: |
           node <<'NODE'
-          const base = 'https://6ab40e800fcf350008d594bc--notarizex-ai.netlify.app';
+          const base = 'https://smartbots.club';
+          const sleep = ms => new Promise(r=>setTimeout(r,ms));
           async function request(path, options={}) {
             const r = await fetch(base+path,{...options,signal:AbortSignal.timeout(15000),headers:{...(options.headers||{}),'cache-control':'no-cache'}});
             return {status:r.status,url:r.url,text:await r.text()};
           }
           (async()=>{
-            const d=await request('/dashboard');
-            const o=await request('/operacao');
-            console.log('dashboard', {status:d.status,url:d.url,portalToken:d.text.includes('portalToken'),legacyState:d.text.includes('state.clientToken'),length:d.text.length});
-            console.log('operation', {status:o.status,url:o.url,portalToken:o.text.includes('portalToken'),legacyState:o.text.includes('state.clientToken'),length:o.text.length});
-            if(d.status!==200 || !d.text.includes('portalToken') || d.text.includes('state.clientToken')) throw new Error('deployed dashboard contract failed');
-            if(o.status!==200 || !o.text.includes('portalToken') || o.text.includes('state.clientToken')) throw new Error('deployed operation contract failed');
+            let d,o,secureOperation;
+            let published=false;
+            for(let i=0;i<24;i++){
+              d=await request('/dashboard');
+              o=await request('/operacao');
+              secureOperation=await request('/operacao-cliente.html');
+              const operationEntryReady=o.status===200 && o.text.includes('/operacao-cliente.html') && !o.text.includes('/hoje.html');
+              const operationSecureReady=secureOperation.status===200 && secureOperation.text.includes('portalToken') && !secureOperation.text.includes('state.clientToken');
+              const dashboardReady=d.status===200 && d.text.includes('portalToken') && !d.text.includes('state.clientToken');
+              if(operationEntryReady && operationSecureReady && dashboardReady){published=true;break;}
+              await sleep(5000);
+            }
+            console.log('dashboard', {status:d.status,portalToken:d.text.includes('portalToken'),legacyState:d.text.includes('state.clientToken'),length:d.text.length});
+            console.log('operation entry', {status:o.status,secureTarget:o.text.includes('/operacao-cliente.html'),legacyMenu:o.text.includes('/hoje.html'),length:o.text.length});
+            console.log('secure operation', {status:secureOperation.status,portalToken:secureOperation.text.includes('portalToken'),legacyState:secureOperation.text.includes('state.clientToken'),length:secureOperation.text.length});
+            if(!published) throw new Error('current production did not publish secure operation entry in time');
             const activation=await request('/.netlify/functions/self-service-activation',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
-            console.log('activation guard',activation.status,activation.text.slice(0,180));
             if(activation.status!==422 || /clientToken|service_role|SUPABASE/i.test(activation.text)) throw new Error(`activation guard failed: ${activation.status} ${activation.text}`);
             const portal=await request('/.netlify/functions/client-portal',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'get_stats'})});
-            console.log('portal guard',portal.status,portal.text.slice(0,180));
             if(portal.status!==403 || /clientToken|service_role|SUPABASE/i.test(portal.text)) throw new Error(`portal guard failed: ${portal.status} ${portal.text}`);
             const agenda=await request('/.netlify/functions/agenda-pro-config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'list'})});
-            console.log('agenda guard',agenda.status,agenda.text.slice(0,180));
             if(agenda.status!==403 || /clientToken|service_role|SUPABASE/i.test(agenda.text)) throw new Error(`agenda guard failed: ${agenda.status} ${agenda.text}`);
-            console.log('deployed opaque-session guardrails OK');
+            console.log('production opaque-session guardrails OK');
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
