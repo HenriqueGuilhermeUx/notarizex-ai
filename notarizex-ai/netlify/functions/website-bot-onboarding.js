@@ -3,15 +3,17 @@ const crypto=require('crypto');
 const pdfParse=require('pdf-parse');
 const {scrapeWebsiteDeep}=require('./lib/scraper');
 const {TYPES,analyzeWebsite,buildQuestionnaire,normalizeAnswers,completeness,answersToKnowledge,suggestedProfile,summarizePages}=require('./lib/onboarding-intelligence');
+const {validateAdminSession}=require('./smartbots-admin-auth');
 
 function clean(v){return String(v||'').replace(/\s+/g,' ').trim()}
 function text(v,max=0){const s=String(v||'').trim();return max?s.slice(0,max):s}
-function json(statusCode,body){return{statusCode,headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type, X-Admin-Key','Access-Control-Allow-Methods':'OPTIONS,POST'},body:JSON.stringify(body)}}
+function json(statusCode,body){return{statusCode,headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type, X-Admin-Key, X-Admin-Session','Access-Control-Allow-Methods':'OPTIONS,POST','Cache-Control':'no-store'},body:JSON.stringify(body)}}
 function secureEquals(a,b){if(!a||!b)return false;const x=Buffer.from(String(a)),y=Buffer.from(String(b));return x.length===y.length&&crypto.timingSafeEqual(x,y)}
-function isAdmin(event){const expected=process.env.SMARTBOTS_ADMIN_API_KEY||process.env.SMARTBOTS_ADMIN_TOKEN||process.env.ADMIN_TOKEN;const received=(event.headers&&(event.headers['x-admin-key']||event.headers['X-Admin-Key']))||'';return Boolean(expected&&secureEquals(received,expected))}
+async function isAdmin(event){const expected=process.env.SMARTBOTS_ADMIN_API_KEY||process.env.SMARTBOTS_ADMIN_TOKEN||process.env.ADMIN_TOKEN,received=(event.headers&&(event.headers['x-admin-key']||event.headers['X-Admin-Key']))||'';if(expected&&secureEquals(received,expected))return true;const session=clean((event.headers&&(event.headers['x-admin-session']||event.headers['X-Admin-Session']))||'');return Boolean(session&&await validateAdminSession(session))}
 async function supabase(path,key,url,options={}){return fetch(`${url}/rest/v1/${path}`,{...options,headers:{'Content-Type':'application/json',apikey:key,Authorization:`Bearer ${key}`,...(options.headers||{})}})}
 async function mustOk(res,label){if(!res.ok)throw new Error(`${label}: ${(await res.text()).slice(0,700)}`);const raw=await res.text();return raw?JSON.parse(raw):null}
 function arr(v){return Array.isArray(v)?v:[]}
+function sha256(v){return crypto.createHash('sha256').update(String(v)).digest('hex')}
 
 async function parseDocument(doc){
   const name=clean(doc&&doc.fileName),data=doc&&doc.fileData,mime=clean(doc&&doc.mimeType).toLowerCase();
@@ -49,24 +51,28 @@ function buildProfile(fields,companyName,businessType,answers,siteSummary){
   };
 }
 
-async function createPayment(token,{botId,name,email}){
-  if(!token)return null;
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+async function createActivationInvite(botId,companyName,dbKey,url){
+  const now=new Date(),expires=new Date(now.getTime()+7*86400000),token=crypto.randomBytes(32).toString('base64url');
+  await mustOk(await supabase('smartbot_connection_invites',dbKey,url,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({bot_id:botId,token_hash:sha256(token),purpose:'self_service_activation',expires_at:expires.toISOString(),metadata:{company_name:companyName,flow:'self_service_v1'}})}),'Criar ativação segura');
+  return{activationUrl:`https://smartbots.club/ativar?token=${encodeURIComponent(token)}`,expiresAt:expires.toISOString()};
+}
+
+async function sendActivationEmail(apiKey,email,companyName,activationUrl,expiresAt){
+  if(!apiKey||!email)return;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);
   try{
-    const r=await fetch('https://api.mercadopago.com/checkout/preferences',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({items:[{title:'SmartBots - Bot para Site',quantity:1,unit_price:79,currency_id:'BRL'}],payer:{email:email||undefined,name},back_urls:{success:`https://smartbots.club/dashboard?status=success&botId=${encodeURIComponent(botId)}`,failure:'https://smartbots.club?status=failure',pending:'https://smartbots.club?status=pending'},auto_return:'approved',notification_url:'https://smartbots.club/.netlify/functions/payment-webhook',external_reference:`site:${botId}`})});
-    if(!r.ok)throw new Error((await r.text()).slice(0,400));
-    const d=await r.json();return d.init_point||d.sandbox_init_point||null;
+    await fetch('https://api.resend.com/emails',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiKey}`},body:JSON.stringify({from:'SmartBots <noreply@smartbots.club>',to:email,subject:`Seu SmartBot da ${companyName} está pronto para ativação`,text:`Seu SmartBot foi criado. Continue a ativação pelo link abaixo:\n\n${activationUrl}\n\nVocê poderá conectar o WhatsApp, testar o assistente e ativar o atendimento. O link expira em ${new Date(expiresAt).toLocaleString('pt-BR')}. Não compartilhe este link.`})});
   }finally{clearTimeout(timer)}
 }
 
 exports.handler=async(event)=>{
-  if(event.httpMethod==='OPTIONS')return{statusCode:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type, X-Admin-Key','Access-Control-Allow-Methods':'OPTIONS, POST'},body:''};
+  if(event.httpMethod==='OPTIONS')return{statusCode:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type, X-Admin-Key, X-Admin-Session','Access-Control-Allow-Methods':'OPTIONS, POST'},body:''};
   if(event.httpMethod!=='POST')return json(405,{error:'Method Not Allowed'});
-  const {SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,SUPABASE_ANON_KEY,RESEND_API_KEY,MERCADOPAGO_ACCESS_TOKEN}=process.env,dbKey=SUPABASE_SERVICE_ROLE_KEY||SUPABASE_ANON_KEY;
+  const {SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,RESEND_API_KEY}=process.env,dbKey=SUPABASE_SERVICE_ROLE_KEY;
   try{
-    if(!SUPABASE_URL||!dbKey)throw new Error('Supabase não configurado');
+    if(!SUPABASE_URL||!dbKey)throw new Error('Supabase service role não configurado');
     const fields=JSON.parse(event.body||'{}');
-    const adminProvision=fields.adminProvision===true&&isAdmin(event);
+    const adminProvision=fields.adminProvision===true&&await isAdmin(event);
     if(fields.adminProvision===true&&!adminProvision)return json(403,{error:'Provisionamento administrativo não autorizado.'});
     const name=clean(fields.name||fields.ownerName),email=clean(fields.email||fields.ownerEmail),whatsapp=clean(fields.whatsapp||fields.ownerWhatsApp),companyName=clean(fields.companyName),website=clean(fields.website);
     const manualText=text(fields.manualText||fields.businessDescription,120000);
@@ -75,6 +81,7 @@ exports.handler=async(event)=>{
     const adaptiveAnswers=normalizeAnswers(fields.adaptiveAnswers||fields.answers);
     let businessType=clean(fields.businessType);if(businessType&&!TYPES[businessType])businessType='';
     if(!name||!whatsapp||!companyName)return json(400,{error:'Nome, WhatsApp e empresa são obrigatórios.'});
+    if(!adminProvision&&!email)return json(400,{error:'E-mail é obrigatório para ativação self-service.'});
     if(!website&&!manualText&&!documents.length&&!Object.keys(adaptiveAnswers).length)return json(400,{error:'Informe um site, descrição, respostas do negócio ou documento para criar a base.'});
 
     const botId=`site-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,knowledgeItems=[];let crawl=null,analysis=null,siteSummary='';
@@ -91,21 +98,23 @@ exports.handler=async(event)=>{
     if(Object.keys(adaptiveAnswers).length)knowledgeItems.push({title:'Briefing confirmado pelo cliente',content:intakeKnowledge,source_type:'intake'});
     if(!knowledgeItems.length)return json(400,{error:'Nenhum conteúdo útil foi processado.'});
 
-    const profile=buildProfile(fields,companyName,businessType,adaptiveAnswers,siteSummary),combinedContent=knowledgeItems.slice(-6).map(x=>`${x.title}\n${x.content}`).join('\n\n---\n\n').slice(0,60000),now=new Date().toISOString();
+    const profile=buildProfile(fields,companyName,businessType,adaptiveAnswers,siteSummary),combinedContent=knowledgeItems.slice(-6).map(x=>`${x.title}\n${x.content}`).join('\n\n---\n\n').slice(0,60000),now=new Date(),nowIso=now.toISOString(),trialEndsAt=new Date(now.getTime()+7*86400000).toISOString();
 
-    await mustOk(await supabase('website_bots',dbKey,SUPABASE_URL,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({bot_id:botId,owner_name:name,owner_email:email||null,owner_whatsapp:whatsapp,company_name:companyName,website:website||null,assistant_id:null,vector_store_id:null,file_ids:documents.map(d=>clean(d.fileName)).filter(Boolean).join(',')||null,content_options:[website?'scraping':null,documents.length?'documents':null,manualText?'text':null,Object.keys(adaptiveAnswers).length?'adaptive_form':null].filter(Boolean).join(','),payment_link:null,status:adminProvision?'active':'pending_payment',plan:clean(fields.plan)||'site',bot_name:profile.assistant_name,bot_tone:profile.tone,bot_language:profile.language,business_description:profile.business_context||null,knowledge_text:combinedContent,knowledge_status:'ok',created_at:now})}),'Salvar website_bots');
+    await mustOk(await supabase('website_bots',dbKey,SUPABASE_URL,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({bot_id:botId,owner_name:name,owner_email:email||null,owner_whatsapp:whatsapp,company_name:companyName,website:website||null,assistant_id:null,vector_store_id:null,file_ids:documents.map(d=>clean(d.fileName)).filter(Boolean).join(',')||null,content_options:[website?'scraping':null,documents.length?'documents':null,manualText?'text':null,Object.keys(adaptiveAnswers).length?'adaptive_form':null].filter(Boolean).join(','),payment_link:null,payment_status:null,status:adminProvision?'active':'onboarding',plan:clean(fields.plan)||'trial',billing_status:adminProvision?'manual':'trial',trial_started_at:adminProvision?null:nowIso,trial_ends_at:adminProvision?null:trialEndsAt,bot_name:profile.assistant_name,bot_tone:profile.tone,bot_language:profile.language,business_description:profile.business_context||null,knowledge_text:combinedContent,knowledge_status:'ok',created_at:nowIso,updated_at:nowIso})}),'Salvar website_bots');
 
-    await mustOk(await supabase('smartbot_profiles',dbKey,SUPABASE_URL,{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({bot_id:botId,...profile,ai_model:'gpt-5.6-luna',max_output_tokens:320,memory_messages:8,active:true,created_at:now,updated_at:now})}),'Salvar smartbot_profiles');
+    await mustOk(await supabase('smartbot_profiles',dbKey,SUPABASE_URL,{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({bot_id:botId,...profile,ai_model:'gpt-5.6-luna',max_output_tokens:320,memory_messages:8,active:true,created_at:nowIso,updated_at:nowIso})}),'Salvar smartbot_profiles');
     for(const item of knowledgeItems)await mustOk(await supabase('smartbot_knowledge',dbKey,SUPABASE_URL,{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({bot_id:botId,title:item.title,content:item.content,is_active:true,source_type:item.source_type||'manual'})}),`Salvar conhecimento ${item.title}`);
 
     const facts=analysis?analysis.facts:{emails:[],phones:[],hasPricing:false,hasScheduling:false,hasFaq:false,sourcePages:[]},intakeCompleteness=completeness(questionnaire,adaptiveAnswers);
     await mustOk(await supabase('smartbot_onboarding_intakes',dbKey,SUPABASE_URL,{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({bot_id:botId,business_type:businessType,detected_facts:facts,source_pages:crawl?crawl.pages.map(p=>({url:p.url,title:p.title})).slice(0,12):[],questionnaire,answers:adaptiveAnswers,completeness:intakeCompleteness,discovery_version:'v1'})}),'Salvar smartbot_onboarding_intakes');
 
-    let paymentLink=null,paymentWarning=null;
-    if(!adminProvision){try{paymentLink=await createPayment(MERCADOPAGO_ACCESS_TOKEN,{botId,name,email});if(paymentLink)await supabase(`website_bots?bot_id=eq.${encodeURIComponent(botId)}`,dbKey,SUPABASE_URL,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({payment_link:paymentLink,payment_status:'pending',updated_at:new Date().toISOString()})})}catch(e){paymentWarning='SmartBot criado; cobrança ficará para a etapa de ativação.';console.error('[Website Bot Onboarding] payment:',e.message)}}
+    let activation=null;
+    if(!adminProvision){activation=await createActivationInvite(botId,companyName,dbKey,SUPABASE_URL);sendActivationEmail(RESEND_API_KEY,email,companyName,activation.activationUrl,activation.expiresAt).catch(e=>console.error('[Website Bot Onboarding] activation email:',e.message))}
 
-    if(RESEND_API_KEY&&email){try{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);await fetch('https://api.resend.com/emails',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${RESEND_API_KEY}`},body:JSON.stringify({from:'SmartBots <noreply@smartbots.club>',to:'henriquecampos66@gmail.com',subject:`Novo SmartBot: ${companyName}`,text:`Novo cliente SmartBots\nEmpresa: ${companyName}\nBot: ${botId}\nTipo: ${TYPES[businessType].label}\nPáginas: ${crawl?crawl.pageCount:0}\nConhecimentos: ${knowledgeItems.length}\nBriefing: ${intakeCompleteness}%\nOrigem: ${adminProvision?'provisionamento administrativo':'self-service'}\nPagamento: ${adminProvision?'não solicitado':paymentLink||'pendente'}`})});clearTimeout(timer)}catch(e){console.error('[Website Bot Onboarding] email:',e.message)}}
+    if(RESEND_API_KEY){try{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);await fetch('https://api.resend.com/emails',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${RESEND_API_KEY}`},body:JSON.stringify({from:'SmartBots <noreply@smartbots.club>',to:'henriquecampos66@gmail.com',subject:`Novo SmartBot: ${companyName}`,text:`Novo cliente SmartBots\nEmpresa: ${companyName}\nBot: ${botId}\nTipo: ${TYPES[businessType].label}\nPáginas: ${crawl?crawl.pageCount:0}\nConhecimentos: ${knowledgeItems.length}\nBriefing: ${intakeCompleteness}%\nOrigem: ${adminProvision?'provisionamento administrativo':'self-service trial'}\nCobrança: definida somente após escolha/configuração do plano.`})});clearTimeout(timer)}catch(e){console.error('[Website Bot Onboarding] admin email:',e.message)}}
 
-    return json(200,{message:'SmartBot criado com onboarding inteligente!',botId,brain:'responses',model:'gpt-5.6-luna',paymentLink,paymentWarning,businessType,businessTypeLabel:TYPES[businessType].label,knowledgeItems:knowledgeItems.length,pagesImported:crawl?crawl.pageCount:0,profileCreated:true,intakeCompleteness,adminProvision});
+    const common={message:'SmartBot criado com onboarding inteligente!',brain:'responses',model:'gpt-5.6-luna',businessType,businessTypeLabel:TYPES[businessType].label,knowledgeItems:knowledgeItems.length,pagesImported:crawl?crawl.pageCount:0,profileCreated:true,intakeCompleteness,adminProvision};
+    if(adminProvision)return json(200,{...common,botId,status:'active'});
+    return json(200,{...common,activationUrl:activation.activationUrl,activationExpiresAt:activation.expiresAt,status:'onboarding',billingStatus:'trial',trialEndsAt});
   }catch(error){console.error('[Website Bot Onboarding]',error);return json(500,{error:error.message||'Erro ao criar SmartBot.'})}
 };
