@@ -44,8 +44,8 @@ jobs:
               existing.set(body.bot_id+'|'+body.event_type,[row]);
               return new Response(JSON.stringify([row]),{status:201});
             }
-            if(path==='smartbot_automation_events' && opt.method==='PATCH') return new Response('',{status:204});
-            if(path==='website_bots' && opt.method==='PATCH') return new Response('',{status:204});
+            if(path==='smartbot_automation_events' && opt.method==='PATCH') return new Response(null,{status:204});
+            if(path==='website_bots' && opt.method==='PATCH') return new Response(null,{status:204});
             throw new Error('Unexpected fetch '+(opt.method||'GET')+' '+url);
           };
           const mod=await import('./notarizex-ai/netlify/functions/smartbot-trial-scan.mjs?test='+Date.now());
