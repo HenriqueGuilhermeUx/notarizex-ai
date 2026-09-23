@@ -1,4 +1,7 @@
 const fetch = require('node-fetch');
+const trainBot = require('./train-bot');
+const followupRun = require('./smartbot-followup-run');
+const { createPortalSession, resolvePortalSession } = require('./lib/client-portal-session');
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -275,13 +278,24 @@ async function resolveAction(botId, actionId, resolution) {
   return (await rows(res, 'Concluir ação'))[0] || null;
 }
 
+async function invoke(handler, body) {
+  const response = await handler({
+    httpMethod: 'POST',
+    headers: {},
+    body: JSON.stringify(body)
+  });
+  let data = {};
+  try { data = JSON.parse(response.body || '{}'); } catch (_) {}
+  return { statusCode: response.statusCode || 500, data };
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
   if (event.httpMethod !== 'POST') return reply(405, { error: 'Method Not Allowed' });
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { action, email, clientToken, botId, config, page = 1, limit = 20 } = body;
+    const { action, email, clientToken, botId, portalToken, config, page = 1, limit = 20 } = body;
 
     if (action === 'login') {
       if (!email || !clientToken) return reply(400, { error: 'Email e token são obrigatórios' });
@@ -296,8 +310,8 @@ exports.handler = async (event) => {
 
       return reply(200, {
         success: true,
+        portalSession: await createPortalSession(bot),
         bot: {
-          botId: bot.bot_id,
           companyName: bot.company_name,
           website: bot.website,
           status: bot.status,
@@ -314,30 +328,32 @@ exports.handler = async (event) => {
       });
     }
 
-    if (!botId || !clientToken) return reply(400, { error: 'botId e clientToken são obrigatórios' });
+    let authBot = null;
+    if (portalToken) authBot = await resolvePortalSession(portalToken);
+    if (!authBot && botId && clientToken) authBot = await getBotByToken(botId, clientToken);
+    if (!authBot) return reply(403, { error: 'Sessão inválida ou expirada' });
 
-    const authBot = await getBotByToken(botId, clientToken);
-    if (!authBot) return reply(403, { error: 'Acesso não autorizado' });
+    const resolvedBotId = authBot.bot_id;
 
     if (action === 'get_profile') {
-      const profile = await getProfile(botId);
+      const profile = await getProfile(resolvedBotId);
       return reply(200, { success: true, profile: publicProfile(profile, authBot) });
     }
 
     if (action === 'get_stats') {
-      const total = await countRows(`smartbot_conversations?bot_id=eq.${encodeURIComponent(botId)}&select=id`);
+      const total = await countRows(`smartbot_conversations?bot_id=eq.${encodeURIComponent(resolvedBotId)}&select=id`);
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const weekTotal = await countRows(`smartbot_conversations?bot_id=eq.${encodeURIComponent(botId)}&updated_at=gte.${encodeURIComponent(sevenDaysAgo)}&select=id`);
-      const totalFiles = await countRows(`smartbot_knowledge?bot_id=eq.${encodeURIComponent(botId)}&is_active=eq.true&select=id`);
-      const leads = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&select=id`);
-      const hotLeads = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&lead_temperature=eq.hot&select=id`);
-      const readyToContact = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&pipeline_status=eq.pronto_para_contato&select=id`);
-      const humanNeeded = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&handoff_status=eq.requested&select=id`);
-      const pendingActions = await countRows(`smartbot_automation_events?bot_id=eq.${encodeURIComponent(botId)}&status=eq.pending&select=id`);
-      const uniqueRes = await supabase(`smartbot_conversations?bot_id=eq.${encodeURIComponent(botId)}&select=visitor_id`);
+      const weekTotal = await countRows(`smartbot_conversations?bot_id=eq.${encodeURIComponent(resolvedBotId)}&updated_at=gte.${encodeURIComponent(sevenDaysAgo)}&select=id`);
+      const totalFiles = await countRows(`smartbot_knowledge?bot_id=eq.${encodeURIComponent(resolvedBotId)}&is_active=eq.true&select=id`);
+      const leads = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(resolvedBotId)}&select=id`);
+      const hotLeads = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(resolvedBotId)}&lead_temperature=eq.hot&select=id`);
+      const readyToContact = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(resolvedBotId)}&pipeline_status=eq.pronto_para_contato&select=id`);
+      const humanNeeded = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(resolvedBotId)}&handoff_status=eq.requested&select=id`);
+      const pendingActions = await countRows(`smartbot_automation_events?bot_id=eq.${encodeURIComponent(resolvedBotId)}&status=eq.pending&select=id`);
+      const uniqueRes = await supabase(`smartbot_conversations?bot_id=eq.${encodeURIComponent(resolvedBotId)}&select=visitor_id`);
       const allHistory = uniqueRes.ok ? await uniqueRes.json() : [];
       const uniqueUsers = new Set(allHistory.map((h) => h.visitor_id).filter(Boolean)).size;
-      const usage = await getUsageSummary(botId, 30);
+      const usage = await getUsageSummary(resolvedBotId, 30);
 
       return reply(200, {
         totalConversations: total,
@@ -359,7 +375,7 @@ exports.handler = async (event) => {
     if (action === 'get_history') {
       const safeLimit = Math.max(1, Math.min(100, Number(limit) || 20));
       const offset = (Math.max(1, Number(page) || 1) - 1) * safeLimit;
-      const histRes = await supabase(`smartbot_messages?bot_id=eq.${encodeURIComponent(botId)}&order=created_at.desc&limit=${safeLimit}&offset=${offset}`, {
+      const histRes = await supabase(`smartbot_messages?bot_id=eq.${encodeURIComponent(resolvedBotId)}&order=created_at.desc&limit=${safeLimit}&offset=${offset}`, {
         headers: { Prefer: 'count=exact' }
       });
       const history = histRes.ok ? await histRes.json() : [];
@@ -368,27 +384,52 @@ exports.handler = async (event) => {
     }
 
     if (action === 'get_leads') {
-      const leadsRes = await supabase(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&order=score.desc,updated_at.desc&limit=200`);
+      const leadsRes = await supabase(`smartbot_leads?bot_id=eq.${encodeURIComponent(resolvedBotId)}&order=score.desc,updated_at.desc&limit=200`);
       const leadsData = leadsRes.ok ? await leadsRes.json() : [];
       return reply(200, { success: true, leads: leadsData });
     }
 
     if (action === 'get_operations') {
-      return reply(200, { success: true, ...(await getOperations(botId)) });
+      return reply(200, { success: true, ...(await getOperations(resolvedBotId)) });
     }
 
     if (action === 'update_lead') {
-      const lead = await updateLead(botId, body.lead || {});
+      const lead = await updateLead(resolvedBotId, body.lead || {});
       return reply(200, { success: true, lead });
     }
 
     if (action === 'resolve_action') {
-      const resolved = await resolveAction(botId, body.actionId, body.resolution);
+      const resolved = await resolveAction(resolvedBotId, body.actionId, body.resolution);
       return reply(200, { success: true, action: resolved });
     }
 
     if (action === 'get_usage') {
-      return reply(200, { success: true, usage: await getUsageSummary(botId, body.days || 30) });
+      return reply(200, { success: true, usage: await getUsageSummary(resolvedBotId, body.days || 30) });
+    }
+
+    if (action === 'get_install') {
+      return reply(200, { success: true, botId: resolvedBotId });
+    }
+
+    if (action === 'knowledge_list' || action === 'knowledge_upload' || action === 'knowledge_remove') {
+      const trainAction = action === 'knowledge_list' ? 'list_files' : action === 'knowledge_upload' ? 'upload_file' : 'remove_file';
+      const proxied = await invoke(trainBot.handler, {
+        action: trainAction,
+        botId: resolvedBotId,
+        clientToken: authBot.client_token,
+        fileName: body.fileName,
+        fileData: body.fileData,
+        fileId: body.fileId
+      });
+      return reply(proxied.statusCode, proxied.data);
+    }
+
+    if (action === 'sync_returns') {
+      const proxied = await invoke(followupRun.handler, {
+        botId: resolvedBotId,
+        clientToken: authBot.client_token
+      });
+      return reply(proxied.statusCode, proxied.data);
     }
 
     if (action === 'update_config') {
