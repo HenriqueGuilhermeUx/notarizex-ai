@@ -32,6 +32,11 @@
   status = 200
 
 [[redirects]]
+  from = "/admin/planos"
+  to = "/admin-assinaturas.html"
+  status = 200
+
+[[redirects]]
   from = "/conectar-whatsapp"
   to = "/conectar-whatsapp.html"
   status = 200
