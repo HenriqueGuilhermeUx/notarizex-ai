@@ -66,8 +66,17 @@ jobs:
           const base = 'https://smartbots.club';
           const sleep = ms => new Promise(r=>setTimeout(r,ms));
           async function request(path, options={}) {
-            const r = await fetch(base+path,{...options,signal:AbortSignal.timeout(15000),headers:{...(options.headers||{}),'cache-control':'no-cache'}});
-            return {status:r.status,url:r.url,text:await r.text()};
+            let lastError;
+            for(let attempt=1; attempt<=4; attempt++){
+              try{
+                const r = await fetch(base+path,{...options,signal:AbortSignal.timeout(15000),headers:{...(options.headers||{}),'cache-control':'no-cache'}});
+                return {status:r.status,url:r.url,text:await r.text()};
+              }catch(error){
+                lastError=error;
+                if(attempt<4) await sleep(attempt*1000);
+              }
+            }
+            throw lastError;
           }
           (async()=>{
             let d,o,secureOperation;
