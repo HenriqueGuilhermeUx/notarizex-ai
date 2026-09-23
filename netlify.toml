@@ -64,17 +64,17 @@
 
 [[redirects]]
   from = "/dashboard"
-  to = "/dashboard-cliente.html"
+  to = "/portal-login.html?next=/dashboard-cliente.html"
   status = 200
 
 [[redirects]]
   from = "/painel"
-  to = "/dashboard-cliente.html"
+  to = "/portal-login.html?next=/dashboard-cliente.html"
   status = 200
 
 [[redirects]]
   from = "/operacao"
-  to = "/operacao-cliente.html"
+  to = "/portal-login.html?next=/operacao-cliente.html"
   status = 200
 
 [[redirects]]
@@ -84,10 +84,10 @@
 
 [[redirects]]
   from = "/login"
-  to = "/dashboard-cliente.html"
+  to = "/portal-login.html?next=/dashboard-cliente.html"
   status = 200
 
 [[redirects]]
   from = "/entrar"
-  to = "/dashboard-cliente.html"
+  to = "/portal-login.html?next=/dashboard-cliente.html"
   status = 200
