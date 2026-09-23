@@ -17,9 +17,14 @@ jobs:
         run: |
           set -euo pipefail
           node --check notarizex-ai/netlify/functions/website-bot-onboarding.js
-          grep -q "try{await sendActivationEmail" notarizex-ai/netlify/functions/website-bot-onboarding.js
-          grep -q "if(!response.ok)throw new Error" notarizex-ai/netlify/functions/website-bot-onboarding.js
-          ! grep -q "sendActivationEmail(RESEND_API_KEY,email,companyName,activation.activationUrl,activation.expiresAt).catch" notarizex-ai/netlify/functions/website-bot-onboarding.js
+          node <<'NODE'
+          const fs=require('fs');
+          const s=fs.readFileSync('notarizex-ai/netlify/functions/website-bot-onboarding.js','utf8');
+          if(!s.includes('try{await sendActivationEmail(RESEND_API_KEY,email,companyName,activation.activationUrl,activation.expiresAt)}')) throw new Error('activation email is not awaited');
+          if(!s.includes('if(!response.ok)throw new Error')) throw new Error('Resend failure is not checked');
+          if(s.includes('sendActivationEmail(RESEND_API_KEY,email,companyName,activation.activationUrl,activation.expiresAt).catch')) throw new Error('fire-and-forget activation email still present');
+          console.log('Activation email source contract passed');
+          NODE
       - name: Wait for Netlify deploy
         run: sleep 55
       - name: Validate production guardrails
