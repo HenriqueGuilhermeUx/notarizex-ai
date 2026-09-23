@@ -6,6 +6,7 @@ on:
       - 'notarizex-ai/netlify/functions/self-service-session-create.js'
       - 'notarizex-ai/netlify/functions/self-service-activation.js'
       - 'notarizex-ai/ativar-smartbot.html'
+      - 'notarizex-ai/ativar.html'
       - 'netlify.toml'
 
 jobs:
@@ -29,8 +30,6 @@ jobs:
           route_code=$(curl -sS -o /tmp/route.html -w '%{http_code}' https://smartbots.club/ativar)
           echo "direct HTTP=$direct_code bytes=$(wc -c </tmp/direct.html)"
           echo "route HTTP=$route_code bytes=$(wc -c </tmp/route.html)"
-          echo "direct title: $(grep -o '<title>[^<]*' /tmp/direct.html | head -1 || true)"
-          echo "route title: $(grep -o '<title>[^<]*' /tmp/route.html | head -1 || true)"
           test "$direct_code" = "200"
           grep -q 'Ativação segura' /tmp/direct.html
           grep -q 'Ativação segura' /tmp/route.html
