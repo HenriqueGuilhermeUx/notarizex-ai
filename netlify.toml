@@ -27,6 +27,11 @@
   status = 200
 
 [[redirects]]
+  from = "/ativar"
+  to = "/ativar-smartbot.html"
+  status = 200
+
+[[redirects]]
   from = "/admin/clientes"
   to = "/admin-clientes.html"
   status = 200
