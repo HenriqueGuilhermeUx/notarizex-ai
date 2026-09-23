@@ -13,6 +13,9 @@
 [functions."train-bot"]
   external_node_modules = ["pdf-parse"]
 
+[functions."smartbot-followup-scan"]
+  schedule = "*/15 * * * *"
+
 [[redirects]]
   from = "/b/*"
   to = "/bot-publico.html"
