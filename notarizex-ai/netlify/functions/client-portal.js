@@ -166,6 +166,115 @@ async function saveProfile(bot, config) {
   return saved[0] || payload;
 }
 
+async function getUsageSummary(botId, days = 30) {
+  const safeDays = Math.max(1, Math.min(365, Number(days) || 30));
+  const since = new Date(Date.now() - safeDays * 86400000).toISOString();
+  const res = await supabase(`smartbot_usage_events?bot_id=eq.${encodeURIComponent(botId)}&created_at=gte.${encodeURIComponent(since)}&select=event_type,channel,quantity,input_tokens,output_tokens,total_tokens,created_at&order=created_at.desc&limit=5000`);
+  const events = res.ok ? await res.json() : [];
+  const summary = {
+    days: safeDays,
+    events: events.length,
+    aiResponses: 0,
+    whatsappReceived: 0,
+    whatsappSent: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    byChannel: {}
+  };
+  for (const event of events) {
+    const qty = Number(event.quantity || 0);
+    if (event.event_type === 'ai_response') summary.aiResponses += qty;
+    if (event.event_type === 'whatsapp_message_received') summary.whatsappReceived += qty;
+    if (event.event_type === 'whatsapp_message_sent') summary.whatsappSent += qty;
+    summary.inputTokens += Number(event.input_tokens || 0);
+    summary.outputTokens += Number(event.output_tokens || 0);
+    summary.totalTokens += Number(event.total_tokens || 0);
+    const channel = event.channel || 'unknown';
+    summary.byChannel[channel] = (summary.byChannel[channel] || 0) + qty;
+  }
+  return summary;
+}
+
+async function getOperations(botId) {
+  const [leadRes, eventRes, usage] = await Promise.all([
+    supabase(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&order=score.desc,updated_at.desc&limit=200`),
+    supabase(`smartbot_automation_events?bot_id=eq.${encodeURIComponent(botId)}&status=eq.pending&order=created_at.asc&limit=200`),
+    getUsageSummary(botId, 30)
+  ]);
+  const leads = leadRes.ok ? await leadRes.json() : [];
+  const events = eventRes.ok ? await eventRes.json() : [];
+  const leadMap = new Map(leads.map(lead => [String(lead.id), lead]));
+  return {
+    leads,
+    actions: events.map(event => ({ ...event, lead: event.lead_id ? leadMap.get(String(event.lead_id)) || null : null })),
+    usage,
+    summary: {
+      totalLeads: leads.length,
+      hotLeads: leads.filter(lead => lead.lead_temperature === 'hot').length,
+      readyToContact: leads.filter(lead => lead.pipeline_status === 'pronto_para_contato').length,
+      humanNeeded: leads.filter(lead => lead.handoff_status === 'requested' || lead.pipeline_status === 'handoff').length,
+      scheduling: leads.filter(lead => lead.pipeline_status === 'agendamento').length,
+      followUps: leads.filter(lead => ['follow_up', 'retorno_futuro'].includes(lead.pipeline_status)).length,
+      pendingActions: events.length
+    }
+  };
+}
+
+const allowedLeadStages = new Set(['novo', 'qualificado', 'agendamento', 'follow_up', 'retorno_futuro', 'handoff', 'atencao', 'pronto_para_contato', 'em_atendimento', 'ganho', 'perdido']);
+const allowedHandoff = new Set(['none', 'requested', 'in_progress', 'completed']);
+
+async function updateLead(botId, input) {
+  const id = String(input?.id || '').trim();
+  if (!/^\d+$/.test(id)) throw new Error('Lead inválido.');
+  const existingRes = await supabase(`smartbot_leads?id=eq.${encodeURIComponent(id)}&bot_id=eq.${encodeURIComponent(botId)}&select=*&limit=1`);
+  const existing = existingRes.ok ? (await existingRes.json())[0] : null;
+  if (!existing) throw new Error('Lead não encontrado.');
+
+  const patch = { updated_at: new Date().toISOString(), last_action_at: new Date().toISOString() };
+  if (input.pipelineStatus !== undefined) {
+    const stage = clean(input.pipelineStatus);
+    if (!allowedLeadStages.has(stage)) throw new Error('Etapa de lead inválida.');
+    patch.pipeline_status = stage;
+  }
+  if (input.handoffStatus !== undefined) {
+    const status = clean(input.handoffStatus);
+    if (!allowedHandoff.has(status)) throw new Error('Status de handoff inválido.');
+    patch.handoff_status = status;
+  }
+  if (input.nextAction !== undefined) patch.next_action = text(input.nextAction, 700) || null;
+  if (input.ownerNotes !== undefined) patch.owner_notes = text(input.ownerNotes, 4000) || null;
+  if (input.followUpAt !== undefined) {
+    const value = clean(input.followUpAt);
+    const parsed = value ? new Date(value) : null;
+    if (parsed && Number.isNaN(parsed.getTime())) throw new Error('Data de follow-up inválida.');
+    patch.follow_up_at = parsed ? parsed.toISOString() : null;
+    patch.return_at = parsed ? parsed.toISOString() : null;
+  }
+
+  const res = await supabase(`smartbot_leads?id=eq.${encodeURIComponent(id)}&bot_id=eq.${encodeURIComponent(botId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(patch)
+  });
+  return (await rows(res, 'Atualizar lead'))[0] || null;
+}
+
+async function resolveAction(botId, actionId, resolution) {
+  const id = clean(actionId);
+  if (!id) throw new Error('Ação inválida.');
+  const status = resolution === 'dismissed' ? 'dismissed' : 'completed';
+  const existingRes = await supabase(`smartbot_automation_events?id=eq.${encodeURIComponent(id)}&bot_id=eq.${encodeURIComponent(botId)}&select=*&limit=1`);
+  const existing = existingRes.ok ? (await existingRes.json())[0] : null;
+  if (!existing) throw new Error('Ação não encontrada.');
+  const res = await supabase(`smartbot_automation_events?id=eq.${encodeURIComponent(id)}&bot_id=eq.${encodeURIComponent(botId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ status, processed_at: new Date().toISOString() })
+  });
+  return (await rows(res, 'Concluir ação'))[0] || null;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
   if (event.httpMethod !== 'POST') return reply(405, { error: 'Method Not Allowed' });
@@ -221,9 +330,14 @@ exports.handler = async (event) => {
       const weekTotal = await countRows(`smartbot_conversations?bot_id=eq.${encodeURIComponent(botId)}&updated_at=gte.${encodeURIComponent(sevenDaysAgo)}&select=id`);
       const totalFiles = await countRows(`smartbot_knowledge?bot_id=eq.${encodeURIComponent(botId)}&is_active=eq.true&select=id`);
       const leads = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&select=id`);
+      const hotLeads = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&lead_temperature=eq.hot&select=id`);
+      const readyToContact = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&pipeline_status=eq.pronto_para_contato&select=id`);
+      const humanNeeded = await countRows(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&handoff_status=eq.requested&select=id`);
+      const pendingActions = await countRows(`smartbot_automation_events?bot_id=eq.${encodeURIComponent(botId)}&status=eq.pending&select=id`);
       const uniqueRes = await supabase(`smartbot_conversations?bot_id=eq.${encodeURIComponent(botId)}&select=visitor_id`);
       const allHistory = uniqueRes.ok ? await uniqueRes.json() : [];
       const uniqueUsers = new Set(allHistory.map((h) => h.visitor_id).filter(Boolean)).size;
+      const usage = await getUsageSummary(botId, 30);
 
       return reply(200, {
         totalConversations: total,
@@ -231,6 +345,11 @@ exports.handler = async (event) => {
         uniqueUsers,
         trainingFiles: totalFiles,
         leads,
+        hotLeads,
+        readyToContact,
+        humanNeeded,
+        pendingActions,
+        usage,
         botStatus: authBot.status,
         knowledgeStatus: authBot.knowledge_status || 'pending',
         uploadedFileName: authBot.uploaded_file_name || null
@@ -249,9 +368,27 @@ exports.handler = async (event) => {
     }
 
     if (action === 'get_leads') {
-      const leadsRes = await supabase(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&order=created_at.desc&limit=100`);
-      const leads = leadsRes.ok ? await leadsRes.json() : [];
-      return reply(200, { success: true, leads });
+      const leadsRes = await supabase(`smartbot_leads?bot_id=eq.${encodeURIComponent(botId)}&order=score.desc,updated_at.desc&limit=200`);
+      const leadsData = leadsRes.ok ? await leadsRes.json() : [];
+      return reply(200, { success: true, leads: leadsData });
+    }
+
+    if (action === 'get_operations') {
+      return reply(200, { success: true, ...(await getOperations(botId)) });
+    }
+
+    if (action === 'update_lead') {
+      const lead = await updateLead(botId, body.lead || {});
+      return reply(200, { success: true, lead });
+    }
+
+    if (action === 'resolve_action') {
+      const resolved = await resolveAction(botId, body.actionId, body.resolution);
+      return reply(200, { success: true, action: resolved });
+    }
+
+    if (action === 'get_usage') {
+      return reply(200, { success: true, usage: await getUsageSummary(botId, body.days || 30) });
     }
 
     if (action === 'update_config') {
