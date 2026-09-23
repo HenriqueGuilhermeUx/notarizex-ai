@@ -1,0 +1,32 @@
+name: SmartBots Activation Email Smoke
+on:
+  push:
+    paths:
+      - '.github/workflows/smartbots-activation-email-smoke.yml'
+      - 'notarizex-ai/netlify/functions/website-bot-onboarding.js'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate function contract
+        run: |
+          set -euo pipefail
+          node --check notarizex-ai/netlify/functions/website-bot-onboarding.js
+          grep -q "try{await sendActivationEmail" notarizex-ai/netlify/functions/website-bot-onboarding.js
+          grep -q "if(!response.ok)throw new Error" notarizex-ai/netlify/functions/website-bot-onboarding.js
+          ! grep -q "sendActivationEmail(RESEND_API_KEY,email,companyName,activation.activationUrl,activation.expiresAt).catch" notarizex-ai/netlify/functions/website-bot-onboarding.js
+      - name: Wait for Netlify deploy
+        run: sleep 55
+      - name: Validate production guardrails
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/missing.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/website-bot-onboarding -H 'Content-Type: application/json' --data '{}')
+          test "$code" = "400"
+          admin_code=$(curl -sS -o /tmp/admin.json -w '%{http_code}' -X POST https://smartbots.club/.netlify/functions/website-bot-onboarding -H 'Content-Type: application/json' --data '{"adminProvision":true,"name":"blocked","whatsapp":"5511000000000","companyName":"blocked","businessDescription":"blocked"}')
+          test "$admin_code" = "403"
+          echo 'Activation email contract is deployed and onboarding guardrails remain protected'
