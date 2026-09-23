@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>SmartBots — Centro de Operações</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    *{box-sizing:border-box;font-family:Inter,sans-serif}body{margin:0;background:#0f1115;color:#fff}.card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:18px}.field{width:100%;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:10px;color:#fff;outline:none}.field option{background:#111827}.btn{background:linear-gradient(135deg,#00ff88,#00cc6f);color:#07110b;font-weight:900;border:0;border-radius:11px;padding:10px 14px;cursor:pointer}.btn-soft{background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:9px 12px;color:#fff;cursor:pointer}.btn-danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:8px 11px;color:#fca5a5;cursor:pointer}.stat{background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.15);border-radius:15px;padding:17px}.pill{display:inline-flex;align-items:center;font-size:11px;font-weight:900;border-radius:999px;padding:5px 9px}.hot{background:rgba(239,68,68,.13);color:#fca5a5}.warm{background:rgba(251,191,36,.13);color:#fcd34d}.cold{background:rgba(96,165,250,.13);color:#93c5fd}.green{background:rgba(0,255,136,.13);color:#00ff88}.gray{background:rgba(255,255,255,.08);color:#cbd5e1}.action{border-left:3px solid #fbbf24}.lead{border-left:3px solid rgba(0,255,136,.75)}.toast{position:fixed;right:20px;bottom:20px;z-index:99;max-width:420px;padding:13px 16px;border-radius:12px;font-weight:800;opacity:0;transform:translateY(20px);transition:.2s}.toast.show{opacity:1;transform:none}.toast.success{background:#00ff88;color:#07110b}.toast.error{background:#ef4444;color:#fff}.spin{display:inline-block;width:18px;height:18px;border:2px solid rgba(0,255,136,.25);border-top-color:#00ff88;border-radius:50%;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <div id="login" class="min-h-screen flex items-center justify-center p-4 hidden">
+    <div class="card p-7 w-full max-w-md">
+      <div class="text-center mb-7"><div class="text-3xl font-black"><span class="text-green-400">Smart</span>Bots</div><p class="text-gray-400 mt-1">Centro de Operações</p></div>
+      <label class="text-sm font-bold text-gray-300">E-mail</label><input id="email" type="email" class="field mt-2 mb-4" placeholder="email@empresa.com">
+      <label class="text-sm font-bold text-gray-300">Client Token</label><input id="token" class="field mt-2 mb-5 font-mono" placeholder="SB-...">
+      <button id="loginBtn" class="btn w-full" onclick="login()">Entrar</button>
+      <a href="/dashboard" class="block text-center mt-5 text-sm text-gray-500">← Voltar ao painel</a>
+    </div>
+  </div>
+
+  <div id="app" class="hidden min-h-screen">
+    <header class="sticky top-0 z-20 bg-[#0f1115]/95 backdrop-blur border-b border-white/10">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+        <div class="min-w-0"><div class="font-black text-xl"><span class="text-green-400">Smart</span>Bots <span class="text-gray-600 font-medium">/ Operação</span></div><div id="company" class="text-sm text-gray-400 truncate mt-1"></div></div>
+        <div class="flex gap-2"><a href="/dashboard" class="btn-soft text-sm">Painel</a><button class="btn-soft text-sm" onclick="loadAll()">↻ Atualizar</button><button class="btn-soft text-sm" onclick="logout()">Sair</button></div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-7">
+      <section class="mb-6">
+        <div class="text-xs font-black uppercase tracking-[.2em] text-green-400">Agora</div>
+        <h1 class="text-2xl md:text-3xl font-black mt-2">O que precisa da sua atenção</h1>
+        <p class="text-gray-400 mt-2">O SmartBot atende e organiza. Aqui ficam os casos em que a empresa precisa agir.</p>
+      </section>
+
+      <section class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-7">
+        <div class="stat"><div id="sHot" class="text-2xl font-black">0</div><div class="text-xs text-gray-400 mt-1">Leads quentes</div></div>
+        <div class="stat"><div id="sReady" class="text-2xl font-black">0</div><div class="text-xs text-gray-400 mt-1">Prontos p/ contato</div></div>
+        <div class="stat"><div id="sHuman" class="text-2xl font-black">0</div><div class="text-xs text-gray-400 mt-1">Pedindo humano</div></div>
+        <div class="stat"><div id="sSchedule" class="text-2xl font-black">0</div><div class="text-xs text-gray-400 mt-1">Agendamentos</div></div>
+        <div class="stat"><div id="sFollow" class="text-2xl font-black">0</div><div class="text-xs text-gray-400 mt-1">Follow-ups</div></div>
+        <div class="stat"><div id="sActions" class="text-2xl font-black">0</div><div class="text-xs text-gray-400 mt-1">Ações pendentes</div></div>
+      </section>
+
+      <section class="grid xl:grid-cols-[1fr_1.7fr] gap-6">
+        <div>
+          <div class="card p-5 mb-6">
+            <div class="flex items-center justify-between gap-3"><div><h2 class="font-black text-lg">Fila de ações</h2><p class="text-sm text-gray-400 mt-1">Pedidos detectados pelo Brain.</p></div><span id="actionCount" class="pill warm">0</span></div>
+            <div id="actions" class="mt-4 text-sm text-gray-500"><span class="spin"></span></div>
+          </div>
+
+          <div class="card p-5">
+            <h2 class="font-black text-lg">Consumo — 30 dias</h2><p class="text-sm text-gray-400 mt-1">Medição técnica por este SmartBot.</p>
+            <div class="grid grid-cols-2 gap-3 mt-5">
+              <div class="bg-white/5 rounded-xl p-3"><div id="uAi" class="text-xl font-black">0</div><div class="text-xs text-gray-500">Respostas IA</div></div>
+              <div class="bg-white/5 rounded-xl p-3"><div id="uTokens" class="text-xl font-black">0</div><div class="text-xs text-gray-500">Tokens</div></div>
+              <div class="bg-white/5 rounded-xl p-3"><div id="uIn" class="text-xl font-black">0</div><div class="text-xs text-gray-500">WhatsApp recebidas</div></div>
+              <div class="bg-white/5 rounded-xl p-3"><div id="uOut" class="text-xl font-black">0</div><div class="text-xs text-gray-500">WhatsApp enviadas</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+            <div><h2 class="font-black text-lg">Pipeline de contatos</h2><p class="text-sm text-gray-400 mt-1">Um contato permanece no mesmo lead enquanto a conversa evolui.</p></div>
+            <div class="flex gap-2"><select id="filter" class="field text-sm" onchange="renderLeads()"><option value="all">Todos</option><option value="hot">Quentes</option><option value="pronto_para_contato">Prontos para contato</option><option value="handoff">Handoff</option><option value="agendamento">Agendamento</option><option value="follow_up">Follow-up</option></select></div>
+          </div>
+          <div id="leads" class="text-sm text-gray-500"><span class="spin"></span></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);let state={botId:null,clientToken:null,companyName:null,leads:[],actions:[],usage:{},summary:{}};
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function toast(msg,type='success'){const e=$('toast');e.textContent=msg;e.className='toast '+type+' show';setTimeout(()=>e.className='toast '+type,3500)}
+function fmtDate(v){if(!v)return'—';try{return new Date(v).toLocaleString('pt-BR')}catch{return'—'}}
+function labelStage(v){return({novo:'Novo',qualificado:'Qualificado',agendamento:'Agendamento',follow_up:'Follow-up',retorno_futuro:'Retorno futuro',handoff:'Handoff',atencao:'Atenção',pronto_para_contato:'Pronto p/ contato',em_atendimento:'Em atendimento',ganho:'Ganho',perdido:'Perdido'})[v]||v||'Novo'}
+function actionLabel(v){return({lead_created:'Novo lead',human_requested:'Atendimento humano',schedule_requested:'Agendamento solicitado',followup_requested:'Follow-up solicitado',commercial_ready:'Pronto para contato comercial'})[v]||String(v||'Ação').replaceAll('_',' ')}
+async function api(body){const r=await fetch('/.netlify/functions/client-portal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||'Falha ao acessar SmartBots');return d}
+function saveSession(){sessionStorage.setItem('sb_client_session',JSON.stringify({botId:state.botId,clientToken:state.clientToken,companyName:state.companyName}))}
+window.addEventListener('load',()=>{const saved=sessionStorage.getItem('sb_client_session');if(saved){try{Object.assign(state,JSON.parse(saved))}catch{}}if(state.botId&&state.clientToken){openApp();loadAll()}else $('login').classList.remove('hidden')});
+async function login(){const email=$('email').value.trim(),clientToken=$('token').value.trim();if(!email||!clientToken)return toast('Preencha e-mail e Client Token','error');const b=$('loginBtn');b.disabled=true;b.textContent='Entrando...';try{const d=await api({action:'login',email,clientToken});state.botId=d.bot.botId;state.clientToken=clientToken;state.companyName=d.bot.companyName;saveSession();openApp();await loadAll()}catch(e){toast(e.message,'error')}finally{b.disabled=false;b.textContent='Entrar'}}
+function openApp(){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('company').textContent=(state.companyName||'SmartBot')+' · '+state.botId}
+function logout(){sessionStorage.removeItem('sb_client_session');location.reload()}
+async function loadAll(){try{const d=await api({action:'get_operations',botId:state.botId,clientToken:state.clientToken});state.leads=d.leads||[];state.actions=d.actions||[];state.usage=d.usage||{};state.summary=d.summary||{};render()}catch(e){toast(e.message,'error')}}
+function render(){const s=state.summary;$('sHot').textContent=s.hotLeads||0;$('sReady').textContent=s.readyToContact||0;$('sHuman').textContent=s.humanNeeded||0;$('sSchedule').textContent=s.scheduling||0;$('sFollow').textContent=s.followUps||0;$('sActions').textContent=s.pendingActions||0;$('actionCount').textContent=s.pendingActions||0;const u=state.usage;$('uAi').textContent=u.aiResponses||0;$('uTokens').textContent=Number(u.totalTokens||0).toLocaleString('pt-BR');$('uIn').textContent=u.whatsappReceived||0;$('uOut').textContent=u.whatsappSent||0;renderActions();renderLeads()}
+function renderActions(){const c=$('actions');if(!state.actions.length){c.innerHTML='<div class="py-7 text-center text-gray-500">Nenhuma ação pendente. O SmartBot está operando sozinho.</div>';return}c.innerHTML=state.actions.map(a=>{const l=a.lead||{};return `<article class="action bg-white/5 rounded-xl p-4 mb-3"><div class="flex justify-between gap-3"><div><div class="font-black">${esc(actionLabel(a.event_type))}</div><div class="text-xs text-gray-500 mt-1">${esc(l.name||l.phone||l.email||'Contato')} · ${fmtDate(a.created_at)}</div></div><span class="pill warm">pendente</span></div>${l.next_action?`<p class="mt-3 text-gray-300">${esc(l.next_action)}</p>`:''}<div class="flex gap-2 mt-3 flex-wrap">${l.phone?`<a class="btn-soft text-xs" target="_blank" rel="noreferrer" href="https://wa.me/${esc(String(l.phone).replace(/\D/g,''))}">Abrir WhatsApp</a>`:''}<button class="btn text-xs" onclick="resolveAction('${esc(a.id)}','completed')">Concluir</button><button class="btn-danger text-xs" onclick="resolveAction('${esc(a.id)}','dismissed')">Descartar</button></div></article>`}).join('')}
+function renderLeads(){const filter=$('filter').value;let rows=state.leads.slice();if(filter==='hot')rows=rows.filter(x=>x.lead_temperature==='hot');else if(filter==='follow_up')rows=rows.filter(x=>['follow_up','retorno_futuro'].includes(x.pipeline_status));else if(filter!=='all')rows=rows.filter(x=>x.pipeline_status===filter);const c=$('leads');if(!rows.length){c.innerHTML='<div class="py-10 text-center text-gray-500">Nenhum contato neste filtro.</div>';return}c.innerHTML=rows.map(l=>`<article class="lead bg-white/5 rounded-xl p-4 mb-3"><div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3"><div class="min-w-0"><div class="flex items-center gap-2 flex-wrap"><b class="text-base">${esc(l.name||l.phone||l.email||'Contato')}</b><span class="pill ${esc(l.lead_temperature||'warm')}">${esc(l.lead_temperature||'warm')}</span><span class="pill gray">score ${Number(l.score||0)}</span></div><div class="text-xs text-gray-500 mt-1">${esc(l.service_name||l.interest||'Interesse ainda não especificado')}</div></div><span class="pill green">${esc(labelStage(l.pipeline_status))}</span></div><div class="grid md:grid-cols-2 gap-2 mt-4 text-xs text-gray-400"><div><b class="text-gray-300">Próxima ação:</b> ${esc(l.next_action||'—')}</div><div><b class="text-gray-300">Última atividade:</b> ${fmtDate(l.last_message_at||l.updated_at)}</div><div><b class="text-gray-300">Contato:</b> ${esc([l.phone,l.email].filter(Boolean).join(' · ')||'—')}</div><div><b class="text-gray-300">Follow-up:</b> ${fmtDate(l.follow_up_at||l.return_at)}</div></div><div class="flex gap-2 mt-4 flex-wrap">${l.phone?`<a class="btn-soft text-xs" target="_blank" rel="noreferrer" href="https://wa.me/${esc(String(l.phone).replace(/\D/g,''))}">WhatsApp</a>`:''}<button class="btn-soft text-xs" onclick="editLead('${esc(l.id)}')">Atualizar</button></div></article>`).join('')}
+async function resolveAction(id,resolution){try{await api({action:'resolve_action',botId:state.botId,clientToken:state.clientToken,actionId:id,resolution});toast(resolution==='dismissed'?'Ação descartada':'Ação concluída');await loadAll()}catch(e){toast(e.message,'error')}}
+async function editLead(id){const l=state.leads.find(x=>String(x.id)===String(id));if(!l)return;const stage=prompt('Etapa do lead:\nnovo | qualificado | agendamento | follow_up | retorno_futuro | handoff | atencao | pronto_para_contato | em_atendimento | ganho | perdido',l.pipeline_status||'novo');if(stage===null)return;const next=prompt('Próxima ação',l.next_action||'');if(next===null)return;const notes=prompt('Notas internas',l.owner_notes||'');if(notes===null)return;try{await api({action:'update_lead',botId:state.botId,clientToken:state.clientToken,lead:{id:l.id,pipelineStatus:stage.trim(),nextAction:next,ownerNotes:notes,handoffStatus:stage.trim()==='em_atendimento'?'in_progress':undefined}});toast('Lead atualizado');await loadAll()}catch(e){toast(e.message,'error')}}
+</script>
+</body>
+</html>
