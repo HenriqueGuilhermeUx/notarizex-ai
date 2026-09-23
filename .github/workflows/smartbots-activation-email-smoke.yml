@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate function contract
+      - name: Validate function contract on current head
         run: |
           set -euo pipefail
           node --check notarizex-ai/netlify/functions/website-bot-onboarding.js
