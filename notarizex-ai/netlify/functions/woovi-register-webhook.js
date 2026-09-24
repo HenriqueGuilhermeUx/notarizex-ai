@@ -3,6 +3,7 @@ const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':'
 function reply(c,b){return{statusCode:c,headers,body:JSON.stringify(b)}}
 function env(name){return String(process.env[name]||'').trim()}
 function base(){return env('WOOVI_ENV')==='sandbox'?'https://api.woovi-sandbox.com':'https://api.woovi.com'}
+function credential(){return env('WOOVI_APP_ID')||env('WOOVI_TOKEN')||env('OPENPIX_TOKEN')}
 function admin(t){const a=env('SMARTBOTS_ADMIN_TOKEN')||env('ADMIN_TOKEN');return Boolean(a&&t&&t===a)}
 exports.handler=async event=>{
   if(event.httpMethod==='OPTIONS')return{statusCode:204,headers,body:''};
@@ -10,8 +11,8 @@ exports.handler=async event=>{
   try{
     const b=JSON.parse(event.body||'{}');
     if(!admin(String(b.adminToken||'')))return reply(403,{success:false,error:'Admin token inválido'});
-    const token=env('WOOVI_TOKEN')||env('OPENPIX_TOKEN');
-    if(!token)throw new Error('WOOVI_TOKEN não configurado');
+    const token=credential();
+    if(!token)throw new Error('Credencial Woovi não configurada');
     const webhookSecret=env('WOOVI_WEBHOOK_SECRET');
     if(!webhookSecret)throw new Error('WOOVI_WEBHOOK_SECRET não configurado');
     const site=env('URL')||env('DEPLOY_PRIME_URL')||'https://smartbots.club';
