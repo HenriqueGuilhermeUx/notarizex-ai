@@ -38,6 +38,16 @@
   status = 200
 
 [[redirects]]
+  from = "/precos"
+  to = "/plano.html"
+  status = 200
+
+[[redirects]]
+  from = "/assinar"
+  to = "/assinatura.html"
+  status = 200
+
+[[redirects]]
   from = "/admin/clientes"
   to = "/admin-clientes.html"
   status = 200
