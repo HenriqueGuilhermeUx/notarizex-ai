@@ -5,6 +5,7 @@ const { createPortalSession } = require('./lib/client-portal-session');
 const PURPOSE = 'client_portal_login';
 const LOGIN_TTL_MS = 20 * 60 * 1000;
 const COOLDOWN_MS = 60 * 1000;
+const ALLOWED_NEXT = new Set(['/dashboard','/dashboard-cliente.html','/operacao','/operacao-cliente.html','/agenda-pro.html','/assinatura.html','/assinar']);
 
 const headers = {
   'Content-Type': 'application/json',
@@ -14,35 +15,19 @@ const headers = {
   'Cache-Control': 'no-store'
 };
 
-function reply(statusCode, body) {
-  return { statusCode, headers, body: JSON.stringify(body) };
-}
-
-function clean(value) {
-  return String(value || '').trim();
-}
-
-function normalizeEmail(value) {
-  return clean(value).toLowerCase();
-}
-
-function hash(value) {
-  return crypto.createHash('sha256').update(String(value)).digest('hex');
-}
+function reply(statusCode, body) { return { statusCode, headers, body: JSON.stringify(body) }; }
+function clean(value) { return String(value || '').trim(); }
+function normalizeEmail(value) { return clean(value).toLowerCase(); }
+function hash(value) { return crypto.createHash('sha256').update(String(value)).digest('hex'); }
+function safeNext(value) { const next = clean(value); return ALLOWED_NEXT.has(next) ? next : '/dashboard-cliente.html'; }
 
 async function db(path, options = {}) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('Supabase service role não configurado.');
-
   return fetch(`${url}/rest/v1/${path}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      ...(options.headers || {})
-    }
+    headers: { 'Content-Type': 'application/json', apikey: key, Authorization: `Bearer ${key}`, ...(options.headers || {}) }
   });
 }
 
@@ -55,41 +40,29 @@ async function rows(response, label) {
 async function sendLoginEmail(email, companyName, accessUrl) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error('Envio de e-mail não configurado.');
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 7000);
   try {
     const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
+      method: 'POST', signal: controller.signal,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        // Temporary verified sender. Keep the SmartBots display name while
-        // smartbots.club is prepared in Resend/DNS for first-party sending.
         from: 'SmartBots <smartbots@auth.f-insight.org>',
         to: email,
         subject: `Acesse o painel da ${companyName}`,
-        text: `Seu acesso seguro ao SmartBots está pronto.\n\nAbra o link abaixo para entrar no painel da ${companyName}:\n\n${accessUrl}\n\nO link é de uso único e expira em 20 minutos. Se você não solicitou este acesso, ignore esta mensagem.`
+        text: `Seu acesso seguro ao SmartBots está pronto.\n\nAbra o link abaixo para continuar na ${companyName}:\n\n${accessUrl}\n\nO link é de uso único e expira em 20 minutos. Se você não solicitou este acesso, ignore esta mensagem.`
       })
     });
     if (!response.ok) throw new Error(`Resend ${response.status}: ${(await response.text()).slice(0, 300)}`);
-  } finally {
-    clearTimeout(timer);
-  }
+  } finally { clearTimeout(timer); }
 }
 
-async function requestLogin(email) {
+async function requestLogin(email, nextPath) {
   const bots = await rows(
     await db(`website_bots?or=(email.eq.${encodeURIComponent(email)},owner_email.eq.${encodeURIComponent(email)})&select=*&order=created_at.desc&limit=1`),
     'Buscar SmartBot por e-mail'
   );
   const bot = bots[0];
-
-  // Always return the same public response so the endpoint does not reveal
-  // whether an e-mail is registered.
   if (!bot) return;
 
   const since = new Date(Date.now() - COOLDOWN_MS).toISOString();
@@ -101,26 +74,20 @@ async function requestLogin(email) {
 
   const token = crypto.randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + LOGIN_TTL_MS).toISOString();
-
+  const destination = safeNext(nextPath);
   const invite = await db('smartbot_connection_invites', {
-    method: 'POST',
-    headers: { Prefer: 'return=minimal' },
+    method: 'POST', headers: { Prefer: 'return=minimal' },
     body: JSON.stringify({
       bot_id: bot.bot_id,
       token_hash: hash(token),
       purpose: PURPOSE,
       expires_at: expiresAt,
-      metadata: {
-        flow: 'client_portal_email_login',
-        email
-      }
+      metadata: { flow: 'client_portal_email_login', email, next: destination }
     })
   });
   if (!invite.ok) throw new Error(`Criar link de acesso: ${(await invite.text()).slice(0, 700)}`);
 
-  // Use the concrete page so the single-use token never depends on redirect
-  // query-string forwarding behavior.
-  const accessUrl = `https://smartbots.club/portal-login.html?access=${encodeURIComponent(token)}&next=${encodeURIComponent('/dashboard-cliente.html')}`;
+  const accessUrl = `https://smartbots.club/portal-login.html?access=${encodeURIComponent(token)}&next=${encodeURIComponent(destination)}`;
   await sendLoginEmail(email, bot.company_name || 'seu negócio', accessUrl);
 }
 
@@ -130,58 +97,33 @@ async function consumeLogin(token) {
     'Validar link de acesso'
   );
   const invitation = invitations[0];
+  if (!invitation || invitation.revoked_at || invitation.completed_at || new Date(invitation.expires_at).getTime() <= Date.now()) return null;
 
-  if (
-    !invitation ||
-    invitation.revoked_at ||
-    invitation.completed_at ||
-    new Date(invitation.expires_at).getTime() <= Date.now()
-  ) {
-    return null;
-  }
-
-  const bots = await rows(
-    await db(`website_bots?bot_id=eq.${encodeURIComponent(invitation.bot_id)}&select=*&limit=1`),
-    'Carregar SmartBot'
-  );
+  const bots = await rows(await db(`website_bots?bot_id=eq.${encodeURIComponent(invitation.bot_id)}&select=*&limit=1`), 'Carregar SmartBot');
   const bot = bots[0];
   if (!bot) return null;
 
   const now = new Date().toISOString();
   const used = await db(`smartbot_connection_invites?id=eq.${encodeURIComponent(invitation.id)}`, {
-    method: 'PATCH',
-    headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ completed_at: now, last_used_at: now })
+    method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ completed_at: now, last_used_at: now })
   });
   if (!used.ok) throw new Error(`Concluir link de acesso: ${(await used.text()).slice(0, 700)}`);
-
   return createPortalSession(bot);
 }
 
-exports.handler = async (event) => {
+exports.handler = async event => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
   if (event.httpMethod !== 'POST') return reply(405, { success: false, error: 'Method Not Allowed' });
-
   try {
     const body = JSON.parse(event.body || '{}');
     const action = clean(body.action);
-
     if (action === 'request') {
       const email = normalizeEmail(body.email);
       if (!email || !email.includes('@')) return reply(400, { success: false, error: 'Informe um e-mail válido.' });
-
-      try {
-        await requestLogin(email);
-      } catch (error) {
-        console.error('[Client Portal Login] request:', error.message);
-      }
-
-      return reply(200, {
-        success: true,
-        message: 'Se este e-mail estiver vinculado a um SmartBot, enviaremos um link seguro de acesso.'
-      });
+      try { await requestLogin(email, body.next); }
+      catch (error) { console.error('[Client Portal Login] request:', error.message); }
+      return reply(200, { success: true, message: 'Se este e-mail estiver vinculado a um SmartBot, enviaremos um link seguro de acesso.' });
     }
-
     if (action === 'consume') {
       const loginToken = clean(body.loginToken);
       if (!loginToken) return reply(400, { success: false, error: 'Link de acesso ausente.' });
@@ -189,7 +131,6 @@ exports.handler = async (event) => {
       if (!portalSession) return reply(401, { success: false, error: 'Este link é inválido, já foi usado ou expirou. Solicite um novo acesso.' });
       return reply(200, { success: true, portalSession });
     }
-
     return reply(400, { success: false, error: 'Ação inválida.' });
   } catch (error) {
     console.error('[Client Portal Login]', error);
