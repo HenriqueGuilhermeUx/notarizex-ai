@@ -6,6 +6,7 @@ function reply(c,b){return{statusCode:c,headers,body:JSON.stringify(b)}}
 function clean(v){return String(v||'').trim()}
 function env(name){return String(process.env[name]||'').trim()}
 function apiBase(){return env('WOOVI_ENV')==='sandbox'?'https://api.woovi-sandbox.com':'https://api.woovi.com'}
+function wooviCredential(){return env('WOOVI_APP_ID')||env('WOOVI_TOKEN')||env('OPENPIX_TOKEN')}
 async function db(path,opt={}){const url=env('SUPABASE_URL'),key=env('SUPABASE_SERVICE_ROLE_KEY');if(!url||!key)throw new Error('Supabase service role não configurado.');return fetch(url+'/rest/v1/'+path,{...opt,headers:{'Content-Type':'application/json',apikey:key,Authorization:'Bearer '+key,...(opt.headers||{})}})}
 async function auth(botId,token){const r=await db('website_bots?bot_id=eq.'+encodeURIComponent(botId)+'&client_token=eq.'+encodeURIComponent(token)+'&select=bot_id,company_name,email,owner_email,plan');const a=r.ok?await r.json():[];return a[0]||null}
 exports.handler=async event=>{
@@ -16,7 +17,7 @@ exports.handler=async event=>{
     if(!botId||!token)return reply(400,{success:false,error:'botId e clientToken obrigatórios'});
     const bot=await auth(botId,token);if(!bot)return reply(403,{success:false,error:'Acesso negado'});
     const plan=PLANS.completo;
-    const wooviToken=env('WOOVI_TOKEN')||env('OPENPIX_TOKEN');
+    const wooviToken=wooviCredential();
     if(!wooviToken)throw new Error('Pagamento Pix temporariamente indisponível.');
     const correlationID='sb_'+botId+'_'+Date.now();
     const payload={correlationID,value:plan.amountCents,comment:plan.name+' — mensal',customer:{name:bot.company_name||'SmartBots',email:bot.email||bot.owner_email||''}};
