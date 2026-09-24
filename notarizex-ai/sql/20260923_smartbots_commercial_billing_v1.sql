@@ -8,8 +8,8 @@ alter table public.smartbot_subscriptions
   add column if not exists woovi_payload jsonb;
 
 alter table public.smartbot_subscriptions
-  alter column plan set default 'Completo',
-  alter column amount_cents set default 29700;
+  alter column plan set default 'completo',
+  alter column amount_cents set default 14900;
 
 create unique index if not exists uq_smartbot_subscriptions_bot_id
   on public.smartbot_subscriptions(bot_id);
