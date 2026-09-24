@@ -22,6 +22,9 @@
 [functions."smartbot-trial-scan"]
   schedule = "0 13 * * *"
 
+[functions."smartbot-provider-health"]
+  schedule = "17 * * * *"
+
 [[redirects]]
   from = "/b/*"
   to = "/bot-publico.html"
