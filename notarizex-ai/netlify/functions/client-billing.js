@@ -26,27 +26,38 @@ async function rows(response, label) {
   const text = await response.text();
   return text ? JSON.parse(text) : [];
 }
+function planForCode(code) {
+  if (code === 'fundador') return PLANS.fundador;
+  if (code === 'nexoffice') return PLANS.nexoffice;
+  return PLANS.completo;
+}
 function publicSubscription(row) {
   if (!row) return null;
-  const plan = row.plan === 'fundador' ? PLANS.fundador : PLANS.completo;
+  const plan = planForCode(row.plan);
   return {status:row.status,planCode:plan.code,planName:plan.name,amountCents:row.amount_cents || plan.amountCents,billingCycle:row.billing_cycle || 'monthly',currentPeriodStart:row.current_period_start || null,currentPeriodEnd:row.current_period_end || null,paidAt:row.paid_at || null,paymentLink:row.woovi_payment_link || null,brCode:row.woovi_br_code || null,qrCodeImage:row.woovi_qr_code_image || null,providerStatus:row.woovi_status || null};
 }
 async function subscriptionFor(botId) {
   const result = await rows(await db(`smartbot_subscriptions?bot_id=eq.${encodeURIComponent(botId)}&select=*&limit=1`),'Carregar assinatura');
   return result[0] || null;
 }
+async function nexOfficeEligible(botId) {
+  const result = await rows(await db(`smartbot_nexoffice_bindings?bot_id=eq.${encodeURIComponent(botId)}&status=eq.active&select=workspace_id&limit=1`),'Validar benefício NexOffice');
+  return Boolean(result[0]);
+}
 async function founderSlots() {
   const result = await rows(await db('smartbot_subscriptions?plan=eq.fundador&select=bot_id,status'),'Consultar oferta de lançamento');
   const reserved = new Set(result.filter(x => ['pending','active'].includes(String(x.status || '').toLowerCase())).map(x => x.bot_id)).size;
   return { limit:FOUNDER_LIMIT, reserved, available:Math.max(0, FOUNDER_LIMIT-reserved) };
 }
-async function choosePlan(existing) {
+async function choosePlan(botId, existing) {
+  if (await nexOfficeEligible(botId)) return PLANS.nexoffice;
+  if (existing && existing.plan === 'nexoffice') return PLANS.completo;
   if (existing && existing.plan === 'fundador') return PLANS.fundador;
   const slots = await founderSlots();
   return slots.available > 0 ? PLANS.fundador : PLANS.completo;
 }
 function activePeriod(row) { return Boolean(row && row.status === 'active' && row.current_period_end && new Date(row.current_period_end).getTime() > Date.now()); }
-function reusablePending(row) { return Boolean(row && row.status === 'pending' && (row.woovi_payment_link || row.woovi_br_code)); }
+function reusablePending(row, plan) { return Boolean(row && row.status === 'pending' && row.plan === plan.code && Number(row.amount_cents || 0) === plan.amountCents && (row.woovi_payment_link || row.woovi_br_code)); }
 
 async function ensureWooviWebhook(token){
   const secret = env('WOOVI_WEBHOOK_SECRET');
@@ -82,11 +93,11 @@ async function saveSubscription(bot, existing, plan, correlationID, charge, raw)
 }
 async function createCharge(bot, existing) {
   if (activePeriod(existing)) return {reused:true,active:true,subscription:publicSubscription(existing)};
-  if (reusablePending(existing)) return {reused:true,active:false,subscription:publicSubscription(existing)};
+  const plan=await choosePlan(bot.bot_id,existing);
+  if (reusablePending(existing,plan)) return {reused:true,active:false,subscription:publicSubscription(existing)};
   const token=wooviCredential();
   if(!token) throw new Error('Pagamento Pix temporariamente indisponível.');
   await ensureWooviWebhook(token);
-  const plan=await choosePlan(existing);
   const correlationID=`sb_${bot.bot_id}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
   const payload={correlationID,value:plan.amountCents,comment:`${plan.name} — mensal`,customer:{name:bot.company_name || 'Cliente SmartBots',email:bot.email || bot.owner_email || ''}};
   const response=await fetch(`${apiBase()}/api/v1/charge`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:token},body:JSON.stringify(payload)});
@@ -106,9 +117,10 @@ exports.handler=async event=>{
     if(!bot) return reply(401,{success:false,error:'Sessão expirada. Entre novamente no painel.'});
     const existing=await subscriptionFor(bot.bot_id);
     if(body.action==='status'){
-      const slots=await founderSlots();
-      const offered=existing&&existing.plan==='fundador'?PLANS.fundador:(slots.available>0?PLANS.fundador:PLANS.completo);
-      return reply(200,{success:true,companyName:bot.company_name || 'SmartBot',subscription:publicSubscription(existing),offer:{planCode:offered.code,planName:offered.name,amountCents:offered.amountCents,regularAmountCents:PLANS.completo.amountCents,founderSlotsRemaining:slots.available,founderLimit:slots.limit,trialEndsAt:bot.trial_ends_at || null,billingStatus:bot.billing_status || null}});
+      const eligible=await nexOfficeEligible(bot.bot_id);
+      const slots=eligible?null:await founderSlots();
+      const offered=eligible?PLANS.nexoffice:(existing&&existing.plan==='nexoffice'?PLANS.completo:(existing&&existing.plan==='fundador'?PLANS.fundador:(slots.available>0?PLANS.fundador:PLANS.completo)));
+      return reply(200,{success:true,companyName:bot.company_name || 'SmartBot',subscription:publicSubscription(existing),offer:{planCode:offered.code,planName:offered.name,amountCents:offered.amountCents,regularAmountCents:PLANS.completo.amountCents,nexOfficeBenefit:eligible,founderSlotsRemaining:slots?slots.available:null,founderLimit:FOUNDER_LIMIT,trialEndsAt:bot.trial_ends_at || null,billingStatus:bot.billing_status || null}});
     }
     if(body.action==='create_pix') return reply(200,{success:true,...await createCharge(bot,existing)});
     return reply(400,{success:false,error:'Ação inválida.'});
