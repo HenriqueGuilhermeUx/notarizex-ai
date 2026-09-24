@@ -2,7 +2,7 @@ const PLANS = Object.freeze({
   fundador: Object.freeze({
     code: 'fundador',
     name: 'SmartBots Completo — Fundador',
-    amountCents: 19700,
+    amountCents: 9900,
     billingCycle: 'monthly',
     public: true,
     launch: true
@@ -10,7 +10,7 @@ const PLANS = Object.freeze({
   completo: Object.freeze({
     code: 'completo',
     name: 'SmartBots Completo',
-    amountCents: 29700,
+    amountCents: 14900,
     billingCycle: 'monthly',
     public: true,
     launch: false
