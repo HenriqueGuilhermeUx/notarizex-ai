@@ -14,6 +14,15 @@ const PLANS = Object.freeze({
     billingCycle: 'monthly',
     public: true,
     launch: false
+  }),
+  nexoffice: Object.freeze({
+    code: 'nexoffice',
+    name: 'SmartBots Completo — Benefício NexOffice',
+    amountCents: 7900,
+    billingCycle: 'monthly',
+    public: false,
+    launch: false,
+    partner: 'nexoffice'
   })
 });
 
@@ -26,6 +35,7 @@ function money(cents) {
 function legacyAlias(value) {
   const v = String(value || '').trim().toLowerCase();
   if (['fundador', 'founder', 'launch', 'lancamento', 'lançamento'].includes(v)) return PLANS.fundador;
+  if (['nexoffice', 'nexoffice_addon', 'nexoffice-addon'].includes(v)) return PLANS.nexoffice;
   if (['completo', 'profissional', 'premium', 'essencial', 'bot para site', 'bot whatsapp'].includes(v)) return PLANS.completo;
   return PLANS.completo;
 }

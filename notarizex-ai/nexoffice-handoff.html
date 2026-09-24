@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Preparando seu SmartBot</title>
+  <style>
+    :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#080b10;color:#fff;font-family:Inter,system-ui,-apple-system,sans-serif}.card{width:min(540px,calc(100% - 32px));padding:34px;border:1px solid rgba(255,255,255,.11);border-radius:24px;background:rgba(255,255,255,.055);box-shadow:0 22px 70px rgba(0,0,0,.35)}.brand{font-size:24px;font-weight:900}.brand span{color:#00ff88}h1{font-size:30px;line-height:1.08;margin:28px 0 10px}p{color:#aab1bd;line-height:1.6;margin:0}.loader{margin:26px 0;width:28px;height:28px;border:3px solid rgba(0,255,136,.18);border-top-color:#00ff88;border-radius:50%;animation:spin .8s linear infinite}.error{display:none;margin-top:22px;padding:14px;border-radius:12px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.26);color:#fecaca}.button{display:none;margin-top:18px;padding:12px 16px;border:0;border-radius:12px;background:#00ff88;color:#07120c;font-weight:900;cursor:pointer}@keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand"><span>Smart</span>Bots</div>
+    <h1>Preparando seu atendimento inteligente</h1>
+    <p id="message">Validando seu benefício NexOffice e preparando seu SmartBot. Isso leva só alguns segundos.</p>
+    <div id="loader" class="loader" aria-label="Carregando"></div>
+    <div id="error" class="error"></div>
+    <button id="retry" class="button" type="button">Tentar novamente</button>
+  </main>
+<script>
+(function(){
+  var fragment=new URLSearchParams(location.hash.replace(/^#/,''));
+  var handoff=fragment.get('handoff')||'';
+  if(history.replaceState)history.replaceState(null,'',location.pathname+location.search);
+  var error=document.getElementById('error'),loader=document.getElementById('loader'),retry=document.getElementById('retry'),message=document.getElementById('message');
+  function fail(text){loader.style.display='none';error.textContent=text;error.style.display='block';retry.style.display='inline-block';message.textContent='Não conseguimos concluir a entrada automática.'}
+  async function run(){
+    error.style.display='none';retry.style.display='none';loader.style.display='block';
+    if(!handoff){fail('Este acesso não é mais válido. Volte ao NexOffice e clique em “Abrir SmartBots” novamente.');return}
+    try{
+      var response=await fetch('/.netlify/functions/nexoffice-partner-handoff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({handoffToken:handoff})});
+      var data=await response.json().catch(function(){return{}});
+      if(!response.ok||data.success===false)throw new Error(data.error||'handoff_failed');
+      if(data.destination==='portal'&&data.portalSession){
+        sessionStorage.setItem('sb_client_session',JSON.stringify(data.portalSession));
+        location.replace(data.redirectUrl||'/painel');return;
+      }
+      if(data.destination==='activation'&&data.activationUrl){location.replace(data.activationUrl);return}
+      throw new Error('invalid_destination');
+    }catch(e){
+      var text=String(e&&e.message||'');
+      if(text==='handoff_already_used'||text==='handoff_expired'||text==='handoff_revoked')fail('Este acesso já foi usado ou expirou. Volte ao NexOffice e abra o SmartBots novamente.');
+      else fail('Não foi possível preparar o SmartBots agora. Volte ao NexOffice e tente novamente.');
+    }
+  }
+  retry.onclick=function(){location.href='https://nexoffices.com.br'};
+  run();
+})();
+</script>
+</body>
+</html>
