@@ -5,10 +5,22 @@ on:
     branches: [main]
     paths:
       - 'notarizex-ai/netlify/functions/nexoffice-bridge.mjs'
+      - 'notarizex-ai/netlify/functions/nexoffice-addon.js'
+      - 'notarizex-ai/netlify/functions/nexoffice-partner-handoff.js'
+      - 'notarizex-ai/netlify/functions/client-billing.js'
+      - 'notarizex-ai/netlify/functions/lib/client-portal-session.js'
+      - 'notarizex-ai/netlify/functions/lib/commercial-plans.js'
+      - 'notarizex-ai/nexoffice-handoff.html'
       - '.github/workflows/smartbots-bridge-ci.yml'
   pull_request:
     paths:
       - 'notarizex-ai/netlify/functions/nexoffice-bridge.mjs'
+      - 'notarizex-ai/netlify/functions/nexoffice-addon.js'
+      - 'notarizex-ai/netlify/functions/nexoffice-partner-handoff.js'
+      - 'notarizex-ai/netlify/functions/client-billing.js'
+      - 'notarizex-ai/netlify/functions/lib/client-portal-session.js'
+      - 'notarizex-ai/netlify/functions/lib/commercial-plans.js'
+      - 'notarizex-ai/nexoffice-handoff.html'
       - '.github/workflows/smartbots-bridge-ci.yml'
 
 jobs:
@@ -20,8 +32,14 @@ jobs:
         with:
           node-version: 22
       - name: Syntax check
-        run: node --check notarizex-ai/netlify/functions/nexoffice-bridge.mjs
-      - name: Validate exported handler and auth contract
+        run: |
+          node --check notarizex-ai/netlify/functions/nexoffice-bridge.mjs
+          node --check notarizex-ai/netlify/functions/nexoffice-addon.js
+          node --check notarizex-ai/netlify/functions/nexoffice-partner-handoff.js
+          node --check notarizex-ai/netlify/functions/client-billing.js
+          node --check notarizex-ai/netlify/functions/lib/client-portal-session.js
+          node --check notarizex-ai/netlify/functions/lib/commercial-plans.js
+      - name: Validate exported bridge handler and auth contract
         run: |
           node --input-type=module - <<'NODE'
           globalThis.Netlify = { env: { get: () => '' } };
@@ -39,4 +57,21 @@ jobs:
           const payload = await response.json();
           if (payload.error !== 'bridge_not_configured') throw new Error('Unexpected auth/config contract');
           console.log('SmartBots NexOffice secure bridge contract OK');
+          NODE
+      - name: Validate subscriber offer and provider isolation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const plans=require('./notarizex-ai/netlify/functions/lib/commercial-plans.js');
+          if(plans.PLANS.nexoffice.amountCents!==7900)throw new Error('NexOffice partner price must be 7900');
+          if(plans.PLANS.completo.amountCents!==14900)throw new Error('Regular price must remain 14900');
+          if(plans.PLANS.nexoffice.public!==false)throw new Error('NexOffice plan must remain private');
+          const addon=fs.readFileSync('notarizex-ai/netlify/functions/nexoffice-addon.js','utf8');
+          if(!addon.includes('NEXOFFICE_SERVICE_KEY')||!addon.includes('timingSafeEqual'))throw new Error('Trusted partner auth missing');
+          if(!addon.includes("purpose:'nexoffice_partner_handoff'"))throw new Error('Opaque partner handoff missing');
+          const billing=fs.readFileSync('notarizex-ai/netlify/functions/client-billing.js','utf8');
+          if(!billing.includes('nexOfficeEligible'))throw new Error('Server-side NexOffice eligibility missing');
+          const landing=fs.readFileSync('notarizex-ai/nexoffice-handoff.html','utf8');
+          for(const forbidden of ['KAPSO_API_KEY','provider_phone_number_id','clientToken'])if(landing.includes(forbidden))throw new Error(`Customer handoff leaks ${forbidden}`);
+          console.log('NexOffice subscriber offer and provider isolation OK');
           NODE
