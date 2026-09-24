@@ -47,7 +47,7 @@
   </main>
 
   <script>
-    const allowedNext = new Set(['/dashboard','/dashboard-cliente.html','/operacao','/operacao-cliente.html','/agenda-pro.html']);
+    const allowedNext = new Set(['/dashboard','/dashboard-cliente.html','/operacao','/operacao-cliente.html','/agenda-pro.html','/assinatura.html','/assinar']);
     const params = new URLSearchParams(location.search);
     const requestedNext = params.get('next') || '/dashboard-cliente.html';
     const next = allowedNext.has(requestedNext) ? requestedNext : '/dashboard-cliente.html';
@@ -94,7 +94,7 @@
       button.disabled = true;
       button.textContent = 'Enviando…';
       try {
-        const data = await api({action:'request', email});
+        const data = await api({action:'request', email, next});
         showMessage(data.message || 'Confira seu e-mail para continuar.');
         button.textContent = 'Link enviado ✓';
       } catch (error) {
