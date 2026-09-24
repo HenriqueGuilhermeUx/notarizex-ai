@@ -78,7 +78,7 @@ async function resolvePortalSession(portalToken) {
     'Carregar SmartBot da sessão'
   );
   const bot = bots[0] || null;
-  if (!bot || !bot.client_token) return null;
+  if (!bot || !bot.bot_id) return null;
 
   await db(`smartbot_connection_invites?id=eq.${encodeURIComponent(invitation.id)}`, {
     method: 'PATCH',
