@@ -15,6 +15,9 @@ alter table if exists website_bots alter column file_ids drop not null;
 alter table if exists website_bots alter column content_options drop not null;
 alter table if exists website_bots alter column payment_link drop not null;
 alter table if exists website_bots alter column owner_email drop not null;
+-- No fluxo parceiro NexOffice o Bot nasce antes da conexão do WhatsApp.
+-- O onboarding self-service continua validando WhatsApp na camada da aplicação.
+alter table if exists website_bots alter column owner_whatsapp drop not null;
 
 alter table if exists website_bots alter column status set default 'pending_payment';
 alter table if exists website_bots alter column bot_tone set default 'friendly';
