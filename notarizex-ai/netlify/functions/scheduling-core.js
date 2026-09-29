@@ -1,5 +1,6 @@
 const { resolvePortalSession } = require('./lib/client-portal-session');
 const core = require('./lib/scheduling-core');
+const templates = require('./lib/scheduling-templates');
 
 const headers = {
   'Content-Type': 'application/json',
@@ -108,6 +109,40 @@ async function bindServiceResource(botId, serviceId, resourceId, enabled) {
   return { serviceId: service, resourceId: resource, enabled: true };
 }
 
+async function applyTemplate(botId, body) {
+  const template = templates.getTemplate(body.templateKey);
+  if (!template) throw new Error('Template invalido');
+  const existingServices = await core.listServices(botId, false);
+  const existingResources = await core.listResources(botId, false);
+  const byServiceName = new Map(existingServices.map(item => [String(item.name || '').trim().toLowerCase(), item]));
+  const byResourceName = new Map(existingResources.map(item => [String(item.name || '').trim().toLowerCase(), item]));
+  const services = [];
+  const resources = [];
+  const workingHours = body.workingHours && typeof body.workingHours === 'object' && !Array.isArray(body.workingHours)
+    ? body.workingHours
+    : templates.defaultWorkingHours();
+
+  for (const seed of template.services) {
+    const existing = byServiceName.get(seed.name.toLowerCase());
+    const item = await upsertService(botId, { ...seed, id: existing?.id, metadata: { ...(existing?.metadata || {}), templateKey: template.key, templateSeed: true } });
+    services.push(item);
+  }
+  for (const seed of template.resources) {
+    const name = body.resourceName && template.resources.length === 1 ? body.resourceName : seed.name;
+    const existing = byResourceName.get(String(name).trim().toLowerCase());
+    const item = await upsertResource(botId, { ...seed, name, id: existing?.id, workingHours, timezone: body.timezone || seed.timezone, metadata: { ...(existing?.metadata || {}), templateKey: template.key, templateSeed: true } });
+    resources.push(item);
+  }
+  for (const service of services) {
+    for (const resource of resources) {
+      if (!service.required_resource_type || service.required_resource_type === resource.resource_type) {
+        await bindServiceResource(botId, service.id, resource.id, true);
+      }
+    }
+  }
+  return { templateKey: template.key, label: template.label, services, resources };
+}
+
 exports.handler = async event => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
   if (event.httpMethod !== 'POST') return reply(405, { success: false, error: 'Method Not Allowed' });
@@ -128,11 +163,14 @@ exports.handler = async event => {
           'scheduling.availability.read',
           'scheduling.bookings.create',
           'scheduling.bookings.read',
-          'scheduling.bookings.update'
+          'scheduling.bookings.update',
+          'scheduling.templates.apply'
         ]
       });
     }
 
+    if (action === 'list_templates') return reply(200, { success: true, items: templates.listTemplates() });
+    if (action === 'apply_template') return reply(200, { success: true, item: await applyTemplate(botId, body) });
     if (action === 'list_services') return reply(200, { success: true, items: await core.listServices(botId, body.activeOnly !== false) });
     if (action === 'list_resources') return reply(200, { success: true, items: await core.listResources(botId, body.activeOnly !== false) });
     if (action === 'save_service') return reply(200, { success: true, item: await upsertService(botId, body) });
