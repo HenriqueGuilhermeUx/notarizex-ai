@@ -15,6 +15,7 @@ O SmartBots continua sendo cerebro + CRM + produto. Kapso continua sendo canal W
 - `smartbot_scheduling_resources`: profissionais, salas, boxes, elevadores, equipamentos etc.
 - `smartbot_scheduling_service_resources`: quais recursos atendem quais servicos.
 - `smartbot_scheduling_bookings`: reserva canonica compartilhada por todos os canais.
+- `smartbot_scheduling_sessions`: estado curto da conversa enquanto o cliente escolhe servico/data/slot.
 
 Tudo e isolado por `bot_id`.
 
@@ -47,7 +48,7 @@ Isso permite usar o mesmo motor para clinica, salao, terapia, oficina e outros v
 
 O timezone padrao e `America/Sao_Paulo`.
 
-## API
+## API de dominio
 
 Function: `/.netlify/functions/scheduling-core`
 
@@ -66,7 +67,47 @@ Acoes:
 
 Autenticacao administrativa aceita sessao do portal (`portalToken`) e o modo legado (`botId` + `clientToken`). Chamadas server-to-server usam `X-SmartBots-Internal-Key` com `SMARTBOTS_INTERNAL_KEY`.
 
-## Exemplo: disponibilidade
+## API conversacional
+
+Function: `/.netlify/functions/scheduling-agent`
+
+O agente recebe a fala original do cliente e mantem estado por `botId + visitorId`. Ele consegue:
+
+- identificar servico pelo nome;
+- identificar profissional/recurso pelo nome;
+- entender `hoje`, `amanha`, dias da semana e datas numericas;
+- entender `manha`, `tarde`, `noite`;
+- oferecer ate quatro slots reais;
+- aceitar `opcao 1`, `primeiro`, `15h30` etc.;
+- confirmar a reserva usando o mesmo Scheduling Core.
+
+Exemplo inicial:
+
+```json
+{
+  "botId": "BOT_ID",
+  "visitorId": "wa_5513999999999",
+  "message": "Quero cortar com o Rafael sabado a tarde",
+  "serviceName": "Corte",
+  "customerName": "Henrique",
+  "customerPhone": "5513999999999"
+}
+```
+
+Resposta esperada quando existe disponibilidade:
+
+```json
+{
+  "success": true,
+  "handled": true,
+  "state": "offered",
+  "reply": "Tenho estes horarios para Corte: 1) ...; 2) ...; 3) ... . Qual voce prefere?"
+}
+```
+
+Na mensagem seguinte o mesmo `visitorId` pode responder apenas `15h30` ou `opcao 2`; o agente recupera os slots ofertados e tenta criar a reserva canonica.
+
+## Exemplo: disponibilidade direta
 
 ```json
 {
@@ -80,7 +121,7 @@ Autenticacao administrativa aceita sessao do portal (`portalToken`) e o modo leg
 }
 ```
 
-## Exemplo: reserva
+## Exemplo: reserva direta
 
 ```json
 {
@@ -100,13 +141,25 @@ O core valida horario de trabalho, duracao, buffer, elegibilidade do recurso e c
 
 ## Integracao SmartBots
 
-O Brain ja classifica a intencao `agendamento` e gera o evento `schedule_requested`. A proxima camada de integracao deve consumir essa intencao/evento e chamar o Scheduling Core para:
+O Brain ja classifica a intencao `agendamento` e gera o evento `schedule_requested`. O `scheduling-agent` agora e a camada pronta para consumir esse contexto e executar o fluxo:
 
 1. resolver o servico;
-2. consultar slots;
-3. apresentar opcoes na conversa;
-4. confirmar o slot escolhido;
-5. criar a reserva;
-6. manter CRM e automacoes sincronizados.
+2. resolver profissional/recurso quando citado;
+3. entender dia e periodo;
+4. consultar slots reais;
+5. apresentar opcoes na conversa;
+6. recuperar a escolha no turno seguinte;
+7. criar a reserva;
+8. manter o estado separado do Brain e do canal.
 
-Essa separacao impede que regras de agenda fiquem presas ao WhatsApp ou ao Brain e permite reutilizar o mesmo motor em outros produtos da Alternative Ventures.
+O ponto de integracao do canal/Brain deve encaminhar mensagens de agendamento para `scheduling-agent` com o mesmo `visitorId`. Assim, WhatsApp, site e app usam a mesma conversa operacional sem duplicar regras.
+
+## Antes de producao
+
+1. aplicar as duas migrations em homologacao;
+2. cadastrar pelo menos um servico e um recurso com `working_hours`;
+3. vincular servico e recurso;
+4. testar disponibilidade direta;
+5. testar conversa em dois turnos (`quero ... sabado a tarde` -> `opcao 2`);
+6. testar conflito tentando reservar o mesmo recurso/horario duas vezes;
+7. somente depois conectar ao fluxo real de WhatsApp/site e publicar em producao.
