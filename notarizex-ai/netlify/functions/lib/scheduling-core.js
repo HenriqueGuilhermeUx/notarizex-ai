@@ -11,9 +11,25 @@ function dbConfig() {
   return { url, key };
 }
 
+function schedulingPrefix() {
+  if (process.env.SCHEDULING_TABLE_PREFIX !== undefined) {
+    const explicit = String(process.env.SCHEDULING_TABLE_PREFIX || '').trim();
+    if (explicit && !/^[a-z0-9_]+$/i.test(explicit)) throw new Error('SCHEDULING_TABLE_PREFIX invalido');
+    return explicit;
+  }
+  return process.env.CONTEXT === 'production' ? '' : 'stg_';
+}
+
+function routeSchedulingPath(path) {
+  const prefix = schedulingPrefix();
+  if (!prefix) return path;
+  return String(path).replace(/^smartbot_scheduling_/, `${prefix}smartbot_scheduling_`);
+}
+
 async function db(path, options = {}) {
   const { url, key } = dbConfig();
-  return fetch(`${url}/rest/v1/${path}`, {
+  const routedPath = routeSchedulingPath(path);
+  return fetch(`${url}/rest/v1/${routedPath}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -266,5 +282,7 @@ module.exports = {
   availability,
   createBooking,
   listBookings,
-  updateBooking
+  updateBooking,
+  schedulingPrefix,
+  routeSchedulingPath
 };
