@@ -24,11 +24,23 @@ create table if not exists public.smartbot_minisites (
   seo jsonb not null default '{}'::jsonb,
   source_website text,
   source_snapshot jsonb not null default '{}'::jsonb,
+  published_snapshot jsonb not null default '{}'::jsonb,
   generated_at timestamptz,
   published_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint smartbot_minisites_slug_format check (slug ~ '^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$')
+  constraint smartbot_minisites_slug_format check (slug ~ '^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?
+);
+
+create index if not exists smartbot_minisites_status_idx on public.smartbot_minisites(status);
+create index if not exists smartbot_minisites_updated_at_idx on public.smartbot_minisites(updated_at desc);
+
+alter table public.smartbot_minisites enable row level security;
+revoke all on table public.smartbot_minisites from anon, authenticated;
+grant select, insert, update, delete on table public.smartbot_minisites to service_role;
+
+comment on table public.smartbot_minisites is 'Public MiniSite configuration per isolated SmartBot. Browser clients access it only through server-side Functions.';
+)
 );
 
 create index if not exists smartbot_minisites_status_idx on public.smartbot_minisites(status);
