@@ -228,7 +228,9 @@ def _crawl(start_url: str, max_pages: int):
 
 def _auth(x_crawler_key: str | None):
     expected = os.getenv("SMARTBOTS_CRAWLER_SECRET", "").strip()
-    if expected and (x_crawler_key or "").strip() != expected:
+    if not expected:
+        raise HTTPException(status_code=503, detail="crawler_not_configured")
+    if (x_crawler_key or "").strip() != expected:
         raise HTTPException(status_code=401, detail="unauthorized")
 
 
