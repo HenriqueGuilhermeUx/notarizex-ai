@@ -45,7 +45,7 @@ function compactContext(c,crawl){
     price:x.price, currency:x.currency, availability:x.availability_status, attributes:obj(x.attributes)
   }));
   return JSON.stringify({
-    company:{name:c.bot.company_name,website:c.bot.website||null,whatsapp:c.bot.owner_whatsapp||null,businessDescription:c.bot.business_description||null},
+    company:{name:c.bot.company_name,website:c.bot.website||null,businessDescription:c.bot.business_description||null},
     profile:c.profile?{assistantName:c.profile.assistant_name,primaryGoal:c.profile.primary_goal,businessContext:c.profile.business_context,audience:c.profile.audience}:null,
     catalog:c.catalogConfig&&c.catalogConfig.enabled?{name:c.catalogConfig.display_name,currency:c.catalogConfig.currency,showPrices:c.catalogConfig.show_prices,notes:c.catalogConfig.notes,items}:null,
     agenda:c.agenda||null,
@@ -113,10 +113,10 @@ exports.handler=async event=>{
       let generated;try{generated=await generateCopy(c,crawl)}catch(e){console.warn('[MiniSite] AI fallback:',e.message);generated=fallbackCopy(c)}
       const slug=existing&&existing.slug||await uniqueSlug(bot.company_name,bot.bot_id);
       const brand=obj(crawl&&crawl.brand),accent=color(arr(brand.colors)[0]||existing&&existing.accent_color||'#00ff88');
-      const agendaUrl=c.agenda&&clean(c.agenda.booking_url,1000)||null,whatsapp=clean(bot.owner_whatsapp,40)||null;
+      const agendaUrl=c.agenda&&clean(c.agenda.booking_url,1000)||null;
       let kind=generated.primaryCtaKind||'chat',url=null;
-      if(kind==='agenda'&&agendaUrl)url=agendaUrl;else if(kind==='whatsapp'&&whatsapp)url='https://wa.me/'+whatsapp.replace(/\D/g,'');else if(kind==='link'&&bot.website)url=bot.website;else kind='chat';
-      const saved=await save(bot,existing,{slug,status:existing&&existing.status==='published'?'published':'draft',theme:existing&&existing.theme||'aurora',accent_color:accent,logo_url:safeUrl(brand.logoUrl)||existing&&existing.logo_url||null,hero_image_url:safeUrl(brand.heroImageUrl)||existing&&existing.hero_image_url||null,eyebrow:clean(generated.eyebrow,120),title:clean(generated.title,220)||bot.company_name,subtitle:clean(generated.subtitle,900),about_title:clean(generated.aboutTitle,180),about_text:clean(generated.aboutText,2400),primary_cta_label:clean(generated.primaryCtaLabel,100)||'Falar agora',primary_cta_kind:kind,primary_cta_url:safeUrl(url),sections:sanitizeSections(generated.sections),faq:sanitizeFaq(generated.faq),contact:{whatsapp,email:bot.owner_email||bot.email||null,website:bot.website||null,bookingUrl:agendaUrl},seo:obj(generated.seo),source_website:bot.website||null,source_snapshot:{crawler:crawl&&crawl.source||null,pageCount:crawl&&crawl.pageCount||0,brand},generated_at:now()});
+      if(kind==='agenda'&&agendaUrl)url=agendaUrl;else if(kind==='link'&&bot.website)url=bot.website;else kind='chat';
+      const saved=await save(bot,existing,{slug,status:existing&&existing.status==='published'?'published':'draft',theme:existing&&existing.theme||'aurora',accent_color:accent,logo_url:safeUrl(brand.logoUrl)||existing&&existing.logo_url||null,hero_image_url:safeUrl(brand.heroImageUrl)||existing&&existing.hero_image_url||null,eyebrow:clean(generated.eyebrow,120),title:clean(generated.title,220)||bot.company_name,subtitle:clean(generated.subtitle,900),about_title:clean(generated.aboutTitle,180),about_text:clean(generated.aboutText,2400),primary_cta_label:clean(generated.primaryCtaLabel,100)||'Falar agora',primary_cta_kind:kind,primary_cta_url:safeUrl(url),sections:sanitizeSections(generated.sections),faq:sanitizeFaq(generated.faq),contact:{website:bot.website||null,bookingUrl:agendaUrl},seo:obj(generated.seo),source_website:bot.website||null,source_snapshot:{crawler:crawl&&crawl.source||null,pageCount:crawl&&crawl.pageCount||0,brand},generated_at:now()});
       return reply(200,{success:true,generated:true,site:publicSite(saved)});
     }
     if(action==='save'){
