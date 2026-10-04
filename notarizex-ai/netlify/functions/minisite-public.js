@@ -5,14 +5,17 @@ function clean(v,max=0){const s=String(v||'').trim();return max?s.slice(0,max):s
 async function db(path){const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!url||!key)throw new Error('Supabase indisponível.');return fetch(url+'/rest/v1/'+path,{headers:{apikey:key,Authorization:'Bearer '+key}})}
 async function rows(r,label){if(!r.ok)throw new Error(label+': '+(await r.text()).slice(0,500));return r.json()}
 function safe(site,bot){
-  return{
-    slug:site.slug,theme:site.theme,accentColor:site.accent_color,logoUrl:site.logo_url||null,heroImageUrl:site.hero_image_url||null,
-    eyebrow:site.eyebrow||null,title:site.title,subtitle:site.subtitle||null,aboutTitle:site.about_title||null,aboutText:site.about_text||null,
-    primaryCtaLabel:site.primary_cta_label||'Falar agora',primaryCtaKind:site.primary_cta_kind||'chat',primaryCtaUrl:site.primary_cta_url||null,
-    secondaryCtaLabel:site.secondary_cta_label||null,secondaryCtaUrl:site.secondary_cta_url||null,sections:Array.isArray(site.sections)?site.sections:[],
-    faq:Array.isArray(site.faq)?site.faq:[],contact:site.contact&&typeof site.contact==='object'?site.contact:{},seo:site.seo&&typeof site.seo==='object'?site.seo:{},
-    companyName:bot.company_name,botId:bot.bot_id,publishedAt:site.published_at||null,updatedAt:site.updated_at||null
-  }
+  const snap=site.published_snapshot&&typeof site.published_snapshot==='object'&&Object.keys(site.published_snapshot).length?site.published_snapshot:{
+    theme:site.theme,accentColor:site.accent_color,logoUrl:site.logo_url,heroImageUrl:site.hero_image_url,eyebrow:site.eyebrow,title:site.title,subtitle:site.subtitle,
+    aboutTitle:site.about_title,aboutText:site.about_text,primaryCtaLabel:site.primary_cta_label,primaryCtaKind:site.primary_cta_kind,primaryCtaUrl:site.primary_cta_url,
+    secondaryCtaLabel:site.secondary_cta_label,secondaryCtaUrl:site.secondary_cta_url,sections:site.sections,faq:site.faq,contact:site.contact,seo:site.seo
+  };
+  return{slug:site.slug,theme:snap.theme||'aurora',accentColor:snap.accentColor||'#00ff88',logoUrl:snap.logoUrl||null,heroImageUrl:snap.heroImageUrl||null,
+    eyebrow:snap.eyebrow||null,title:snap.title||bot.company_name,subtitle:snap.subtitle||null,aboutTitle:snap.aboutTitle||null,aboutText:snap.aboutText||null,
+    primaryCtaLabel:snap.primaryCtaLabel||'Falar agora',primaryCtaKind:snap.primaryCtaKind||'chat',primaryCtaUrl:snap.primaryCtaUrl||null,
+    secondaryCtaLabel:snap.secondaryCtaLabel||null,secondaryCtaUrl:snap.secondaryCtaUrl||null,sections:Array.isArray(snap.sections)?snap.sections:[],
+    faq:Array.isArray(snap.faq)?snap.faq:[],contact:snap.contact&&typeof snap.contact==='object'?snap.contact:{},seo:snap.seo&&typeof snap.seo==='object'?snap.seo:{},
+    companyName:bot.company_name,botId:bot.bot_id,publishedAt:site.published_at||null}
 }
 exports.handler=async event=>{
   if(event.httpMethod==='OPTIONS')return{statusCode:204,headers,body:''};
