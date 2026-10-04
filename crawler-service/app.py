@@ -101,13 +101,15 @@ def _extract(page, url: str):
     logo = ""
     for selector in (
         'img[src*="logo" i]::attr(src)',
-        'meta[property="og:image"]::attr(content)',
+        'img[class*="logo" i]::attr(src)',
         'link[rel*="icon"]::attr(href)',
     ):
         raw = _attr_first(page, selector)
         if raw:
             logo = urljoin(url, raw)
             break
+    hero_image = _attr_first(page, 'meta[property="og:image"]::attr(content)')
+    hero_image = urljoin(url, hero_image) if hero_image else ""
 
     colors = []
     if theme_color and re.fullmatch(r"#[0-9a-fA-F]{6}", theme_color):
@@ -129,7 +131,7 @@ def _extract(page, url: str):
         "description": description[:700],
         "text": text,
         "links": links,
-        "brand": {"logoUrl": logo, "colors": colors},
+        "brand": {"logoUrl": logo, "heroImageUrl": hero_image, "colors": colors},
     }
 
 
@@ -168,7 +170,7 @@ def _crawl(start_url: str, max_pages: int):
     visited = set()
     pages = []
     total = 0
-    brand = {"logoUrl": "", "colors": []}
+    brand = {"logoUrl": "", "heroImageUrl": "", "colors": []}
 
     while queue and len(pages) < max_pages and total < MAX_TOTAL_CHARS:
         queue.sort(key=lambda x: x[0], reverse=True)
@@ -188,6 +190,8 @@ def _crawl(start_url: str, max_pages: int):
         total += len(page["text"])
         if not brand["logoUrl"] and page["brand"].get("logoUrl"):
             brand["logoUrl"] = page["brand"]["logoUrl"]
+        if not brand["heroImageUrl"] and page["brand"].get("heroImageUrl"):
+            brand["heroImageUrl"] = page["brand"]["heroImageUrl"]
         for c in page["brand"].get("colors", []):
             if c not in brand["colors"]:
                 brand["colors"].append(c)
