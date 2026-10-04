@@ -1,0 +1,54 @@
+name: SmartBots MiniSite CI
+
+on:
+  pull_request:
+    paths:
+      - 'notarizex-ai/mini-site.*'
+      - 'notarizex-ai/minisite-public.*'
+      - 'notarizex-ai/netlify/functions/minisite-*.js'
+      - 'notarizex-ai/netlify/functions/lib/crawler-client.js'
+      - 'notarizex-ai/netlify/functions/onboarding-discovery.js'
+      - 'crawler-service/**'
+      - 'netlify.toml'
+      - '.github/workflows/smartbots-minisite-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'notarizex-ai/mini-site.*'
+      - 'notarizex-ai/minisite-public.*'
+      - 'notarizex-ai/netlify/functions/minisite-*.js'
+      - 'notarizex-ai/netlify/functions/lib/crawler-client.js'
+      - 'notarizex-ai/netlify/functions/onboarding-discovery.js'
+      - 'crawler-service/**'
+      - 'netlify.toml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: JavaScript syntax
+        run: |
+          node --check notarizex-ai/netlify/functions/minisite-manager.js
+          node --check notarizex-ai/netlify/functions/minisite-public.js
+          node --check notarizex-ai/netlify/functions/lib/crawler-client.js
+          node --check notarizex-ai/netlify/functions/onboarding-discovery.js
+          node --check notarizex-ai/mini-site.js
+          node --check notarizex-ai/minisite-public.js
+      - name: Python syntax
+        run: python -m py_compile crawler-service/app.py
+      - name: Security contract
+        run: |
+          ! grep -q "SUPABASE_ANON_KEY" notarizex-ai/netlify/functions/minisite-manager.js
+          ! grep -q "SUPABASE_ANON_KEY" notarizex-ai/netlify/functions/minisite-public.js
+          grep -q "resolvePortalSession" notarizex-ai/netlify/functions/minisite-manager.js
+          grep -q 'from = "/s/\*"' netlify.toml
+      - name: No provider secrets in browser files
+        run: |
+          ! grep -R -E "KAPSO_API_KEY|SUPABASE_SERVICE_ROLE_KEY|OPENAI_API_KEY|SMARTBOTS_CRAWLER_SECRET" notarizex-ai/mini-site.html notarizex-ai/mini-site.js notarizex-ai/minisite-public.html notarizex-ai/minisite-public.js
