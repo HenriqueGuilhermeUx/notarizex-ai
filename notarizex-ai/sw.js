@@ -1,5 +1,5 @@
-const CACHE_NAME = "smartbots-pwa-v1";
-const CORE = ["/", "/manifest.webmanifest"];
+const CACHE_NAME = "smartbots-pwa-v2";
+const CORE = ["/", "/smartbots-pwa.html", "/smartbots-pwa.css", "/smartbots-pwa.js", "/manifest.webmanifest", "/app-icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE)).catch(() => undefined));
