@@ -1,12 +1,14 @@
 {
-  "name": "SmartBots.club",
+  "id": "/smartbots-pwa.html",
+  "name": "SmartBots Hoje",
   "short_name": "SmartBots",
-  "description": "Atendimento com IA para WhatsApp e site.",
-  "start_url": "/painel",
+  "description": "CRM, ações, mensagens, oportunidades, agenda e bot em um app simples para vender mais.",
+  "start_url": "/smartbots-pwa.html",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#080b10",
-  "theme_color": "#080b10",
+  "orientation": "portrait-primary",
+  "background_color": "#020617",
+  "theme_color": "#020617",
   "lang": "pt-BR",
   "categories": ["business", "productivity", "utilities"],
   "icons": [
@@ -16,6 +18,12 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {"name":"Hoje","short_name":"Hoje","url":"/smartbots-pwa.html","icons":[{"src":"/app-icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"CRM","short_name":"CRM","url":"/smartbots-pwa.html?tab=crm","icons":[{"src":"/app-icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Ações","short_name":"Ações","url":"/smartbots-pwa.html?tab=acoes","icons":[{"src":"/app-icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Mensagens","short_name":"Mensagens","url":"/smartbots-pwa.html?tab=mensagens","icons":[{"src":"/app-icon.svg","sizes":"any","type":"image/svg+xml"}]}
   ],
   "prefer_related_applications": false
 }
