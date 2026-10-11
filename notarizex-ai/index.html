@@ -6,6 +6,14 @@
   <title>SmartBots.club | Atendimento com IA para WhatsApp e site</title>
   <meta name="description" content="Crie um SmartBot que aprende o seu negócio, atende clientes no WhatsApp e no site, organiza oportunidades e chama sua equipe quando necessário." />
   <meta name="robots" content="index,follow" />
+  <meta name="theme-color" content="#080b10" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SmartBots" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/app-icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/app-icon.svg" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -81,5 +89,14 @@
   </main>
 
   <footer class="border-t border-white/10 py-10 bg-[#080b10]"><div class="max-w-7xl mx-auto px-5 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500"><b class="text-xl"><span class="text-green-400">Smart</span>Bots.club</b><div class="flex gap-5 flex-wrap justify-center"><a class="hover:text-green-400" href="/criar">Criar SmartBot</a><a class="hover:text-green-400" href="/precos">Preços</a><a class="hover:text-green-400" href="/painel">Entrar</a><a class="hover:text-green-400" href="mailto:henriquecampos66@gmail.com">Suporte</a><span>© 2026 SmartBots.club</span></div></div></footer>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/sw.js").catch(function (error) {
+        console.warn("[SmartBots PWA] service worker não registrado:", error);
+      });
+    });
+  }
+</script>
 </body>
 </html>
