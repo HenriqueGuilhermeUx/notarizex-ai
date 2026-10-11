@@ -1,0 +1,26 @@
+{
+  "name": "SmartBots — Atendimento com IA",
+  "short_name": "SmartBots",
+  "description": "Atendimento, oportunidades e automações com IA para WhatsApp e site.",
+  "id": "/painel",
+  "start_url": "/painel",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080b10",
+  "theme_color": "#080b10",
+  "lang": "pt-BR",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/smartbots-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {"name":"Painel","short_name":"Painel","url":"/painel"},
+    {"name":"Entrar","short_name":"Entrar","url":"/login"}
+  ]
+}
