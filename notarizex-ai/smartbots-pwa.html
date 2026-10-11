@@ -24,6 +24,7 @@
       <div id="startActions" class="sb-stack">
         <button class="sb-primary" data-mode="signup">Criar meu negócio</button>
         <button class="sb-secondary" data-mode="login">Já tenho acesso</button>
+        <button class="sb-link" data-mode="tech">Acesso técnico</button>
       </div>
       <form id="signupForm" class="sb-stack hidden">
         <h2>Criar negócio</h2>
@@ -43,17 +44,19 @@
         <button class="sb-primary" type="submit">Entrar</button>
         <button class="sb-link" type="button" data-back>Voltar</button>
       </form>
+      <form id="techForm" class="sb-stack hidden">
+        <h2>Acesso técnico</h2>
+        <input id="techBotId" placeholder="Bot ID">
+        <input id="techToken" type="password" placeholder="Client token">
+        <button class="sb-primary" type="submit">Entrar</button>
+        <button class="sb-link" type="button" data-back>Voltar</button>
+      </form>
       <p id="authMessage" class="sb-message"></p>
       <p class="sb-footnote">A SmartBots prepara mensagens e abre o WhatsApp do cliente. Não faz disparo automático sem configuração específica.</p>
     </div>
   </div>
 
   <div id="app" class="hidden">
-    <header class="sb-header">
-      <img src="/app-icon.svg" alt="">
-      <div><strong>SmartBots Hoje</strong><span id="businessLabel">Seu negócio</span></div>
-      <button id="refreshBtn" aria-label="Atualizar">↻</button>
-    </header>
     <main id="content" class="sb-content"></main>
     <nav class="sb-tabs">
       <button data-tab="hoje" class="active"><span>⌂</span>Hoje</button>
