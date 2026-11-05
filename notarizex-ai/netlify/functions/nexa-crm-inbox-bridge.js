@@ -56,7 +56,7 @@ function projectMessage(row) {
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'GET') return json(405, {error:'method_not_allowed'});
-  const token = process.env.NEXA_CRM_BRIDGE_TOKEN;
+  const token = process.env.NEXA_CRM_INBOX_BRIDGE_TOKEN;
   const bearer = String(event.headers?.authorization || event.headers?.Authorization || '').replace(/^Bearer\s+/i, '');
   if (!authorized(bearer, token)) return json(401, {error:'unauthorized'});
 
