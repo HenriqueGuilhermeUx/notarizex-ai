@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const fetch = require('node-fetch');
+const { sendOpsAlert } = require('./lib/ops-alerts');
 
 const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 function reply(code, body) { return { statusCode: code, headers, body: JSON.stringify(body) }; }
@@ -102,6 +103,20 @@ exports.handler = async event => {
       })
     });
     if (!botPatch.ok) throw new Error(`Atualizar billing do SmartBot: ${(await botPatch.text()).slice(0, 500)}`);
+
+    await sendOpsAlert(
+      'SmartBots: pagamento confirmado',
+      [
+        'Empresa: '+(existing.company_name||existing.bot_id),
+        'Bot: '+existing.bot_id,
+        existing.customer_email?('Cliente: '+existing.customer_email):null,
+        'Plano: '+(existing.plan||'completo'),
+        'Valor: R$ '+(Number(existing.amount_cents||0)/100).toFixed(2).replace('.',','),
+        'Status: pagamento confirmado e assinatura ativada.',
+        'Validade atual: '+periodEnd.toISOString()
+      ].filter(Boolean).join('\n'),
+      {adminUrl:'https://smartbots.club/admin/capacidade'}
+    ).catch(error=>console.error('woovi-webhook alert',error.message));
 
     return reply(200, {
       success: true,
