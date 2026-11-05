@@ -52,9 +52,9 @@ exports.handler = async (event) => {
         countRows('smartbot_whatsapp_inbox',''),
         countRows('smartbot_whatsapp_messages','&direction=eq.inbound'),
         countRows('smartbot_whatsapp_messages','&direction=eq.outbound'),
-        countRows('smartbot_whatsapp_inbox','&status=eq.pending')
+        countRows('smartbot_whatsapp_inbox','&status=eq.human_needed')
       ]);
-      metrics = {conversations,inboundMessages:inbound,outboundMessages:outbound,pendingConversations:pending};
+      metrics = {conversations,inboundMessages:inbound,outboundMessages:outbound,humanNeededConversations:pending};
     } catch { /* Status remains available if metrics fail. */ }
     return json(200,{
       success:true,connected:config.status==='connected',mode:'read_only',
