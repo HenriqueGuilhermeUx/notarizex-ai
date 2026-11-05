@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const fetch = require('node-fetch');
 const { resolvePortalSession } = require('./lib/client-portal-session');
 const { PLANS, FOUNDER_LIMIT } = require('./lib/commercial-plans');
+const { sendOpsAlert } = require('./lib/ops-alerts');
 
 const headers = {
   'Content-Type': 'application/json',
@@ -105,6 +106,20 @@ async function createCharge(bot, existing) {
   if(!response.ok){console.error('client-billing woovi',response.status,JSON.stringify(raw).slice(0,500));throw new Error('Não foi possível gerar o Pix agora. Tente novamente em instantes.');}
   const charge=raw.charge || raw;
   const saved=await saveSubscription(bot,existing,plan,correlationID,charge,raw);
+  await sendOpsAlert(
+    'SmartBots: cliente gerou Pix para assinar',
+    [
+      'Empresa: '+(bot.company_name||bot.bot_id),
+      'Bot: '+bot.bot_id,
+      (bot.email||bot.owner_email)?('Cliente: '+(bot.email||bot.owner_email)):null,
+      'Plano: '+plan.name+' ('+plan.code+')',
+      'Valor: R$ '+(plan.amountCents/100).toFixed(2).replace('.',','),
+      'Status: Pix gerado, aguardando pagamento.',
+      '',
+      'Se o cliente for usar WhatsApp, confira o radar de capacidade em /admin/capacidade.'
+    ].filter(Boolean).join('\n'),
+    {adminUrl:'https://smartbots.club/admin/capacidade'}
+  ).catch(error=>console.error('client-billing alert',error.message));
   return {reused:false,active:false,subscription:publicSubscription(saved)};
 }
 
