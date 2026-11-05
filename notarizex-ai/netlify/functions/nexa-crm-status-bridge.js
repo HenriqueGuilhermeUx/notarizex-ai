@@ -32,11 +32,35 @@ exports.handler = async (event) => {
     const rows = await response.json();
     const config = Array.isArray(rows) ? rows[0] : null;
     if (!config || config.bot_id !== BOT_ID) return json(404,{error:'bot_not_found'});
+    // Counts only: no contact details, message bodies, phone numbers or payloads.
+    async function countRows(table, filter) {
+      const countUrl = url.replace(/\/+$/,'') + '/rest/v1/' + table +
+        '?bot_id=eq.' + encodeURIComponent(BOT_ID) + (filter || '') + '&select=id';
+      const res = await fetch(countUrl, {
+        method:'HEAD',
+        headers:{apikey:key,Authorization:'Bearer '+key,Prefer:'count=exact'},
+        signal:controller.signal
+      });
+      if (!res.ok) throw new Error('metrics_unavailable');
+      const range = res.headers.get('content-range') || '';
+      const total = Number(range.split('/').pop());
+      return Number.isSafeInteger(total) && total >= 0 ? total : null;
+    }
+    let metrics = null;
+    try {
+      const [conversations, inbound, outbound, pending] = await Promise.all([
+        countRows('smartbot_whatsapp_inbox',''),
+        countRows('smartbot_whatsapp_messages','&direction=eq.inbound'),
+        countRows('smartbot_whatsapp_messages','&direction=eq.outbound'),
+        countRows('smartbot_whatsapp_inbox','&status=eq.human_needed')
+      ]);
+      metrics = {conversations,inboundMessages:inbound,outboundMessages:outbound,humanNeededConversations:pending};
+    } catch { /* Status remains available if metrics fail. */ }
     return json(200,{
       success:true,connected:config.status==='connected',mode:'read_only',
       botId:BOT_ID,provider:config.provider,status:config.status,
       autoReply:config.auto_reply===true,webhookStatus:config.provider_message_webhook_status||null,
-      customerIdentityLinked:false,messageSyncEnabled:false
+      customerIdentityLinked:false,messageSyncEnabled:false,metrics
     });
   } catch {
     return json(502,{error:'upstream_unavailable'});
