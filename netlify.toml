@@ -114,3 +114,8 @@
   from = "/minisite"
   to = "/mini-site.html"
   status = 200
+
+[[redirects]]
+  from = "/admin/capacidade"
+  to = "/admin-capacidade.html"
+  status = 200
