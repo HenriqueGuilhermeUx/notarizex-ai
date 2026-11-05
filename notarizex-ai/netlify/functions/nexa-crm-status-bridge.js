@@ -15,14 +15,14 @@ function authorized(value, expected) {
 exports.handler = async (event) => {
   if (event.httpMethod !== 'GET') return json(405,{error:'method_not_allowed'});
   const secret = process.env.NEXA_CRM_BRIDGE_TOKEN;
-  const bearer = String(event.headers?.authorization || event.headers?.Authorization || '').replace(/^Bearer\\s+/i,'');
+  const bearer = String(event.headers?.authorization || event.headers?.Authorization || '').replace(/^Bearer\s+/i,'');
   if (!authorized(bearer, secret)) return json(401,{error:'unauthorized'});
   const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return json(503,{error:'not_configured'});
   const controller = new AbortController();
   const timeout = setTimeout(()=>controller.abort(),4500);
   try {
-    const endpoint = url.replace(/\\/+$/,'') + '/rest/v1/smartbot_whatsapp_config?bot_id=eq.' +
+    const endpoint = url.replace(/\/+$/,'') + '/rest/v1/smartbot_whatsapp_config?bot_id=eq.' +
       encodeURIComponent(BOT_ID) + '&select=bot_id,provider,status,auto_reply,provider_message_webhook_status&limit=1';
     const response = await fetch(endpoint,{
       headers:{apikey:key,Authorization:'Bearer '+key,Accept:'application/json'},
