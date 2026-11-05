@@ -41,7 +41,7 @@ body{margin:0;background:#0f1115;color:#fff;font-family:Inter,Arial,sans-serif}.
 </section>
 </main>
 <script>
-var invite=new URLSearchParams(location.search).get('invite')||'',poll=null,waMode='';
+var invite=new URLSearchParams(location.search).get('invite')||'',poll=null,capacityPoll=null,waMode='',readySetupUrl='';
 function el(id){return document.getElementById(id)}
 function setStatus(msg,type){var s=el('status');s.textContent=msg;s.className='status '+(type||'warn')}
 function connectionTypeForMode(mode){return mode==='business'?'coexistence':mode==='dedicated'?'dedicated':''}
@@ -95,19 +95,54 @@ async function requestHelp(){
     b.textContent='Ajuda solicitada';
   }catch(e){setStatus(e.message,'err');b.textContent='Tentar novamente';b.disabled=false}
 }
+async function checkPreparation(){
+  if(!waMode||waMode==='help'||waMode==='personal')return;
+  try{
+    var j=await api('start',{connectionType:connectionTypeForMode(waMode),selectedMode:waMode});
+    if(j.alreadyConnected||(j.config&&j.config.connected)){
+      if(capacityPoll){clearInterval(capacityPoll);capacityPoll=null}
+      setStatus('WhatsApp já está conectado ✓','ok');el('connectBtn').textContent='Conectado';el('connectBtn').disabled=true;return;
+    }
+    if(j.preparing){
+      setStatus(j.message||'Estamos preparando sua conexão. Você pode continuar configurando seu SmartBot enquanto isso.','warn');
+      el('connectBtn').textContent='Preparando sua conexão...';el('connectBtn').disabled=true;return;
+    }
+    if(j.setupUrl){
+      readySetupUrl=j.setupUrl;
+      if(capacityPoll){clearInterval(capacityPoll);capacityPoll=null}
+      setStatus('Sua conexão está pronta para continuar ✓','ok');
+      el('connectBtn').textContent='Continuar conexão do WhatsApp';el('connectBtn').disabled=false;
+    }
+  }catch(_){}
+}
 async function start(){
   if(!waMode)return;
   if(waMode==='help'||waMode==='personal'){return requestHelp()}
-  var b=el('connectBtn');b.disabled=true;b.textContent='Preparando conexão...';
+  var b=el('connectBtn');
+  if(readySetupUrl){
+    window.open(readySetupUrl,'_blank','noopener,noreferrer');
+    setStatus('Conexão oficial aberta. Conclua os passos e depois volte para esta aba.','warn');
+    b.textContent='Abrir conexão novamente';b.disabled=false;
+    if(!poll)poll=setInterval(checkStatus,5000);
+    return;
+  }
+  b.disabled=true;b.textContent='Preparando conexão...';
   try{
     var j=await api('start',{connectionType:connectionTypeForMode(waMode),selectedMode:waMode});
     if(j.alreadyConnected||(j.config&&j.config.connected)){setStatus('WhatsApp já está conectado ✓','ok');b.textContent='Conectado';return}
+    if(j.preparing){
+      setStatus(j.message||'Estamos preparando sua conexão do WhatsApp. Você pode continuar configurando seu SmartBot enquanto isso.','warn');
+      b.textContent='Preparando sua conexão...';b.disabled=true;
+      if(!capacityPoll)capacityPoll=setInterval(checkPreparation,30000);
+      return;
+    }
     if(!j.setupUrl)throw new Error('Não foi possível abrir a conexão agora.');
+    readySetupUrl=j.setupUrl;
     setStatus('Conexão oficial aberta. Conclua os passos e depois volte para esta aba.','warn');
     window.open(j.setupUrl,'_blank','noopener,noreferrer');
     b.textContent='Abrir conexão novamente';b.disabled=false;
     if(!poll)poll=setInterval(checkStatus,5000);
-  }catch(e){setStatus(e.message,'err');b.textContent='Tentar novamente';b.disabled=false}
+  }catch(e){setStatus('Estamos concluindo uma configuração do seu canal. Tente novamente em alguns instantes.','warn');b.textContent='Tentar novamente';b.disabled=false}
 }
 el('connectBtn').addEventListener('click',start);
 window.addEventListener('load',checkStatus);
