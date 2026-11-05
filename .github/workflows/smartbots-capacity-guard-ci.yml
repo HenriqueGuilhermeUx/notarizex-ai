@@ -1,0 +1,70 @@
+name: SmartBots Capacity Guard CI
+
+on:
+  pull_request:
+    paths:
+      - 'notarizex-ai/netlify/functions/lib/ops-alerts.js'
+      - 'notarizex-ai/netlify/functions/lib/provider-capacity.js'
+      - 'notarizex-ai/netlify/functions/whatsapp-config.js'
+      - 'notarizex-ai/netlify/functions/whatsapp-connect-invite.js'
+      - 'notarizex-ai/netlify/functions/client-billing.js'
+      - 'notarizex-ai/netlify/functions/woovi-webhook.js'
+      - 'notarizex-ai/netlify/functions/website-bot-onboarding.js'
+      - 'notarizex-ai/netlify/functions/admin-provider-capacity.js'
+      - 'notarizex-ai/conectar-whatsapp.html'
+      - 'notarizex-ai/admin-capacidade.html'
+      - 'notarizex-ai/admin-clientes.html'
+      - 'notarizex-ai/sql/20261105_provider_capacity_guard.sql'
+      - 'netlify.toml'
+      - '.github/workflows/smartbots-capacity-guard-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'notarizex-ai/netlify/functions/lib/ops-alerts.js'
+      - 'notarizex-ai/netlify/functions/lib/provider-capacity.js'
+      - 'notarizex-ai/netlify/functions/whatsapp-config.js'
+      - 'notarizex-ai/netlify/functions/whatsapp-connect-invite.js'
+      - 'notarizex-ai/netlify/functions/client-billing.js'
+      - 'notarizex-ai/netlify/functions/woovi-webhook.js'
+      - 'notarizex-ai/netlify/functions/website-bot-onboarding.js'
+      - 'notarizex-ai/netlify/functions/admin-provider-capacity.js'
+      - 'notarizex-ai/conectar-whatsapp.html'
+      - 'notarizex-ai/admin-capacidade.html'
+      - 'notarizex-ai/admin-clientes.html'
+      - 'notarizex-ai/sql/20261105_provider_capacity_guard.sql'
+      - 'netlify.toml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: JavaScript syntax
+        run: |
+          node --check notarizex-ai/netlify/functions/lib/ops-alerts.js
+          node --check notarizex-ai/netlify/functions/lib/provider-capacity.js
+          node --check notarizex-ai/netlify/functions/whatsapp-config.js
+          node --check notarizex-ai/netlify/functions/whatsapp-connect-invite.js
+          node --check notarizex-ai/netlify/functions/client-billing.js
+          node --check notarizex-ai/netlify/functions/woovi-webhook.js
+          node --check notarizex-ai/netlify/functions/website-bot-onboarding.js
+          node --check notarizex-ai/netlify/functions/admin-provider-capacity.js
+      - name: Customer-safe capacity contract
+        run: |
+          grep -q "preparing:true" notarizex-ai/netlify/functions/whatsapp-config.js
+          grep -q "Estamos preparando sua conexão do WhatsApp" notarizex-ai/netlify/functions/whatsapp-config.js
+          grep -q "capacityPoll" notarizex-ai/conectar-whatsapp.html
+          grep -q "smartbot_reserve_provider_capacity" notarizex-ai/sql/20261105_provider_capacity_guard.sql
+          ! grep -q "KAPSO_CAPACITY_FULL'?503" notarizex-ai/netlify/functions/whatsapp-connect-invite.js
+      - name: Alert contract
+        run: |
+          grep -q "SMARTBOTS_ALERT_EMAIL" notarizex-ai/netlify/functions/lib/ops-alerts.js
+          grep -q "cliente gerou Pix" notarizex-ai/netlify/functions/client-billing.js
+          grep -q "pagamento confirmado" notarizex-ai/netlify/functions/woovi-webhook.js
+          grep -q "novo cliente" notarizex-ai/netlify/functions/website-bot-onboarding.js
+      - name: Browser files contain no server secrets
+        run: |
+          ! grep -R -E "KAPSO_API_KEY|SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|SMARTBOTS_ALERT_EMAIL" notarizex-ai/conectar-whatsapp.html notarizex-ai/admin-capacidade.html

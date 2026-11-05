@@ -68,7 +68,7 @@ jobs:
           if(plans.PLANS.nexoffice.public!==false)throw new Error('NexOffice plan must remain private');
           const addon=fs.readFileSync('notarizex-ai/netlify/functions/nexoffice-addon.js','utf8');
           if(!addon.includes('NEXOFFICE_SERVICE_KEY')||!addon.includes('timingSafeEqual'))throw new Error('Trusted partner auth missing');
-          if(!addon.includes("purpose:'nexoffice_partner_handoff'"))throw new Error('Opaque partner handoff missing');
+          if(!/purpose\s*:\s*['"]nexoffice_partner_handoff['"]/.test(addon))throw new Error('Opaque partner handoff missing');
           const billing=fs.readFileSync('notarizex-ai/netlify/functions/client-billing.js','utf8');
           if(!billing.includes('nexOfficeEligible'))throw new Error('Server-side NexOffice eligibility missing');
           const landing=fs.readFileSync('notarizex-ai/nexoffice-handoff.html','utf8');
