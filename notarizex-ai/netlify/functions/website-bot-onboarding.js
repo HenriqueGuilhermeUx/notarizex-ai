@@ -4,6 +4,7 @@ const pdfParse=require('pdf-parse');
 const {scrapeWebsiteDeep}=require('./lib/scraper');
 const {TYPES,analyzeWebsite,buildQuestionnaire,normalizeAnswers,completeness,answersToKnowledge,suggestedProfile,summarizePages}=require('./lib/onboarding-intelligence');
 const {validateAdminSession}=require('./smartbots-admin-auth');
+const {sendOpsAlert}=require('./lib/ops-alerts');
 
 function clean(v){return String(v||'').replace(/\s+/g,' ').trim()}
 function text(v,max=0){const s=String(v||'').trim();return max?s.slice(0,max):s}
@@ -116,7 +117,22 @@ exports.handler=async(event)=>{
       try{await sendActivationEmail(RESEND_API_KEY,email,companyName,activation.activationUrl,activation.expiresAt)}catch(e){console.error('[Website Bot Onboarding] activation email:',e.message)}
     }
 
-    if(RESEND_API_KEY){try{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);await fetch('https://api.resend.com/emails',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${RESEND_API_KEY}`},body:JSON.stringify({from:'SmartBots <noreply@smartbots.club>',to:'henriquecampos66@gmail.com',subject:`Novo SmartBot: ${companyName}`,text:`Novo cliente SmartBots\nEmpresa: ${companyName}\nBot: ${botId}\nTipo: ${TYPES[businessType].label}\nPáginas: ${crawl?crawl.pageCount:0}\nConhecimentos: ${knowledgeItems.length}\nBriefing: ${intakeCompleteness}%\nOrigem: ${adminProvision?'provisionamento administrativo':'self-service trial'}\nCobrança: definida somente após escolha/configuração do plano.`})});clearTimeout(timer)}catch(e){console.error('[Website Bot Onboarding] admin email:',e.message)}}
+    await sendOpsAlert(
+      `SmartBots: novo cliente — ${companyName}`,
+      [
+        'Empresa: '+companyName,
+        'Bot: '+botId,
+        email?('Cliente: '+email):null,
+        whatsapp?('WhatsApp informado: '+whatsapp):null,
+        'Tipo: '+TYPES[businessType].label,
+        'Páginas importadas: '+String(crawl?crawl.pageCount:0),
+        'Fontes de conhecimento: '+String(knowledgeItems.length),
+        'Briefing: '+String(intakeCompleteness)+'%',
+        'Origem: '+(adminProvision?'provisionamento administrativo':'self-service trial'),
+        'Status: SmartBot criado; ativação/onboarding iniciado.'
+      ].filter(Boolean).join('\n'),
+      {adminUrl:'https://smartbots.club/admin/clientes'}
+    ).catch(e=>console.error('[Website Bot Onboarding] ops alert:',e.message));
 
     const common={message:'SmartBot criado com onboarding inteligente!',brain:'responses',model:'gpt-5.6-luna',businessType,businessTypeLabel:TYPES[businessType].label,knowledgeItems:knowledgeItems.length,pagesImported:crawl?crawl.pageCount:0,profileCreated:true,intakeCompleteness,adminProvision};
     if(adminProvision)return json(200,{...common,botId,status:'active'});
