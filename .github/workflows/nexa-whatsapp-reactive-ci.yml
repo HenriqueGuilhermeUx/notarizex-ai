@@ -1,0 +1,48 @@
+name: Nexa WhatsApp Reactive Onboarding CI
+
+on:
+  pull_request:
+    paths:
+      - 'notarizex-ai/netlify/functions/kapso-webhook.js'
+      - 'notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js'
+      - 'notarizex-ai/test/nexa-reactive-onboarding.test.js'
+      - '.github/workflows/nexa-whatsapp-reactive-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'notarizex-ai/netlify/functions/kapso-webhook.js'
+      - 'notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js'
+      - 'notarizex-ai/test/nexa-reactive-onboarding.test.js'
+      - '.github/workflows/nexa-whatsapp-reactive-ci.yml'
+
+jobs:
+  safe-reactive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check Nexa webhook and helper
+        run: |
+          node --check notarizex-ai/netlify/functions/kapso-webhook.js
+          node --check notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js
+          node --check notarizex-ai/test/nexa-reactive-onboarding.test.js
+      - name: Test safe Nexa-only reactive onboarding
+        run: node --test notarizex-ai/test/nexa-reactive-onboarding.test.js
+      - name: Fail closed on unauthorized proactive marketing
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const helper=fs.readFileSync('notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js','utf8');
+          const hook=fs.readFileSync('notarizex-ai/netlify/functions/kapso-webhook.js','utf8');
+          for (const marker of [
+            'site-nexa-20260923-live','humanPending','isMenuReply',
+            'Não envie CPF','resolveReactiveTurn'
+          ]) {
+            if (!helper.includes(marker) && !hook.includes(marker)) throw new Error('Safety marker missing');
+          }
+          if (!hook.includes('nexMsgProcessed')) throw new Error('Provider idempotency check missing');
+          if (!hook.includes('cfg.auto_reply===true')) throw new Error('Automatic response gating missing');
+          console.log('Reactive support safety contracts OK');
+          NODE

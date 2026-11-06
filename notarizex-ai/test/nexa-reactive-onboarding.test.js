@@ -1,0 +1,93 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const {
+  MENU, ANSWERS, isNexa, isGenericGreeting, isMenuReply, resolveReactiveTurn
+} = require('../netlify/functions/lib/nexa-reactive-onboarding');
+
+const botId = 'site-nexa-20260923-live';
+const decide = (message, overrides={}) => resolveReactiveTurn({
+  botId, message, hasExistingInbox:false,latestOutbound:'',humanPending:false,
+  ...overrides
+});
+
+test('only the Nexa bot receives the new routing',()=>{
+  assert.equal(isNexa(botId),true);
+  assert.equal(isNexa('site-other-bot'),false);
+  assert.equal(resolveReactiveTurn({botId:'another',message:'oi',hasExistingInbox:false}),null);
+});
+
+test('first generic greeting opens a short menu, not the sales funnel',()=>{
+  for (const greeting of ['Oi', 'Olá!', 'bom dia', 'boa tarde', 'oi Nexa']) {
+    const result=decide(greeting);
+    assert.equal(result.handled,true);
+    assert.equal(result.reply,MENU);
+    assert.equal(result.reason,'requested_menu');
+    assert.equal(result.handoffRequested,false);
+  }
+  assert.equal(isMenuReply(MENU),true);
+  assert.equal(isGenericGreeting('Olá, preciso de ajuda com uma operação'),false);
+});
+
+test('specific issue on first message goes directly to existing AI',()=>{
+  assert.equal(decide('Minha transação não aparece no extrato'),null);
+  assert.equal(decide('Minha sessão de identificação expirou'),null);
+});
+
+test('do not repeat menu for an existing client who says hello',()=>{
+  assert.equal(decide('oi',{hasExistingInbox:true}),null);
+  assert.equal(decide('menu',{hasExistingInbox:true}).reply,MENU);
+  assert.equal(decide('opções',{hasExistingInbox:true}).reply,MENU);
+});
+
+test('number selection requires a previously presented menu',()=>{
+  assert.equal(decide('2',{hasExistingInbox:true}),null);
+  for (let choice=1;choice<=6;choice++) {
+    const result=decide(String(choice),{hasExistingInbox:true,latestOutbound:MENU});
+    assert.equal(result.handled,true);
+    assert.equal(result.reason,'selected_menu_option');
+    assert.ok(result.reply.length>50);
+  }
+});
+
+test('identity guidance is through the official secure account, not WhatsApp CPF',()=>{
+  const result=decide('2',{hasExistingInbox:true,latestOutbound:MENU});
+  assert.ok(result.reply.includes('Didit'));
+  assert.ok(result.reply.includes('Não envie CPF'));
+  assert.equal(result.handoffRequested,undefined);
+  assert.ok(!result.reply.includes('chave Pix'));
+});
+
+test('deposit issues and human requests are escalated, not sold',()=>{
+  for (const v of ['4','6']){
+    const result=decide(v,{hasExistingInbox:true,latestOutbound:MENU});
+    assert.equal(result.handoffRequested,true);
+    assert.equal(result.intent,'handoff');
+    assert.equal(result.reply.includes('CPF'),true);
+  }
+  const human=decide('quero falar com atendente',{hasExistingInbox:true});
+  assert.equal(human.handoffRequested,true);
+});
+
+test('human pending conversations are handed off silently',()=>{
+  const r=decide('Ainda não responderam?',{
+    hasExistingInbox:true,humanPending:true,latestOutbound:MENU,
+  });
+  assert.equal(r.handled,true);
+  assert.equal(r.reply,null);
+  assert.equal(r.handoffRequested,true);
+});
+
+test('accidentally sent CPF is not reflected in a response',()=>{
+  const sample='Meu CPF é 123.456.789-09, quero ajuda';
+  const r=decide(sample);
+  assert.equal(r.reason,'unsafe_identifier');
+  assert.equal(r.reply.includes('123'),false);
+  assert.equal(r.reply.includes('CPF'),true);
+});
+
+test('no menu reply contains exchange solicitations, promises or payment instructions',()=>{
+  for (const msg of [MENU,...Object.values(ANSWERS).map(item=>item.reply)]){
+    assert.doesNotMatch(msg,/rendimento garantido|mande um pix|depositar agora|transfira valores|ganho certo|chave pix:/i);
+  }
+});
