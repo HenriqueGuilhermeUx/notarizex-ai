@@ -1,6 +1,7 @@
 const crypto=require('crypto');
 const fetch=require('node-fetch');
 const {WhatsAppClient}=require('@kapso/whatsapp-cloud-api');
+const nexaReactive=require('./lib/nexa-reactive-onboarding');
 
 const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':'*'};
 function reply(c,b){return{statusCode:c,headers,body:JSON.stringify(b)}}
@@ -23,6 +24,94 @@ async function upsertInbox(botId,phone,name,text,intent,status='new'){const r=aw
 async function saveInbound(botId,inbox,phone,name,text,msg,raw){const r=await db('smartbot_whatsapp_messages',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({bot_id:botId,inbox_id:inbox&&inbox.id,direction:'inbound',contact_phone:phone,contact_name:name,message:text,provider:'kapso',provider_message_id:clean(msg&&msg.id)||null,payload:raw,delivery_status:'received',status_updated_at:new Date().toISOString()})});if(!r.ok)throw new Error(await r.text())}
 async function callBrain(botId,phone,name,text){try{const r=await fetch((env('URL')||'https://smartbots.club')+'/.netlify/functions/smartbot-conversation-router',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({botId,visitorId:'wa_'+phone,channel:'whatsapp',contactPhone:phone,contactName:name||null,message:text})});const j=await r.json().catch(()=>({success:false}));if(!r.ok)return{success:false,error:j.error||('brain http '+r.status)};return j}catch(e){return{success:false,error:e.message}}}
 async function sendReply(phoneNumberId,to,body){const apiKey=env('KAPSO_API_KEY');if(!apiKey||!phoneNumberId||!body)return null;const client=new WhatsAppClient({baseUrl:'https://api.kapso.ai/meta/whatsapp',kapsoApiKey:apiKey});return client.messages.sendText({phoneNumberId,to,body})}
-async function handleInbound(item,raw){if(!item||!item.phoneNumberId||!item.phone||!item.text)return{handled:false,reason:'missing inbound fields'};const cfg=await botForPhone(item.phoneNumberId);if(!cfg||!cfg.bot_id)return{handled:false,reason:'numero Kapso nao associado a bot SmartBots'};const brain=await callBrain(cfg.bot_id,item.phone,item.name,item.text);const intent=clean(brain.intent)||'duvida';const inboxStatus=brain.handoffRequested?'human_needed':(brain.pipelineStatus==='pronto_para_contato'?'commercial_ready':'new');const inbox=await upsertInbox(cfg.bot_id,item.phone,item.name,item.text,intent,inboxStatus);await saveInbound(cfg.bot_id,inbox,item.phone,item.name,item.text,item.message,raw);await recordUsage(cfg.bot_id,'whatsapp_message_received','inbound',{providerMessageId:clean(item.message&&item.message.id)||null,intent});if(cfg.auto_reply===true&&brain.success&&brain.reply){const sent=await sendReply(item.phoneNumberId,item.phone,brain.reply);const providerMessageId=clean(sent&&sent.messages&&sent.messages[0]&&sent.messages[0].id)||null;await db('smartbot_whatsapp_messages',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({bot_id:cfg.bot_id,inbox_id:inbox.id,direction:'outbound',contact_phone:item.phone,contact_name:item.name,message:brain.reply,provider:'kapso',provider_message_id:providerMessageId,payload:sent,delivery_status:providerMessageId?'sent':'submitted',status_updated_at:new Date().toISOString()})}).catch(()=>null);await recordUsage(cfg.bot_id,'whatsapp_message_sent','outbound',{providerMessageId,intent})}return{handled:true,inboxId:inbox.id,intent,leadId:brain.leadId||null,pipelineStatus:brain.pipelineStatus||null,handoffRequested:!!brain.handoffRequested,brainSuccess:!!brain.success,brainError:brain.error||null}}
+async function getNexaInbox(botId,phone) {
+  const r=await db('smartbot_whatsapp_inbox?bot_id=eq.'+encodeURIComponent(botId)+
+    '&contact_phone=eq.'+encodeURIComponent(phone)+'&select=id,status&limit=1');
+  if(!r.ok)throw new Error('Nexa inbox indisponivel');
+  return (await r.json())[0]||null;
+}
+
+async function nexMsgProcessed(botId,providerMessageId) {
+  if(!providerMessageId)return null;
+  const r=await db('smartbot_whatsapp_messages?bot_id=eq.'+encodeURIComponent(botId)+
+    '&provider=eq.kapso&direction=eq.inbound&provider_message_id=eq.'+
+    encodeURIComponent(providerMessageId)+'&select=id&limit=1');
+  if(!r.ok)throw new Error('Nexa webhook dedupe indisponivel');
+  return Boolean((await r.json())[0]);
+}
+
+async function lastNexaOutbound(botId,phone) {
+  const r=await db('smartbot_whatsapp_messages?bot_id=eq.'+encodeURIComponent(botId)+
+    '&contact_phone=eq.'+encodeURIComponent(phone)+
+    '&direction=eq.outbound&select=message&order=created_at.desc&limit=1');
+  if(!r.ok)throw new Error('Nexa menu history indisponivel');
+  return (await r.json())[0]?.message||'';
+}
+
+async function handleInbound(item,raw) {
+  if(!item||!item.phoneNumberId||!item.phone||!item.text)
+    return {handled:false,reason:'missing inbound fields'};
+  const cfg=await botForPhone(item.phoneNumberId);
+  if(!cfg||!cfg.bot_id)
+    return {handled:false,reason:'numero Kapso nao associado a bot SmartBots'};
+
+  const isNexa=nexaReactive.isNexa(cfg.bot_id);
+  let plan=null;
+  let originalInbox=null;
+  if(isNexa) {
+    const providerId=clean(item.message&&item.message.id);
+    if(!providerId)return {handled:false,reason:'nexa_provider_message_id_missing'};
+    if(await nexMsgProcessed(cfg.bot_id,providerId))
+      return {handled:true,reason:'duplicate_ignored',inboundDuplicate:true};
+    originalInbox=await getNexaInbox(cfg.bot_id,item.phone);
+    const numericChoice=/^[1-6]$/.test(item.text.trim());
+    const latest=numericChoice
+      ? await lastNexaOutbound(cfg.bot_id,item.phone) : '';
+    plan=nexaReactive.resolveReactiveTurn({
+      botId:cfg.bot_id,message:item.text,
+      hasExistingInbox:Boolean(originalInbox),
+      latestOutbound:latest,
+      humanPending:originalInbox?.status==='human_needed'
+    });
+  }
+  const brain=plan
+    ? {success:true,reply:plan.reply,intent:plan.intent,
+       handoffRequested:Boolean(plan.handoffRequested),pipelineStatus:null}
+    : await callBrain(cfg.bot_id,item.phone,item.name,item.text);
+  const intent=clean(brain.intent)||'duvida';
+  const inboxStatus=brain.handoffRequested?'human_needed'
+    :(brain.pipelineStatus==='pronto_para_contato'?'commercial_ready':'new');
+  const inbox=await upsertInbox(cfg.bot_id,item.phone,item.name,item.text,intent,inboxStatus);
+  const safeInbound=(isNexa&&plan?.reason==='unsafe_identifier')
+    ?'[identificador pessoal omitido]' : item.text;
+  const safeRaw=(isNexa&&plan?.reason==='unsafe_identifier')
+    ?{removed_sensitive_payload:true,providerMessageId:clean(item.message&&item.message.id)}
+    :raw;
+  await saveInbound(cfg.bot_id,inbox,item.phone,item.name,safeInbound,item.message,safeRaw);
+  await recordUsage(cfg.bot_id,'whatsapp_message_received','inbound',
+    {providerMessageId:clean(item.message&&item.message.id)||null,intent});
+  if(cfg.auto_reply===true&&brain.success&&brain.reply) {
+    const sent=await sendReply(item.phoneNumberId,item.phone,brain.reply);
+    const providerMessageId=clean(sent&&sent.messages&&sent.messages[0]&&sent.messages[0].id)||null;
+    await db('smartbot_whatsapp_messages',{
+      method:'POST',headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({
+        bot_id:cfg.bot_id,inbox_id:inbox.id,direction:'outbound',
+        contact_phone:item.phone,contact_name:item.name,message:brain.reply,
+        provider:'kapso',provider_message_id:providerMessageId,
+        payload:sent,delivery_status:providerMessageId?'sent':'submitted',
+        status_updated_at:new Date().toISOString()
+      })
+    }).catch(()=>null);
+    await recordUsage(cfg.bot_id,'whatsapp_message_sent','outbound',{providerMessageId,intent});
+  }
+  return {
+    handled:true,inboxId:inbox.id,intent,leadId:brain.leadId||null,
+    pipelineStatus:brain.pipelineStatus||null,
+    handoffRequested:!!brain.handoffRequested,
+    brainSuccess:!!brain.success,brainError:brain.error||null,
+    nexReactiveReason:plan?.reason||null
+  };
+}
 async function handleStatus(eventName,payload){const msg=payload&&payload.message||{};const providerMessageId=clean(msg.id);if(!providerMessageId)return{handled:false,reason:'status without message id'};const cfg=await botForPhone(clean(payload&&payload.phone_number_id));if(!cfg)return{handled:false,reason:'numero Kapso nao associado a bot SmartBots'};const status=clean(msg&&msg.kapso&&msg.kapso.status)||eventName.replace('whatsapp.message.','');const r=await db('smartbot_whatsapp_messages?provider=eq.kapso&provider_message_id=eq.'+encodeURIComponent(providerMessageId),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({delivery_status:status,status_updated_at:new Date().toISOString(),status_payload:payload})});const rows=r.ok?await r.json():[];return{handled:true,botId:cfg.bot_id,status,matched:rows.length>0,providerMessageId}}
 exports.handler=async(ev)=>{if(ev.httpMethod!=='POST')return reply(200,{success:true});const rawBuf=rawBuffer(ev);if(!authorized(ev,rawBuf))return reply(401,{success:false,error:'Webhook nao autorizado'});const eventName=clean(header(ev,'x-webhook-event'));const idem=clean(header(ev,'x-idempotency-key'));let raw;try{raw=JSON.parse(rawBuf.toString('utf8')||'{}')}catch(e){return reply(400,{success:false,error:'JSON invalido'})}const isBatch=(String(header(ev,'x-webhook-batch')).toLowerCase()==='true'||raw.batch===true);const payloads=isBatch&&Array.isArray(raw.data)?raw.data:[raw];const preAudit=[];for(const payload of payloads){preAudit.push(await createAudit({event_name:eventName||null,idempotency_key:idem||null,is_batch:isBatch,phone_number_id:clean(payload&&payload.phone_number_id)||null,status:'received',payload}))}let handled=0;const results=[];for(let i=0;i<payloads.length;i++){const payload=payloads[i],auditId=preAudit[i];try{let r;if(eventName==='whatsapp.message.received'||(!eventName&&payload&&payload.message)){const item=v2Inbound(payload);if(!item)r={handled:false,reason:'not inbound message'};else r=await handleInbound(item,payload)}else if(['whatsapp.message.sent','whatsapp.message.delivered','whatsapp.message.read','whatsapp.message.failed'].includes(eventName)){r=await handleStatus(eventName,payload)}else r={handled:false,reason:'event ignored'};if(r.handled)handled++;await updateAudit(auditId,r.handled?'processed':'ignored',r.reason||r.brainError||null);results.push(r)}catch(e){await updateAudit(auditId,'error',e.message);results.push({handled:false,error:e.message})}}return reply(200,{success:true,handled,batch:isBatch,count:payloads.length,results})};
