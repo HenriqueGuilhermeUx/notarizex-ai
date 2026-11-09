@@ -2,7 +2,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  MENU, ANSWERS, isNexa, isGenericGreeting, isMenuReply, resolveReactiveTurn
+  MENU, ANSWERS, STOP_REPLY, isNexa, isGenericGreeting,
+  isMenuReply, isStopRequest, resolveReactiveTurn
 } = require('../netlify/functions/lib/nexa-reactive-onboarding');
 
 const botId = 'site-nexa-20260923-live';
@@ -84,6 +85,44 @@ test('accidentally sent CPF is not reflected in a response',()=>{
   assert.equal(r.reason,'unsafe_identifier');
   assert.equal(r.reply.includes('123'),false);
   assert.equal(r.reply.includes('CPF'),true);
+});
+
+test('SAIR / STOP are exact requests, never substring interpretations',()=>{
+  for(const msg of ['SAIR','stop','Parar!','descadastrar',
+    'cancelar mensagens','não quero receber avisos','unsubscribe']) {
+    assert.equal(isStopRequest(msg),true,msg);
+  }
+  for(const msg of ['Quero sair da minha conta','Minha operação não para',
+    'Pode me ajudar a cancelar minha operação?','sair com cartão','parar de perder dinheiro']) {
+    assert.equal(isStopRequest(msg),false,msg);
+  }
+});
+
+test('SAIR overrides human pending, requests no marketing and is Nexa-only',()=>{
+  const result=decide('SAIR',{humanPending:true,hasExistingInbox:true});
+  assert.equal(result.reason,'whatsapp_opt_out');
+  assert.equal(result.reply,STOP_REPLY);
+  assert.equal(result.handoffRequested,false);
+  assert.equal(result.intent,'opt_out');
+  assert.match(result.reply,/Registramos seu pedido/);
+  assert.doesNotMatch(result.reply,/Pix|USDC|compra|depósito/i);
+  assert.equal(resolveReactiveTurn({
+    botId:'other',message:'SAIR',hasExistingInbox:true,humanPending:true,
+  }),null);
+});
+
+test('webhook requires durable database acknowledgement before STOP confirmation',()=>{
+  const fs=require('node:fs');
+  const path=require('node:path');
+  const webhook=fs.readFileSync(path.join(__dirname,'../netlify/functions/kapso-webhook.js'),'utf8');
+  const table=fs.readFileSync(path.join(__dirname,'../sql/20261108_nexa_whatsapp_suppression.sql'),'utf8');
+  assert.ok(webhook.includes('await recordNexaOptOut(cfg.bot_id,item.phone,providerId)'));
+  assert.ok(webhook.includes("resolution=ignore-duplicates,return=minimal"));
+  assert.ok(webhook.includes('if(!response.ok)'));
+  assert.ok(table.includes('ENABLE ROW LEVEL SECURITY'));
+  assert.ok(table.includes('REVOKE ALL ON TABLE'));
+  assert.ok(table.includes('PRIMARY KEY (bot_id, contact_phone)'));
+  assert.doesNotMatch(webhook,/sendTemplate|sendBulk|sendMarketing|broadcast/i);
 });
 
 test('no menu reply contains exchange solicitations, promises or payment instructions',()=>{
