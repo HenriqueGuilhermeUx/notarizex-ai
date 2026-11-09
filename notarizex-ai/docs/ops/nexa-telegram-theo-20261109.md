@@ -42,3 +42,10 @@ Documentação Telegram: https://core.telegram.org/bots/api e https://core.teleg
 - [ ] Confirmar no Supabase SmartBots a criação de registro na fila de handoff; responder no CRM apenas como atendimento, nunca como identidade financeira verificada.
 - [ ] **Somente depois** incluir o CTA público `https://t.me/NexaTheoBot` no site Nexa. Canal editorial `https://t.me/NexaInsights` permanece independente.
 - Se houver erro de entrega, definir ENABLED=false, redeploy e revisar getWebhookInfo/logs; também desregistrar webhook se necessário. Não publicar status ativo prematuramente.
+
+## Operação — preparação do ambiente em 09/11/2026
+- O administrador informou que as variáveis do Telegram foram cadastradas no projeto Netlify `notarizex-ai` (`smartbots.club`).
+- Inspeção de configuração confirmou presença de `NEXA_TELEGRAM_BOT_TOKEN` e `NEXA_TELEGRAM_WEBHOOK_SECRET` como segredos com escopo Functions. Os valores ocultos não foram validados contra a API do Telegram; `getMe` continua obrigatório.
+- A flag `NEXA_TELEGRAM_ENABLED` foi alterada para `true` no Netlify. Este commit inicia um deploy via Git para aplicar a nova configuração nas funções, sem registrar webhook nem enviar mensagens.
+- **Não divulgar o bot como ativo** até que o responsável execute o script de ativação e confirme `getWebhookInfo`, `/start` e fila de suporte.
+- Separar atualização das variáveis, publicação Netlify e ativação Telegram: deploy READY não equivale a webhook registrado.
