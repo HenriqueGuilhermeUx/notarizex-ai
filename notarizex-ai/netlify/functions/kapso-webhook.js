@@ -36,7 +36,7 @@ async function getNexaInbox(botId,phone) {
  * Service-role only table. Idempotent across duplicate provider webhooks.
  */
 async function recordNexaOptOut(botId,phone,providerMessageId) {
-  if (!nexaReactive.isNexa(botId) || !/^\\d{8,20}$/.test(phone) || !providerMessageId)
+  if (!nexaReactive.isNexa(botId) || !/^\d{8,20}$/.test(phone) || !providerMessageId)
     throw new Error('Nexa opt-out identifiers invalid');
   const response=await db('nexa_whatsapp_suppression?on_conflict=bot_id,contact_phone',{
     method:'POST',
