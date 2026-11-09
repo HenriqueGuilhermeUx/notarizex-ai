@@ -7,6 +7,7 @@ on:
       - 'notarizex-ai/netlify/functions/lib/nexa-telegram-support.js'
       - 'notarizex-ai/sql/20261109_nexa_telegram_support.sql'
       - 'notarizex-ai/test/nexa-telegram-support.test.js'
+      - 'notarizex-ai/scripts/activate-nexa-telegram.ps1'
       - '.github/workflows/nexa-telegram-theo-ci.yml'
   push:
     branches: [main]
@@ -15,6 +16,7 @@ on:
       - 'notarizex-ai/netlify/functions/lib/nexa-telegram-support.js'
       - 'notarizex-ai/sql/20261109_nexa_telegram_support.sql'
       - 'notarizex-ai/test/nexa-telegram-support.test.js'
+      - 'notarizex-ai/scripts/activate-nexa-telegram.ps1'
       - '.github/workflows/nexa-telegram-theo-ci.yml'
 
 jobs:
@@ -33,6 +35,16 @@ jobs:
           node --check notarizex-ai/netlify/functions/nexa-telegram-webhook.js
           node --check notarizex-ai/netlify/functions/lib/nexa-telegram-support.js
           node --check notarizex-ai/test/nexa-telegram-support.test.js
+      - name: Check PowerShell activation script syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('notarizex-ai/scripts/activate-nexa-telegram.ps1', [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Host $_.Message }
+            exit 1
+          }
       - name: Telegram onboarding and security tests
         run: node --test notarizex-ai/test/nexa-telegram-support.test.js
       - name: Must not proactively send or identify accounts by Telegram ID
