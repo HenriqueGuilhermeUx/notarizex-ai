@@ -60,6 +60,13 @@ function isNexa(botId) {
   return String(botId || '') === NEXA_BOT_ID;
 }
 
+const STOP_REPLY = 'Certo. Registramos seu pedido para não receber novos avisos proativos da Nexa pelo WhatsApp. Você ainda pode nos chamar aqui para pedir ajuda. Para sua segurança, nunca envie CPF, documentos, senhas ou códigos por mensagem.';
+
+function isStopRequest(value) {
+  const input = normalize(value).replace(/[.!?,;:]+$/g, '').trim();
+  return /^(sair|stop|parar|descadastrar|cancelar mensagens|cancelar avisos|nao quero receber mensagens|nao quero receber avisos|parar mensagens|unsubscribe)$/.test(input);
+}
+
 function isGenericGreeting(value) {
   const text = normalize(value).replace(/[!?.,:;]+/g, '').trim();
   return /^(oi+|ola+|oie+|alo|bom dia|boa tarde|boa noite|ola theo|oi theo|oi nexa|ola nexa|tudo bem|hey|hello|iniciar|start)$/.test(text);
@@ -77,6 +84,13 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
   const input = String(message || '').trim();
   const normalized = normalize(input);
   if (!input) return null;
+
+  // A direct stop request always overrides an ongoing human-handoff state.
+  // The caller must durably persist the suppression BEFORE sending this reply.
+  if (isStopRequest(input)) {
+    return {handled:true,reply:STOP_REPLY,intent:'opt_out',
+      handoffRequested:false,reason:'whatsapp_opt_out'};
+  }
 
   // A pending human handoff is not a signal to keep talking automatically.
   if (humanPending) {
@@ -108,5 +122,5 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
   return null;
 }
 
-module.exports = { NEXA_BOT_ID, MENU, ANSWERS, isNexa, isGenericGreeting,
-  isMenuReply, resolveReactiveTurn };
+module.exports = { NEXA_BOT_ID, MENU, ANSWERS, STOP_REPLY, isNexa, isGenericGreeting,
+  isMenuReply, isStopRequest, resolveReactiveTurn };
