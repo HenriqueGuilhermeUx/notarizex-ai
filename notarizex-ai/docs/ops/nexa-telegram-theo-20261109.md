@@ -49,3 +49,20 @@ Documentação Telegram: https://core.telegram.org/bots/api e https://core.teleg
 - A flag `NEXA_TELEGRAM_ENABLED` foi alterada para `true` no Netlify. Este commit inicia um deploy via Git para aplicar a nova configuração nas funções, sem registrar webhook nem enviar mensagens.
 - **Não divulgar o bot como ativo** até que o responsável execute o script de ativação e confirme `getWebhookInfo`, `/start` e fila de suporte.
 - Separar atualização das variáveis, publicação Netlify e ativação Telegram: deploy READY não equivale a webhook registrado.
+
+## Ativação automatizada temporária — 09/11/2026
+O webhook ainda não tinha nenhum contato nem atualização recebida na verificação inicial. O operador autorizou prosseguir com a integração e as credenciais já foram armazenadas como segredos no Netlify.
+
+O arquivo `netlify/functions/nexa-telegram-bootstrap.mjs` agenda uma tentativa de ativação **somente** durante o fim de 09/11/2026 em UTC (20:00 a 23:59, a cada 5 minutos). Ao terminar essa janela, a função não executa ações mesmo que o agendamento seja invocado; não há broadcast ou mensagens aos clientes.
+
+Travas antes de `setWebhook`:
+- Site `SITE_ID` deve ser exatamente o SmartBots de produção; execução agendada do Netlify ocorre apenas em deploy publicado
+- `NEXA_TELEGRAM_ENABLED=true` e token/segredo com formato esperado
+- `getMe` precisa identificar o `@NexaTheoBot` e `is_bot=true`
+- `getWebhookInfo` deve apresentar URL vazia, ou já ser exatamente o endpoint Nexa; se for diferente, recusar alterar
+- Somente URL `https://smartbots.club/.netlify/functions/nexa-telegram-webhook`, `allowed_updates=['message']`, `drop_pending_updates=false` e `secret_token` secreto
+- Confirmar o destino com `getWebhookInfo` depois de registrar. Não armazenar credenciais em logs; os logs contêm exclusivamente códigos de estado.
+
+Os resultados esperados da execução são `registered` ou `already_registered`. Códigos como `invalid_credentials_format`, `bot_identity_mismatch`, `existing_webhook_conflict`, `getme_failed`, `provider_request_failed` ou `verification_failed` são bloqueios e exigem inspeção segura. O agendamento **não** substitui o teste humano de `/start` e a verificação de fila/CRM no Supabase antes da divulgação. Não afirmar que o bot está respondendo só porque o deploy está READY.
+
+Depois da ativação, remover a função de bootstrap temporária do repositório via PR; o webhook oficial permanente e o atendimento permanecem intactos. O script PowerShell pode ser usado caso o agendamento expire ou apresente bloqueio. Não registrar um webhook diferente ou modificar bot já controlado por outro serviço.
