@@ -21,13 +21,24 @@ Escopo independente de WhatsApp Theo e pesquisa de satisfação. Reutiliza o bot
 1. **Concluído:** bot criado pelo proprietário no @BotFather (https://t.me/BotFather), username `NexaTheoBot`. Não recriar; abrir `/mybots` para revisar nome, descrição e comandos.
 2. Guarde o token como segredo no site **smartbots.club** do Netlify: `NEXA_TELEGRAM_BOT_TOKEN`, escopo Functions, contexto Production.
 3. Configure outro segredo criptograficamente aleatório com 32–64 caracteres alfanuméricos/underscore/hífen como `NEXA_TELEGRAM_WEBHOOK_SECRET`.
-4. Após confirmar o token com `getMe`, registre o webhook pela API oficial:
-   `POST https://api.telegram.org/bot<TOKEN>/setWebhook`
-   JSON `{"url":"https://smartbots.club/.netlify/functions/nexa-telegram-webhook","secret_token":"<WEBHOOK_SECRET>","allowed_updates":["message"],"drop_pending_updates":false}`.
-   Nunca inclua token real em logs, capturas, chats, repo ou URL pública.
-5. Só após o webhook estar válido, `NEXA_TELEGRAM_ENABLED=true` em Production. Por padrão a função devolve 503 sem configuração.
+4. A variável `NEXA_TELEGRAM_ENABLED` já existe com valor `false`. Após configurar os dois segredos e conferir o deploy do webhook, mude para **`true`**, mantendo escopo **Functions** e contexto **Production**. **Faça novo deploy** antes de registrar o webhook: funções antigas podem manter os valores anteriores. Não anuncie o bot ainda.
+5. Registre e confira o webhook com o script local e interativo `notarizex-ai/scripts/activate-nexa-telegram.ps1` (PowerShell no Windows; não armazena credenciais):
+   - Baixe apenas o script do repositório oficial e confira seu conteúdo.
+   - Execute `.\\activate-nexa-telegram.ps1 -GenerateSecret` para criar o segredo (copie apenas para Netlify, nunca para chats).
+   - Depois de salvar **token, mesmo segredo e ENABLED=true** no Netlify, e confirmar deploy READY, execute `.\\activate-nexa-telegram.ps1`.
+   - O script pede token e segredo sem exibi-los, valida com `getMe` o username **NexaTheoBot**, confirma `setWebhook`, consulta `getWebhookInfo` e exibe apenas estado/URL.
+   - Para verificar o estado posteriormente sem alterar o webhook, execute `.\\activate-nexa-telegram.ps1 -VerifyOnly`.
+   - Alternativamente, método documentado na API: `POST https://api.telegram.org/bot<TOKEN>/setWebhook` com JSON `{"url":"https://smartbots.club/.netlify/functions/nexa-telegram-webhook","secret_token":"<WEBHOOK_SECRET>","allowed_updates":["message"],"drop_pending_updates":false}`. Não abra URL com token no navegador nem exponha em histórico, prints ou logs.
 6. Teste com conversa privada: `/start`, `/kyc`, `preciso da provação`, `/parar`; confirme tickets em `nexa_telegram_handoffs` e contato em `nexa_telegram_contacts`. Não faça testes financeiros.
 7. Divulgar **canal público** `https://t.me/NexaInsights` nos canais próprios da Nexa. Não apresentar `https://t.me/NexaTheoBot` como suporte ativo até o passo 6. Depois do teste real, promover o bot para atendimento voluntário, sem importar números.
 8. Caso deseje centralizar contas organizacionais futuramente, avaliar transferência de propriedade com planejamento separado, pois ela é permanente. Não transferir automaticamente.
 
 Documentação Telegram: https://core.telegram.org/bots/api e https://core.telegram.org/bots
+
+## Checklist antes da divulgação (gate)
+- [ ] Confirmar os 3 env vars no SmartBots Netlify (Production/Functions) e novo deploy pronto.
+- [ ] Conferir que `getMe` devolveu `@NexaTheoBot`, `getWebhookInfo` aponta exclusivamente para `smartbots.club/.netlify/functions/nexa-telegram-webhook` e não há erros novos.
+- [ ] Enviar `/start` via conversa privada e receber menu; testar `/kyc`, `/humano`, `/parar` sem documentos ou transações reais.
+- [ ] Confirmar no Supabase SmartBots a criação de registro na fila de handoff; responder no CRM apenas como atendimento, nunca como identidade financeira verificada.
+- [ ] **Somente depois** incluir o CTA público `https://t.me/NexaTheoBot` no site Nexa. Canal editorial `https://t.me/NexaInsights` permanece independente.
+- Se houver erro de entrega, definir ENABLED=false, redeploy e revisar getWebhookInfo/logs; também desregistrar webhook se necessário. Não publicar status ativo prematuramente.
