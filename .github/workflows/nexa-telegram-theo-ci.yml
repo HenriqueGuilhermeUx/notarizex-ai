@@ -1,0 +1,50 @@
+name: Nexa Telegram Theo Support CI
+
+on:
+  pull_request:
+    paths:
+      - 'notarizex-ai/netlify/functions/nexa-telegram-webhook.js'
+      - 'notarizex-ai/netlify/functions/lib/nexa-telegram-support.js'
+      - 'notarizex-ai/sql/20261109_nexa_telegram_support.sql'
+      - 'notarizex-ai/test/nexa-telegram-support.test.js'
+      - '.github/workflows/nexa-telegram-theo-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'notarizex-ai/netlify/functions/nexa-telegram-webhook.js'
+      - 'notarizex-ai/netlify/functions/lib/nexa-telegram-support.js'
+      - 'notarizex-ai/sql/20261109_nexa_telegram_support.sql'
+      - 'notarizex-ai/test/nexa-telegram-support.test.js'
+      - '.github/workflows/nexa-telegram-theo-ci.yml'
+
+jobs:
+  telegram-safe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install deps
+        working-directory: notarizex-ai
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Syntax checks
+        run: |
+          node --check notarizex-ai/netlify/functions/nexa-telegram-webhook.js
+          node --check notarizex-ai/netlify/functions/lib/nexa-telegram-support.js
+          node --check notarizex-ai/test/nexa-telegram-support.test.js
+      - name: Telegram onboarding and security tests
+        run: node --test notarizex-ai/test/nexa-telegram-support.test.js
+      - name: Must not proactively send or identify accounts by Telegram ID
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const h=fs.readFileSync('notarizex-ai/netlify/functions/nexa-telegram-webhook.js','utf8');
+          const policy=fs.readFileSync('notarizex-ai/netlify/functions/lib/nexa-telegram-support.js','utf8');
+          const db=fs.readFileSync('notarizex-ai/sql/20261109_nexa_telegram_support.sql','utf8');
+          for(const marker of ['x-telegram-bot-api-secret-token','sameSecret','reserveUpdate','chat.type','service_notice_opt_in']){
+            if(!(h+db).includes(marker))throw new Error('Missing security contract: '+marker);
+          }
+          if(!db.includes('ENABLE ROW LEVEL SECURITY')||!db.includes('REVOKE ALL'))throw new Error('Missing private DB contract');
+          if(/sendBulk|broadcast|pixSend|depositNow|transferCrypto/.test(h+policy))throw new Error('Unauthorized proactive or money flow');
+          NODE
