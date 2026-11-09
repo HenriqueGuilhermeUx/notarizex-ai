@@ -46,5 +46,5 @@ jobs:
             if(!(h+db).includes(marker))throw new Error('Missing security contract: '+marker);
           }
           if(!db.includes('ENABLE ROW LEVEL SECURITY')||!db.includes('REVOKE ALL'))throw new Error('Missing private DB contract');
-          if(/(?:sendBulk|sendBroadcast|pixSend|depositNow|transferCrypto)\\s*\\(/.test(h+policy))throw new Error('Unauthorized proactive or money flow');
+          if(['sendBulk(', 'sendBroadcast(', 'pixSend(', 'depositNow(', 'transferCrypto('].some(m=>(h+policy).includes(m)))throw new Error('Unauthorized proactive or money flow');
           NODE
