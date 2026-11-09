@@ -42,7 +42,7 @@ jobs:
           const h=fs.readFileSync('notarizex-ai/netlify/functions/nexa-telegram-webhook.js','utf8');
           const policy=fs.readFileSync('notarizex-ai/netlify/functions/lib/nexa-telegram-support.js','utf8');
           const db=fs.readFileSync('notarizex-ai/sql/20261109_nexa_telegram_support.sql','utf8');
-          for(const marker of ['x-telegram-bot-api-secret-token','sameSecret','reserveUpdate','chat.type','service_notice_opt_in']){
+          for(const marker of ['x-telegram-bot-api-secret-token','sameSecret','reserveUpdate','msg.chat?.type','service_notice_opt_in']){
             if(!(h+db).includes(marker))throw new Error('Missing security contract: '+marker);
           }
           if(!db.includes('ENABLE ROW LEVEL SECURITY')||!db.includes('REVOKE ALL'))throw new Error('Missing private DB contract');
