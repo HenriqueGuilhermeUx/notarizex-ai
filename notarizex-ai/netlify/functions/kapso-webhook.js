@@ -31,6 +31,28 @@ async function getNexaInbox(botId,phone) {
   return (await r.json())[0]||null;
 }
 
+/**
+ * Persist opt-out independently of inbox.status, lead scoring, and message history.
+ * Service-role only table. Idempotent across duplicate provider webhooks.
+ */
+async function recordNexaOptOut(botId,phone,providerMessageId) {
+  if (!nexaReactive.isNexa(botId) || !/^\\d{8,20}$/.test(phone) || !providerMessageId)
+    throw new Error('Nexa opt-out identifiers invalid');
+  const response=await db('nexa_whatsapp_suppression?on_conflict=bot_id,contact_phone',{
+    method:'POST',
+    headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},
+    body:JSON.stringify({
+      bot_id:botId,contact_phone:phone,
+      source:'whatsapp_inbound_stop',
+      provider_message_id:providerMessageId
+    })
+  });
+  if(!response.ok) {
+    // Do not claim opt-out was saved when the database did not acknowledge it.
+    throw new Error('Nexa opt-out persistence unavailable');
+  }
+}
+
 async function nexMsgProcessed(botId,providerMessageId) {
   if(!providerMessageId)return null;
   const r=await db('smartbot_whatsapp_messages?bot_id=eq.'+encodeURIComponent(botId)+
@@ -73,6 +95,10 @@ async function handleInbound(item,raw) {
       latestOutbound:latest,
       humanPending:originalInbox?.status==='human_needed'
     });
+    // Must be durable before acknowledging SAIR / STOP to the customer.
+    if(plan?.reason==='whatsapp_opt_out') {
+      await recordNexaOptOut(cfg.bot_id,item.phone,providerId);
+    }
   }
   const brain=plan
     ? {success:true,reply:plan.reply,intent:plan.intent,
