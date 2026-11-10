@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/nexa-telegram-live-check-20261110.yml'
+      - 'notarizex-ai/docs/ops/nexa-telegram-theo-20261109.md'
 
 permissions:
   contents: read
@@ -12,14 +13,14 @@ permissions:
 jobs:
   live-status:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Read temporary webhook health without secrets
         shell: bash
         run: |
           set -euo pipefail
           URL="https://smartbots.club/.netlify/functions/nexa-theo-health"
-          for attempt in $(seq 1 12); do
+          for attempt in $(seq 1 36); do
             result="$(curl --silent --show-error --max-time 10 --fail "$URL" || true)"
             if jq -e 'type=="object" and (.status|type=="string")' >/dev/null 2>&1 <<<"$result"; then
               echo "$result" | jq -c '{status,webhook,pending_updates,has_recent_delivery_error}'
