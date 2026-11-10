@@ -66,3 +66,10 @@ Travas antes de `setWebhook`:
 Os resultados esperados da execução são `registered` ou `already_registered`. Códigos como `invalid_credentials_format`, `bot_identity_mismatch`, `existing_webhook_conflict`, `getme_failed`, `provider_request_failed` ou `verification_failed` são bloqueios e exigem inspeção segura. O agendamento **não** substitui o teste humano de `/start` e a verificação de fila/CRM no Supabase antes da divulgação. Não afirmar que o bot está respondendo só porque o deploy está READY.
 
 Depois da ativação, remover a função de bootstrap temporária do repositório via PR; o webhook oficial permanente e o atendimento permanecem intactos. O script PowerShell pode ser usado caso o agendamento expire ou apresente bloqueio. Não registrar um webhook diferente ou modificar bot já controlado por outro serviço.
+
+## Correção de ativação — 10/11/2026
+- O cron de 09/11 expirou sem evidência de mensagens Telegram recebidas; às consultas seguintes a contagem de contatos, mensagens, updates e handoffs da Nexa continuava zerada.
+- A janela foi corrigida para **10/11/2026, 19:00–23:59 UTC**, com agendamento `*/5 19-23 10 11 *`, protegido por limite absoluto de datas no código. Depois disso não há novos registros automáticos.
+- Além de não sobrescrever webhook de terceiros, o bootstrap agora **reaplica `secret_token` caso o webhook existente já seja exatamente o endpoint oficial**, já que a API `getWebhookInfo` não revela qual segredo foi previamente configurado.
+- Sem nova aprovação do usuário, não divulgue bot ativo nem execute campanhas: o gate de publicação permanece a confirmação de `/start` com registro no CRM.
+- O bootstrap temporário deve ser removido por PR após o teste, mesmo depois de expirar.
