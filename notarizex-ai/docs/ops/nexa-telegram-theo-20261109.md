@@ -96,3 +96,9 @@ Endpoint temporário, somente leitura: `https://smartbots.club/.netlify/function
 - `/humano` ou categoria urgente continua criando um ticket `nexa_telegram_handoffs` e espelho CRM com `pipeline_status='handoff'`, `handoff_status='requested'`, sem consentimento comercial. O espelho CRM é best-effort: falha do CRM nunca deve impedir a resposta do Theo ou o registro do ticket privado.
 - `/parar` não cria novo contato no funil nem permite campanhas. `/avisos` só altera consentimento separado para avisos de serviço; **não** autoriza marketing nem ativa disparos automáticos.
 - Verificar em homologação: `/start` cria lead service-only; `/humano` cria handoff; duplicatas de update não duplicam; nenhuma campanha é enfileirada. Só então promover CTA Telegram no site Nexa.
+
+## Homologação e retirada da infraestrutura temporária (10/11/2026)
+- Registro confirmado em produção: update do Telegram `processed`, mensagem inbound e resposta outbound `sent`. A primeira falha de JSON foi mantida como histórico.
+- O contato real do teste foi inserido de forma idempotente no CRM SmartBots: **1 contato Telegram**, `pipeline_status=novo`, `handoff_status=none`, `metadata.marketing_opt_in=false`, `follow_up_at/return_at=NULL` e identidade financeira não verificada.
+- Após CI verde e deploy da PR do CRM, o bootstrap temporário `nexa-telegram-bootstrap.mjs`, o endpoint `nexa-theo-health.mjs`, seus testes de diagnóstico e o workflow único de inspeção foram retirados. O webhook permanente `nexa-telegram-webhook.js`, a API de atendimento e o script local manual de recuperação continuam intactos.
+- Homologação pendente: enviar `/humano` numa conversa privada de teste e confirmar **1 ticket** em `nexa_telegram_handoffs` com espelho `handoff/requested` no CRM. Só então ativar CTA de Telegram nas páginas Nexa. Não iniciar campanhas sem consentimento explícito separado.
