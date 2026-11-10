@@ -1,17 +1,17 @@
 // Temporary, fail-closed Telegram webhook bootstrap for Nexa Theo.
-// Fires only during 9 Nov 2026 UTC evening; no customer messages or broadcasts.
+// Fires only during 10 Nov 2026 UTC afternoon/evening; no customer messages or broadcasts.
 // Netlify scheduled functions cannot be invoked via public URL.
 const TARGET_SITE_ID = '293da4ea-5e3f-4bee-8954-b15fcf6c3d82';
 const EXPECTED_USERNAME = 'NexaTheoBot';
 const EXPECTED_WEBHOOK = 'https://smartbots.club/.netlify/functions/nexa-telegram-webhook';
-const WINDOW_START = Date.parse('2026-11-09T20:00:00Z');
-const WINDOW_END = Date.parse('2026-11-10T00:00:00Z');
+const WINDOW_START = Date.parse('2026-11-10T19:00:00Z');
+const WINDOW_END = Date.parse('2026-11-11T00:00:00Z');
 
 export async function bootstrap({env=process.env,fetchImpl=fetch,now=new Date()}={}) {
   const when = new Date(now).getTime();
   if (!Number.isFinite(when) || when < WINDOW_START || when >= WINDOW_END)
     return {status:'outside_activation_window'};
-  if (env.SITE_ID !== TARGET_SITE_ID)
+  if (String(env.SITE_ID || env.NETLIFY_SITE_ID || '') !== TARGET_SITE_ID)
     return {status:'wrong_site'};
   if (env.NEXA_TELEGRAM_ENABLED !== 'true')
     return {status:'disabled'};
@@ -47,8 +47,8 @@ export async function bootstrap({env=process.env,fetchImpl=fetch,now=new Date()}
     // Fail closed: never overwrite a different existing endpoint.
     if(active && active!==EXPECTED_WEBHOOK)
       return {status:'existing_webhook_conflict'};
-    if(active===EXPECTED_WEBHOOK)
-      return {status:'already_registered'};
+    // Reapply the secret even for the correct URL. getWebhookInfo cannot reveal
+    // whether a previous registration used an old secret; avoid silent HTTP 401.
 
     const set=await api('setWebhook',{
       url:EXPECTED_WEBHOOK,
@@ -61,7 +61,7 @@ export async function bootstrap({env=process.env,fetchImpl=fetch,now=new Date()}
     const verified=await api('getWebhookInfo');
     if(!verified.ok || verified.result?.url!==EXPECTED_WEBHOOK)
       return {status:'verification_failed'};
-    return {status:'registered'};
+    return {status:active===EXPECTED_WEBHOOK?'secret_reconfirmed':'registered'};
   }catch {
     return {status:'provider_request_failed'};
   }
@@ -74,5 +74,5 @@ export default async function scheduledBootstrap() {
 }
 
 export const config = {
-  schedule: '*/5 20-23 9 11 *'
+  schedule: '*/5 19-23 10 11 *'
 };
