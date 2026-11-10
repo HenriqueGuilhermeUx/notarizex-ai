@@ -90,6 +90,43 @@ function createHandler({fetchImpl=fetch,env=process.env}={}) {
       method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(patch)
     });
   }
+  // A Telegram /start is service contact, NOT an opt-in to marketing.
+  // Keep CRM best-effort: a CRM outage must not block a support response.
+  async function mirrorServiceContact(chatId,name) {
+    try {
+      const visitorId='tg_'+chatId;
+      const key='smartbot_leads?bot_id=eq.'+encodeURIComponent(BOT_ID)+
+        '&visitor_id=eq.'+encodeURIComponent(visitorId)+'&select=id&limit=1';
+      const existing=await db(key);
+      const now=new Date().toISOString();
+      if(Array.isArray(existing)&&existing[0]?.id) {
+        await db('smartbot_leads?id=eq.'+existing[0].id,{
+          method:'PATCH',headers:{Prefer:'return=minimal'},
+          body:JSON.stringify({last_message_at:now,updated_at:now})
+        });
+        return;
+      }
+      const fields={
+        bot_id:BOT_ID,visitor_id:visitorId,source_channel:'telegram',
+        name:name||null,interest:'Contato de atendimento pelo Telegram',
+        intent:'suporte',first_intent:'atendimento',last_intent:'atendimento',
+        pipeline_status:'novo',handoff_status:'none',
+        metadata:{channel:'telegram',purpose:'service_only',
+          marketing_opt_in:false,customer_identity_verified:false},
+        created_at:now,updated_at:now,last_message_at:now
+      };
+      try {
+        await db('smartbot_leads',{
+          method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(fields)
+        });
+      }catch(error){
+        // A concurrent webhook can insert the same bot_id/visitor_id first.
+        if(error?.message!=='telegram_storage_http_409')throw error;
+      }
+    }catch(_error){
+      console.error('telegram_service_crm_mirror_failed');
+    }
+  }
   async function createHandoff(chatId,category,name,summary) {
     const open=await db('nexa_telegram_handoffs?chat_id=eq.'+chatId+
       '&status=eq.open&select=id&limit=1');
@@ -112,10 +149,12 @@ function createHandler({fetchImpl=fetch,env=process.env}={}) {
       const rows=await db(uri);
       const fields={
         bot_id:BOT_ID,visitor_id:visitorId,source_channel:'telegram',
-        name:name||null,interest:summary,first_intent:'suporte',
-        last_intent:category,intent:'suporte',pipeline_status:'human_needed',
-        next_action:'Atendimento humano via Telegram',
-        handoff_status:'pending',handoff_requested_at:new Date().toISOString(),
+        name:name||null,interest:'Atendimento Telegram: '+category,
+        first_intent:'suporte',last_intent:category,intent:'suporte',
+        pipeline_status:'handoff',next_action:'Atendimento humano via Telegram',
+        handoff_status:'requested',handoff_requested_at:new Date().toISOString(),
+        metadata:{channel:'telegram',purpose:'service_only',
+          marketing_opt_in:false,customer_identity_verified:false},
         last_message_at:new Date().toISOString(),updated_at:new Date().toISOString()
       };
       if(rows?.[0]?.id) {
@@ -184,6 +223,8 @@ function createHandler({fetchImpl=fetch,env=process.env}={}) {
         const sentId=await sendTelegram(chatId,plan.reply,String(env.NEXA_TELEGRAM_BOT_TOKEN));
         await saveMessage(updateId,chatId,'outbound',plan.reply,sentId,'sent');
       }
+      if(plan.kind!=='handoff'&&plan.kind!=='opt_out'&&plan.kind!=='ignore'&&!plan.sensitive)
+        await mirrorServiceContact(chatId,name);
       await markUpdate(updateId,{status:'processed',processed_at:new Date().toISOString()});
       return json(200,{success:true,handled:true});
     }catch(error){

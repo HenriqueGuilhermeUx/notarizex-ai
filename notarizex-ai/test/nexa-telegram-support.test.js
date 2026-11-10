@@ -28,6 +28,7 @@ const env={
 function fakeBackend(){
   const seen=new Set();
   const out=[];
+  const crm=[];
   const fake=async(url,options={})=>{
     out.push({url,options});
     if(String(url).startsWith('https://api.telegram.org/'))
@@ -50,10 +51,21 @@ function fakeBackend(){
     if(String(url).includes('nexa_telegram_handoffs?')&&(!options.method||options.method==='GET'))
       return {ok:true,status:200,json:async()=>([])};
     if(String(url).includes('smartbot_leads?')&&(!options.method||options.method==='GET'))
-      return {ok:true,status:200,json:async()=>([])};
+      return {ok:true,status:200,json:async()=>(crm.map(x=>({id:x.id})))};
+    if(String(url).endsWith('/smartbot_leads')&&options.method==='POST'){
+      const fields=JSON.parse(options.body);
+      crm.push({...fields,id:crm.length+1});
+      return {ok:true,status:201,json:async()=>{throw new Error('no JSON body for return=minimal')}};
+    }
+    if(String(url).includes('smartbot_leads?id=')&&options.method==='PATCH'){
+      const id=Number(String(url).match(/id=eq\.(\d+)/)?.[1]||0);
+      const entry=crm.find(x=>x.id===id);
+      if(entry)Object.assign(entry,JSON.parse(options.body));
+      return {ok:true,status:204,json:async()=>({})};
+    }
     return {ok:true,status:204,json:async()=>({})};
   };
-  return {fake,out};
+  return {fake,out,crm};
 }
 
 test('Nexa Telegram menu is informative and does not imply account authentication',()=>{
@@ -132,6 +144,55 @@ test('private /start sends one message and update_id is deduplicated',async()=>{
   assert.match(payload.text,/Theo/);
   assert.ok(out.some(x=>x.url.includes('nexa_telegram_updates?on_conflict=')));
 });
+test('Telegram /start enters CRM only as service contact with no marketing or follow-up',async()=>{
+  const {fake,out,crm}=fakeBackend();
+  const handler=createHandler({fetchImpl:fake,env});
+  assert.equal((await handler(event('/start'))).statusCode,200);
+  assert.equal(crm.length,1);
+  const lead=crm[0];
+  assert.equal(lead.source_channel,'telegram');
+  assert.equal(lead.bot_id,'site-nexa-20260923-live');
+  assert.equal(lead.pipeline_status,'novo');
+  assert.equal(lead.handoff_status,'none');
+  assert.equal(lead.metadata.purpose,'service_only');
+  assert.equal(lead.metadata.marketing_opt_in,false);
+  assert.equal(lead.metadata.customer_identity_verified,false);
+  assert.equal(lead.follow_up_at,undefined);
+  assert.equal(lead.return_at,undefined);
+  assert.equal(lead.email,undefined);
+  assert.equal(lead.phone,undefined);
+  assert.ok(out.some(x=>x.url.includes('/smartbot_leads')&&x.options.method==='POST'));
+});
+
+test('subsequent service messages update CRM contact without duplicates or changing consent',async()=>{
+  const {fake,crm}=fakeBackend();
+  const handler=createHandler({fetchImpl:fake,env});
+  assert.equal((await handler(event('/start'))).statusCode,200);
+  assert.equal((await handler(event('/kyc',{'x-telegram-bot-api-secret-token':'test-secret'},{update_id:102}))).statusCode,200);
+  assert.equal(crm.length,1);
+  assert.equal(crm[0].handoff_status,'none');
+  assert.equal(crm[0].metadata.marketing_opt_in,false);
+});
+
+test('requesting human support escalates CRM stage without granting marketing consent',async()=>{
+  const {fake,crm,out}=fakeBackend();
+  const handler=createHandler({fetchImpl:fake,env});
+  const r=await handler(event('/humano'));
+  assert.equal(r.statusCode,200);
+  assert.equal(crm.length,1);
+  assert.equal(crm[0].pipeline_status,'handoff');
+  assert.equal(crm[0].handoff_status,'requested');
+  assert.equal(crm[0].metadata.marketing_opt_in,false);
+  assert.ok(out.some(x=>x.url.includes('/nexa_telegram_handoffs')&&x.options.method==='POST'));
+});
+
+test('/parar does not create a marketing or CRM lead',async()=>{
+  const {fake,crm}=fakeBackend();
+  const handler=createHandler({fetchImpl:fake,env});
+  assert.equal((await handler(event('/parar'))).statusCode,200);
+  assert.equal(crm.length,0);
+});
+
 test('Telegram webhook never stores sensitive message contents',async()=>{
   const {fake,out}=fakeBackend();
   const handler=createHandler({fetchImpl:fake,env});
