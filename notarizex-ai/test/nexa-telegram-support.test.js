@@ -43,6 +43,10 @@ function fakeBackend(){
       return {ok:true,status:200,json:async()=>([])};
     if(String(url).endsWith('/nexa_telegram_contacts') && options.method==='POST')
       return {ok:true,status:201,json:async()=>([{chat_id:123456,status:'active'}])};
+    // Real PostgREST returns HTTP 201 with an EMPTY body for return=minimal.
+    // A JSON parse here is a bug even though the database write succeeded.
+    if(String(url).includes('/nexa_telegram_messages') && options.method==='POST')
+      return {ok:true,status:201,json:async()=>{throw new SyntaxError('Unexpected end of JSON input')}};
     if(String(url).includes('nexa_telegram_handoffs?')&&(!options.method||options.method==='GET'))
       return {ok:true,status:200,json:async()=>([])};
     if(String(url).includes('smartbot_leads?')&&(!options.method||options.method==='GET'))
@@ -104,6 +108,18 @@ test('group messages and forwarded unsupported updates are ignored',async()=>{
   assert.equal(r.statusCode,200);
   assert.equal(out.length,0);
 });
+test('minimal HTTP 201 database writes do not abort the Telegram menu',async()=>{
+  const {fake,out}=fakeBackend();
+  const handler=createHandler({fetchImpl:fake,env});
+  const result=await handler(event('/start'));
+  assert.equal(result.statusCode,200);
+  const writes=out.filter(x=>x.url.includes('/nexa_telegram_messages')&&x.options.method==='POST');
+  assert.equal(writes.length,2); // inbound and outbound message
+  assert.equal(writes[0].options.headers.Prefer,'return=minimal');
+  assert.equal(writes[1].options.headers.Prefer,'return=minimal');
+  assert.equal(out.filter(x=>x.url.startsWith('https://api.telegram.org/')).length,1);
+});
+
 test('private /start sends one message and update_id is deduplicated',async()=>{
   const {fake,out}=fakeBackend();
   const handler=createHandler({fetchImpl:fake,env});
