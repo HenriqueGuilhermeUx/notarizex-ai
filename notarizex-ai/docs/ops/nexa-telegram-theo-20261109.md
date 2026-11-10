@@ -73,3 +73,11 @@ Depois da ativação, remover a função de bootstrap temporária do repositóri
 - Além de não sobrescrever webhook de terceiros, o bootstrap agora **reaplica `secret_token` caso o webhook existente já seja exatamente o endpoint oficial**, já que a API `getWebhookInfo` não revela qual segredo foi previamente configurado.
 - Sem nova aprovação do usuário, não divulgue bot ativo nem execute campanhas: o gate de publicação permanece a confirmação de `/start` com registro no CRM.
 - O bootstrap temporário deve ser removido por PR após o teste, mesmo depois de expirar.
+
+## Diagnóstico de uma sessão — somente 10/11/2026
+Endpoint temporário, somente leitura: `https://smartbots.club/.netlify/functions/nexa-theo-health`.
+- É publicado exclusivamente em produção do projeto SmartBots, tem limitação por IP (3/min), não permite CORS arbitrário e expira automaticamente em 11/11/2026 às 00:00 UTC (HTTP 410).
+- Consulta `getMe` e `getWebhookInfo` internamente com token do Netlify, **sem retornar URLs de API, tokens, segredos, IDs de chat ou dados de clientes**.
+- Resposta limitada a `status` (bot_verified, wrong_bot, telegram_identity_unavailable, telegram_webhook_info_unavailable, credentials_not_validated, disabled), `webhook` (registered/not_registered/different_endpoint), contagem de updates pendentes e indicador booleano de falha de entrega.
+- `webhook=registered` só comprova destino na Telegram API, não valida o segredo em uso nem mensagens entregues. O sucesso definitivo depende de `/start` e linha criada em `nexa_telegram_updates`.
+- Remover o arquivo temporário após a homologação ou no próximo ciclo. Não usar esse endpoint como monitoramento permanente.
