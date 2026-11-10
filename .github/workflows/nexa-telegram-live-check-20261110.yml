@@ -1,0 +1,42 @@
+name: Nexa Theo Telegram live diagnostic (temporary)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/nexa-telegram-live-check-20261110.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  live-status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read temporary webhook health without secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://smartbots.club/.netlify/functions/nexa-theo-health"
+          for attempt in $(seq 1 12); do
+            result="$(curl --silent --show-error --max-time 10 --fail "$URL" || true)"
+            if jq -e 'type=="object" and (.status|type=="string")' >/dev/null 2>&1 <<<"$result"; then
+              echo "$result" | jq -c '{status,webhook,pending_updates,has_recent_delivery_error}'
+              status="$(jq -r '.status' <<<"$result")"
+              webhook="$(jq -r '.webhook // ""' <<<"$result")"
+              if [[ "$status" == "bot_verified" && "$webhook" == "registered" ]]; then
+                echo 'PASS: Telegram identifies @NexaTheoBot and webhook points to SmartBots.'
+                exit 0
+              fi
+              if [[ "$status" == "wrong_bot" || "$status" == "credentials_not_validated" || "$status" == "not_available" || "$status" == "disabled" || "$status" == "expired" ]]; then
+                echo "BLOCKED: $status"
+                exit 1
+              fi
+            else
+              echo "No valid sanitized health response (attempt $attempt)."
+            fi
+            sleep 10
+          done
+          echo 'FAIL: Telegram webhook not verified in diagnostic window.'
+          exit 1
