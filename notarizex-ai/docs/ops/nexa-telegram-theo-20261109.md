@@ -88,3 +88,11 @@ Endpoint temporário, somente leitura: `https://smartbots.club/.netlify/function
 - Token de bot `NEXA_TELEGRAM_BOT_TOKEN` não foi modificado.
 - Este commit dispara novo deploy, para que o segredo atualizado chegue a Functions em Production. Também é disparada nova verificação read-only do webhook.
 - **A liberação pública depende ainda de `getMe` validado, `getWebhookInfo` confirmado e resposta /start registrada no banco.**
+
+## Integração CRM — 10/11/2026
+- Após o conserto do retorno vazio PostgREST, foi confirmado em produção **1 update processado**, **1 resposta outbound enviada**, **1 contato Telegram** no Supabase SmartBots. O update antigo permanece como falha auditável.
+- A primeira interação de suporte no Telegram agora cria ou atualiza um contato no `smartbot_leads` para `site-nexa-20260923-live` com `source_channel='telegram'`, `pipeline_status='novo'`, `handoff_status='none'`, nome fornecido pelo Telegram e resumo genérico. IDs de chat permanecem identificadores operacionais, não autenticação bancária. Uma interação repetida atualiza somente os carimbos de atividade, sem rebaixar um pedido de atendimento humano.
+- Nenhum telefone, e-mail, CPF, conteúdo de mensagens ou dados financeiros é copiado no CRM no momento do `/start`; `metadata.purpose='service_only'`, `metadata.marketing_opt_in=false`, `metadata.customer_identity_verified=false`. Não definir `follow_up_at` nem `return_at`, pois o agendador comum do SmartBots usa essas datas para enfileirar follow-ups.
+- `/humano` ou categoria urgente continua criando um ticket `nexa_telegram_handoffs` e espelho CRM com `pipeline_status='handoff'`, `handoff_status='requested'`, sem consentimento comercial. O espelho CRM é best-effort: falha do CRM nunca deve impedir a resposta do Theo ou o registro do ticket privado.
+- `/parar` não cria novo contato no funil nem permite campanhas. `/avisos` só altera consentimento separado para avisos de serviço; **não** autoriza marketing nem ativa disparos automáticos.
+- Verificar em homologação: `/start` cria lead service-only; `/humano` cria handoff; duplicatas de update não duplicam; nenhuma campanha é enfileirada. Só então promover CTA Telegram no site Nexa.
