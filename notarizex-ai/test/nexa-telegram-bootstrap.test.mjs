@@ -8,7 +8,7 @@ const BASE = Object.freeze({
   NEXA_TELEGRAM_BOT_TOKEN:'123456789:AAaabbccDDeeff112233445566778899',
   NEXA_TELEGRAM_WEBHOOK_SECRET:'safe_telegram_webhook_secret_test_12345'
 });
-const NOW='2026-11-09T21:00:00Z';
+const NOW='2026-11-10T19:30:00Z';
 const URL='https://smartbots.club/.netlify/functions/nexa-telegram-webhook';
 const response=result=>({ok:true,json:async()=>({ok:true,result})});
 function fake(initialUrl='') {
@@ -28,8 +28,8 @@ function fake(initialUrl='') {
   };
   return {calls,fetchImpl};
 }
-test('cron is date-scoped, UTC and stops after 9 Nov',()=>{
-  assert.equal(config.schedule,'*/5 20-23 9 11 *');
+test('cron is date-scoped, UTC and stops after 10 Nov',()=>{
+  assert.equal(config.schedule,'*/5 19-23 10 11 *');
 });
 test('disabled or wrong site cannot contact Telegram',async()=>{
   const f=fake();
@@ -39,7 +39,7 @@ test('disabled or wrong site cannot contact Telegram',async()=>{
 });
 test('outside window never calls provider',async()=>{
   const f=fake();
-  assert.equal((await bootstrap({env:BASE,now:'2026-11-10T00:00:00Z',fetchImpl:f.fetchImpl})).status,'outside_activation_window');
+  assert.equal((await bootstrap({env:BASE,now:'2026-11-11T00:00:00Z',fetchImpl:f.fetchImpl})).status,'outside_activation_window');
   assert.equal(f.calls.length,0);
 });
 test('malformed credentials stop before API request',async()=>{
@@ -61,11 +61,12 @@ test('existing foreign webhook is never overwritten',async()=>{
   assert.equal(r.status,'existing_webhook_conflict');
   assert.equal(f.calls.some(x=>x.method==='setWebhook'),false);
 });
-test('correct existing webhook is not registered repeatedly',async()=>{
+test('correct existing webhook re-applies the configured secret',async()=>{
   const f=fake(URL);
   const r=await bootstrap({env:BASE,now:NOW,fetchImpl:f.fetchImpl});
-  assert.equal(r.status,'already_registered');
-  assert.deepEqual(f.calls.map(x=>x.method),['getMe','getWebhookInfo']);
+  assert.equal(r.status,'secret_reconfirmed');
+  assert.deepEqual(f.calls.map(x=>x.method),['getMe','getWebhookInfo','setWebhook','getWebhookInfo']);
+  assert.equal(JSON.parse(f.calls.find(x=>x.method==='setWebhook').options.body).secret_token,BASE.NEXA_TELEGRAM_WEBHOOK_SECRET);
 });
 test('empty webhook is set only for Nexa endpoint with secret and message updates',async()=>{
   const f=fake();
@@ -83,4 +84,11 @@ test('empty webhook is set only for Nexa endpoint with secret and message update
 test('network errors return sanitized status, not sensitive URLs',async()=>{
   const r=await bootstrap({env:BASE,now:NOW,fetchImpl:async()=>{throw new Error('url with private bot token')}});
   assert.deepEqual(r,{status:'provider_request_failed'});
+});
+
+test('yesterday is not eligible for registration',async()=>{
+  const f=fake();
+  const r=await bootstrap({env:BASE,now:'2026-11-09T23:30:00Z',fetchImpl:f.fetchImpl});
+  assert.equal(r.status,'outside_activation_window');
+  assert.equal(f.calls.length,0);
 });
