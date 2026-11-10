@@ -33,7 +33,11 @@ function createHandler({fetchImpl=fetch,env=process.env}={}) {
       }
     });
     if(!res.ok)throw new Error('telegram_storage_http_'+res.status);
-    if(res.status===204)return null;
+    // PostgREST writes with Prefer: return=minimal may succeed with HTTP 201
+    // and an empty response body. Never call res.json() for those writes.
+    const prefer=String(options.headers?.Prefer||options.headers?.prefer||'');
+    if(res.status===204||/(?:^|,)\s*return=minimal\s*(?:,|$)/i.test(prefer))
+      return null;
     return res.json();
   }
   async function markUpdate(updateId,patch) {
