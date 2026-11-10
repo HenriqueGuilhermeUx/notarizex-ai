@@ -81,3 +81,10 @@ Endpoint temporário, somente leitura: `https://smartbots.club/.netlify/function
 - Resposta limitada a `status` (bot_verified, wrong_bot, telegram_identity_unavailable, telegram_webhook_info_unavailable, credentials_not_validated, disabled), `webhook` (registered/not_registered/different_endpoint), contagem de updates pendentes e indicador booleano de falha de entrega.
 - `webhook=registered` só comprova destino na Telegram API, não valida o segredo em uso nem mensagens entregues. O sucesso definitivo depende de `/start` e linha criada em `nexa_telegram_updates`.
 - Remover o arquivo temporário após a homologação ou no próximo ciclo. Não usar esse endpoint como monitoramento permanente.
+
+## Ajuste operacional do segredo em 10/11/2026
+- Diagnóstico executado por GitHub Actions (workflow `Nexa Theo Telegram live diagnostic`) retornou `credentials_not_validated` com a configuração inicial.
+- Formato do segredo dev previamente cadastrado não era compatível com a política do bootstrap. Um novo segredo aleatório de 64 caracteres hexadecimais foi armazenado exclusivamente no Netlify em `NEXA_TELEGRAM_WEBHOOK_SECRET`, sem registro do valor no repositório, log ou documentos.
+- Token de bot `NEXA_TELEGRAM_BOT_TOKEN` não foi modificado.
+- Este commit dispara novo deploy, para que o segredo atualizado chegue a Functions em Production. Também é disparada nova verificação read-only do webhook.
+- **A liberação pública depende ainda de `getMe` validado, `getWebhookInfo` confirmado e resposta /start registrada no banco.**
