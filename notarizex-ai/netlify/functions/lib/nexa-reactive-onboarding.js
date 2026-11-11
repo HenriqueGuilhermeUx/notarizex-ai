@@ -99,8 +99,10 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
       /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(input) ||
       /\b(?:senha|password|codigo de verificacao|codigo de acesso|otp)\s*(?:[:=]|(?:e|é)\s*)\s*\S+/i.test(input)) {
     return {
-      handled:true,intent:'duvida',handoffRequested:false,reason:'unsafe_identifier',
-      reply:'Por segurança, não envie CPF, e-mail, senha, código ou documento por aqui. Use a conta autenticada em '+PORTAL+'. Se precisar, escreva "atendente" para receber orientação segura.'
+      // A safety warning must never clear a pending human support request.
+      handled:true,intent:humanPending?'handoff':'duvida',
+      handoffRequested:Boolean(humanPending),reason:'unsafe_identifier',
+      reply:humanPending?null:'Por segurança, não envie CPF, e-mail, senha, código ou documento por aqui. Use a conta autenticada em '+PORTAL+'. Se precisar, escreva "atendente" para receber orientação segura.'
     };
   }
 
