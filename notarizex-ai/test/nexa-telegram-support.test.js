@@ -96,6 +96,56 @@ test('CPF and passwords are guarded before handoff',()=>{
   assert.equal(decide('Meu CPF 123.456.789-01').reason,'unsafe_identifier');
   assert.equal(decide('senha: abcd123').sensitive,true);
 });
+test('Theo Telegram offers the feedback survey for KYC difficulties',()=>{
+  assert.match(MENU,/6 — Minha verificação não funcionou/);
+  const menu=decide('6');
+  assert.equal(menu.kind,'answer');
+  assert.match(menu.reply,/ajuda-verificacao.html/);
+  assert.match(menu.reply,/\/humano/);
+  const kyc=decide('/kyc');
+  assert.equal(kyc.kind,'answer');
+  assert.match(kyc.reply,/não precisa depositar/i);
+  assert.match(kyc.reply,/Didit/);
+});
+
+test('Telegram classifies KYC friction without manufacturing an approval',()=>{
+  const examples=[
+    ['Não encontrei a verificação de identidade','kyc_difficulty_locate','answer'],
+    ['Didit não abriu para mim','kyc_difficulty_didit_error','answer'],
+    ['A câmera da Didit não funciona','kyc_difficulty_camera','answer'],
+    ['Não consigo entrar na Nexa','kyc_difficulty_access','answer'],
+    ['Minha aprovação está pendente','kyc_handoff','handoff']
+  ];
+  for(const [message,reason,kind] of examples){
+    const response=decide(message);
+    assert.equal(response.reason,reason,message);
+    assert.equal(response.kind,kind,message);
+    assert.match(response.reply,/trynexa.com.br\/portal\//);
+    assert.doesNotMatch(response.reply,/depósito obrigatório|envie CPF|mande pix/i);
+  }
+  assert.equal(decide('KYC não foi aprovado').kind,'handoff');
+  assert.equal(decide('/parar',true).kind,'opt_out');
+});
+
+test('emails, passwords and CPF are never persisted as inbound Telegram text',async()=>{
+  for(const input of [
+    'Preciso de ajuda, e-mail exemplo@dominio.com',
+    'Meu CPF é 123.456.789-09',
+    'senha: minhaSenhaSecreta'
+  ]){
+    const {fake,out}=fakeBackend();
+    const handler=createHandler({fetchImpl:fake,env});
+    const result=await handler(event(input));
+    assert.equal(result.statusCode,200);
+    const incoming=out.find(z=>z.url.endsWith('/nexa_telegram_messages') &&
+      z.options.method==='POST' && JSON.parse(z.options.body).direction==='inbound');
+    assert.ok(incoming);
+    const saved=JSON.parse(incoming.options.body);
+    assert.equal(saved.content,'[conteudo sensivel omitido]');
+    assert.doesNotMatch(JSON.stringify(saved),/123\.456\.789-09|exemplo@dominio|minhaSenhaSecreta/);
+  }
+});
+
 test('invalid Telegram secret is rejected without any DB or provider activity',async()=>{
   const {fake,out}=fakeBackend();
   const handler=createHandler({fetchImpl:fake,env});
