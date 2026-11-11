@@ -43,8 +43,12 @@ function classifyKycDifficulty(value) {
   const m=normalize(value);
   if(!m) return null;
   const context=/\b(?:kyc|didit|identidade|identificacao|verificacao|verificar|biometria|selfie|cadastro)\b/.test(m);
+  // Account-login difficulty is relevant even when the client doesn't know
+  // the term "KYC" or "Didit". Give generic guidance, never account data.
+  if(!context && /\b(?:nao consigo entrar|nao consegui entrar|login nao funciona|acesso bloqueado)\b/.test(m))
+    return 'access';
   if(!context) return null;
-  if(/\b(?:aprovacao|aprovado|reprovad|rejeitad|recusad|em analise|aguardando analise|status pendente|demora para aprovar)\b/.test(m))
+  if(/\b(?:aprovacao|aprovad\w*|reprovad\w*|rejeitad\w*|recusad\w*|em analise|aguardando analise|status pendente|demora para aprovar)\b/.test(m))
     return 'review';
   if(/\b(?:camera|selfie|foto|imagem|documento|permissao da camera)\b/.test(m))
     return 'camera';
@@ -52,7 +56,7 @@ function classifyKycDifficulty(value) {
     return 'access';
   if(/\b(?:nao encontrei|nao acho|onde fica|onde comeco|como comeco|nao aparece|sumiu o botao|sem botao|botao nao aparece)\b/.test(m))
     return 'locate';
-  if(/\b(?:erro|travou|travado|falha|expirou|expirada|nao abriu|nao abre|nao funciona|nao funcionou|nao carrega|nao consigo iniciar)\b/.test(m))
+  if(/\b(?:erro|travou|travado|falha|expirou|expirada|nao abriu|nao abre|nao funciona|nao funcionou|nao carrega|nao consigo iniciar|nao consigo verificar|nao consigo fazer|nao consigo concluir|nao consegui verificar)\b/.test(m))
     return 'didit_error';
   return null;
 }
