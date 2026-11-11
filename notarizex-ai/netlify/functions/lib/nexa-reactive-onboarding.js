@@ -6,13 +6,14 @@
  * collect a CPF or initiate a purchase, Pix payment or deposit.
  */
 const NEXA_BOT_ID = 'site-nexa-20260923-live';
+const {PORTAL,FEEDBACK,GENERAL,classifyKycDifficulty,kycFrictionReply}=require('./nexa-kyc-assistance');
 
 const MENU = [
   'Olá! Sou o *Theo*, assistente virtual da Nexa. 👋',
   '',
   'Como posso ajudar?',
   '*1* — Cadastro e acesso à conta',
-  '*2* — Verificação de identidade (KYC)',
+  '*2* — Verificação de identidade (Didit)',
   '*3* — Entender como funciona a Nexa',
   '*4* — Problema com depósito, saldo ou operação',
   '*5* — Nexa PJ e atendimento empresarial',
@@ -25,11 +26,11 @@ const MENU = [
 const ANSWERS = Object.freeze({
   '1': {
     intent: 'duvida',
-    reply: 'Para cadastro, acesso ou recuperação de senha, utilize o site oficial https://trynexa.com.br. Você consegue entrar na sua conta? Se houver uma mensagem de erro, descreva o tipo de problema sem enviar dados pessoais, senha ou código.'
+    reply: 'Seu cadastro e a recuperação de acesso são feitos no portal oficial: '+PORTAL+'. Se já criou sua conta, faça login e procure a etapa de identidade (Didit). Não é necessário depositar para começar. Se a verificação não aparecer, conte onde parou em '+FEEDBACK+'. Nunca envie dados pessoais, senhas ou códigos por aqui.'
   },
   '2': {
     intent: 'duvida',
-    reply: 'A verificação de identidade é realizada no ambiente oficial da Nexa. Entre em https://trynexa.com.br e siga ou retome as etapas da Didit. Não envie CPF, documento ou selfie por este chat. Se aparecer um erro ou a sessão estiver expirada, posso encaminhar você à equipe.'
+    reply: GENERAL
   },
   '3': {
     intent: 'duvida',
@@ -92,6 +93,17 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
       handoffRequested:false,reason:'whatsapp_opt_out'};
   }
 
+  // Always intercept accidentally submitted personal identifiers before
+  // calling the generic AI or persisting chat content. No account lookup.
+  if (/\\b\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}\\b/.test(input) ||
+      /\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b/i.test(input) ||
+      /\\b(?:senha|password|codigo de verificacao|codigo de acesso|otp)\\s*(?:[:=]|(?:e|é)\\s*)\\s*\\S+/i.test(input)) {
+    return {
+      handled:true,intent:'duvida',handoffRequested:false,reason:'unsafe_identifier',
+      reply:'Por segurança, não envie CPF, e-mail, senha, código ou documento por aqui. Use a conta autenticada em '+PORTAL+'. Se precisar, escreva "atendente" para receber orientação segura.'
+    };
+  }
+
   // A pending human handoff is not a signal to keep talking automatically.
   if (humanPending) {
     return {handled:true,reply:null,intent:'handoff',handoffRequested:true,reason:'human_pending'};
@@ -110,15 +122,18 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
     return {handled:true,...ANSWERS['6'],reason:'requested_human'};
   }
 
-  // Never solicit or reflect CPF/identity details back into chat.
-  if (/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/.test(input)) {
-    return {
-      handled:true,intent:'duvida',handoffRequested:false,reason:'unsafe_identifier',
-      reply:'Para proteger seus dados, não precisamos do seu CPF por aqui. A verificação e os dados da conta devem ser tratados exclusivamente no ambiente autenticado da Nexa. Qual assunto você precisa resolver?'
-    };
-  }
+  // Frequent KYC problems are answered consistently on both channels.
+  // Human review is routed to an agent and no KYC status is invented.
+  const topic=classifyKycDifficulty(input);
+  if (topic) return {
+    handled:true,
+    reply:kycFrictionReply(topic),
+    intent:topic==='review'?'handoff':'duvida',
+    handoffRequested:topic==='review',
+    reason:'kyc_difficulty_'+topic
+  };
 
-  // Free-form messages continue to the existing AI and human escalation path.
+  // Free-form non-KYC messages continue to the existing AI and human escalation path.
   return null;
 }
 
