@@ -154,6 +154,16 @@ test('sensitive details are intercepted before the generic AI, menu or handoff',
   assert.ok(src.includes('saveInbound(cfg.bot_id,inbox,item.phone,item.name,safeInbound'));
 });
 
+test('sensitive text never clears a previously requested human handoff',()=>{
+  const r=decide('Meu CPF 123.456.789-09',{hasExistingInbox:true,humanPending:true});
+  assert.equal(r.handled,true);
+  assert.equal(r.reason,'unsafe_identifier');
+  assert.equal(r.handoffRequested,true);
+  assert.equal(r.intent,'handoff');
+  assert.equal(r.reply,null);
+  assert.equal(r.reply?.includes('123.456.789-09'),undefined);
+});
+
 test('webhook requires durable database acknowledgement before STOP confirmation',()=>{
   const fs=require('node:fs');
   const path=require('node:path');
