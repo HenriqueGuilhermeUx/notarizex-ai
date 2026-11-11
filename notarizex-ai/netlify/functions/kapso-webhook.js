@@ -107,12 +107,14 @@ async function handleInbound(item,raw) {
   const intent=clean(brain.intent)||'duvida';
   const inboxStatus=brain.handoffRequested?'human_needed'
     :(brain.pipelineStatus==='pronto_para_contato'?'commercial_ready':'new');
-  const inbox=await upsertInbox(cfg.bot_id,item.phone,item.name,item.text,intent,inboxStatus);
+  // Redact identifiers BEFORE either the inbox preview or message history
+  // is written. The generic AI is bypassed for these sensitive messages.
   const safeInbound=(isNexa&&plan?.reason==='unsafe_identifier')
     ?'[identificador pessoal omitido]' : item.text;
   const safeRaw=(isNexa&&plan?.reason==='unsafe_identifier')
     ?{removed_sensitive_payload:true,providerMessageId:clean(item.message&&item.message.id)}
     :raw;
+  const inbox=await upsertInbox(cfg.bot_id,item.phone,item.name,safeInbound,intent,inboxStatus);
   await saveInbound(cfg.bot_id,inbox,item.phone,item.name,safeInbound,item.message,safeRaw);
   await recordUsage(cfg.bot_id,'whatsapp_message_received','inbound',
     {providerMessageId:clean(item.message&&item.message.id)||null,intent});

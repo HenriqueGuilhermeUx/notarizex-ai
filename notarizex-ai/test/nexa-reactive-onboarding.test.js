@@ -30,9 +30,14 @@ test('first generic greeting opens a short menu, not the sales funnel',()=>{
   assert.equal(isGenericGreeting('Olá, preciso de ajuda com uma operação'),false);
 });
 
-test('specific issue on first message goes directly to existing AI',()=>{
+test('non-KYC issue goes to existing AI, but Didit errors receive safe instructions',()=>{
   assert.equal(decide('Minha transação não aparece no extrato'),null);
-  assert.equal(decide('Minha sessão de identificação expirou'),null);
+  const kyc=decide('Minha sessão de identificação expirou');
+  assert.equal(kyc.handled,true);
+  assert.equal(kyc.reason,'kyc_difficulty_didit_error');
+  assert.match(kyc.reply,/https:\/\/trynexa.com.br\/portal\//);
+  assert.match(kyc.reply,/ajuda-verificacao.html/);
+  assert.equal(kyc.handoffRequested,false);
 });
 
 test('do not repeat menu for an existing client who says hello',()=>{
@@ -109,6 +114,44 @@ test('SAIR overrides human pending, requests no marketing and is Nexa-only',()=>
   assert.equal(resolveReactiveTurn({
     botId:'other',message:'SAIR',hasExistingInbox:true,humanPending:true,
   }),null);
+});
+
+test('Didit problems are answered immediately without unsolicited offers',()=>{
+  const scenarios=[
+    ['Não encontrei a verificação de identidade','locate',false],
+    ['Não consigo verificar identidade','didit_error',false],
+    ['Minha aprovação está pendente','review',true],
+    ['Problema com a câmera na Didit','camera',false],
+    ['Não consigo entrar na Nexa','access',false]
+  ];
+  for(const [phrase,topic,human] of scenarios){
+    const r=decide(phrase,{hasExistingInbox:true});
+    assert.equal(r.reason,'kyc_difficulty_'+topic,phrase);
+    assert.equal(r.handoffRequested,human);
+    assert.match(r.reply,/trynexa.com.br\/portal\//);
+    assert.doesNotMatch(r.reply,/mande um pix|rendimento garantido/i);
+  }
+  assert.match(decide('2',{hasExistingInbox:true,latestOutbound:MENU}).reply,/ajuda-verificacao.html/);
+  assert.equal(decide('Minha verificação não abriu',{humanPending:true,hasExistingInbox:true}).reply,null);
+});
+
+test('sensitive details are intercepted before the generic AI, menu or handoff',()=>{
+  for(const phrase of [
+    'CPF 123.456.789-09 menu',
+    'Meu e-mail exemplo@dominio.com é este',
+    'senha: minhaSenhaSecreta'
+  ]){
+    const r=decide(phrase,{hasExistingInbox:true});
+    assert.equal(r.reason,'unsafe_identifier',phrase);
+    assert.equal(r.reply.includes('123.456'),false);
+    assert.equal(r.reply.includes('exemplo@'),false);
+  }
+  const src=require('node:fs').readFileSync(
+    require('node:path').join(__dirname,'../netlify/functions/kapso-webhook.js'),'utf8'
+  );
+  assert.ok(src.includes('await upsertInbox(cfg.bot_id,item.phone,item.name,safeInbound,intent,inboxStatus)'),
+    'Nexa inbox preview must be redacted before being saved');
+  assert.ok(src.includes('saveInbound(cfg.bot_id,inbox,item.phone,item.name,safeInbound'));
 });
 
 test('webhook requires durable database acknowledgement before STOP confirmation',()=>{

@@ -5,6 +5,8 @@ on:
     paths:
       - 'notarizex-ai/netlify/functions/nexa-telegram-webhook.js'
       - 'notarizex-ai/netlify/functions/lib/nexa-telegram-support.js'
+      - 'notarizex-ai/netlify/functions/lib/nexa-kyc-assistance.js'
+      - 'notarizex-ai/test/nexa-kyc-assistance.test.js'
       - 'notarizex-ai/sql/20261109_nexa_telegram_support.sql'
       - 'notarizex-ai/test/nexa-telegram-support.test.js'
       - 'notarizex-ai/scripts/activate-nexa-telegram.ps1'
@@ -14,6 +16,8 @@ on:
     paths:
       - 'notarizex-ai/netlify/functions/nexa-telegram-webhook.js'
       - 'notarizex-ai/netlify/functions/lib/nexa-telegram-support.js'
+      - 'notarizex-ai/netlify/functions/lib/nexa-kyc-assistance.js'
+      - 'notarizex-ai/test/nexa-kyc-assistance.test.js'
       - 'notarizex-ai/sql/20261109_nexa_telegram_support.sql'
       - 'notarizex-ai/test/nexa-telegram-support.test.js'
       - 'notarizex-ai/scripts/activate-nexa-telegram.ps1'
@@ -45,6 +49,8 @@ jobs:
             $errors | ForEach-Object { Write-Host $_.Message }
             exit 1
           }
+      - name: Shared Nexa KYC assistance contract
+        run: node --test notarizex-ai/test/nexa-kyc-assistance.test.js
       - name: Telegram onboarding and security tests
         run: node --test notarizex-ai/test/nexa-telegram-support.test.js
       - name: Must not proactively send or identify accounts by Telegram ID

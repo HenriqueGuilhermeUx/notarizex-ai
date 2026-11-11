@@ -5,6 +5,8 @@ on:
     paths:
       - 'notarizex-ai/netlify/functions/kapso-webhook.js'
       - 'notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js'
+      - 'notarizex-ai/netlify/functions/lib/nexa-kyc-assistance.js'
+      - 'notarizex-ai/test/nexa-kyc-assistance.test.js'
       - 'notarizex-ai/test/nexa-reactive-onboarding.test.js'
       - '.github/workflows/nexa-whatsapp-reactive-ci.yml'
   push:
@@ -12,6 +14,8 @@ on:
     paths:
       - 'notarizex-ai/netlify/functions/kapso-webhook.js'
       - 'notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js'
+      - 'notarizex-ai/netlify/functions/lib/nexa-kyc-assistance.js'
+      - 'notarizex-ai/test/nexa-kyc-assistance.test.js'
       - 'notarizex-ai/test/nexa-reactive-onboarding.test.js'
       - '.github/workflows/nexa-whatsapp-reactive-ci.yml'
 
@@ -28,6 +32,8 @@ jobs:
           node --check notarizex-ai/netlify/functions/kapso-webhook.js
           node --check notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js
           node --check notarizex-ai/test/nexa-reactive-onboarding.test.js
+      - name: Shared Nexa KYC assistance contract
+        run: node --test notarizex-ai/test/nexa-kyc-assistance.test.js
       - name: Test safe Nexa-only reactive onboarding
         run: node --test notarizex-ai/test/nexa-reactive-onboarding.test.js
       - name: Fail closed on unauthorized proactive marketing
@@ -36,11 +42,12 @@ jobs:
           const fs=require('node:fs');
           const helper=fs.readFileSync('notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js','utf8');
           const hook=fs.readFileSync('notarizex-ai/netlify/functions/kapso-webhook.js','utf8');
+          const guidance=fs.readFileSync('notarizex-ai/netlify/functions/lib/nexa-kyc-assistance.js','utf8');
           for (const marker of [
             'site-nexa-20260923-live','humanPending','isMenuReply',
             'Não envie CPF','resolveReactiveTurn'
           ]) {
-            if (!helper.includes(marker) && !hook.includes(marker)) throw new Error('Safety marker missing');
+            if (!helper.includes(marker) && !hook.includes(marker) && !guidance.includes(marker)) throw new Error('Safety marker missing');
           }
           if (!hook.includes('nexMsgProcessed')) throw new Error('Provider idempotency check missing');
           if (!hook.includes('cfg.auto_reply===true')) throw new Error('Automatic response gating missing');
