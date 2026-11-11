@@ -42,7 +42,7 @@ const REPLIES=Object.freeze({
 function classifyKycDifficulty(value) {
   const m=normalize(value);
   if(!m) return null;
-  const context=/\b(?:kyc|didit|identidade|identificacao|verificacao|verificar|biometria|selfie|cadastro)\b/.test(m);
+  const context=/\b(?:kyc|didit|identidade|identificacao|verificacao|verificar|biometria|selfie|cadastro|aprovacao)\b/.test(m);
   // Account-login difficulty is relevant even when the client doesn't know
   // the term "KYC" or "Didit". Give generic guidance, never account data.
   if(!context && /\b(?:nao consigo entrar|nao consegui entrar|login nao funciona|acesso bloqueado)\b/.test(m))
