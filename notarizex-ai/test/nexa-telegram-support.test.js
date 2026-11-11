@@ -114,7 +114,7 @@ test('Telegram classifies KYC friction without manufacturing an approval',()=>{
     ['Didit não abriu para mim','kyc_difficulty_didit_error','answer'],
     ['A câmera da Didit não funciona','kyc_difficulty_camera','answer'],
     ['Não consigo entrar na Nexa','kyc_difficulty_access','answer'],
-    ['Minha aprovação está pendente','kyc_handoff','handoff']
+    ['Minha aprovação está pendente','kyc_review_handoff','handoff']
   ];
   for(const [message,reason,kind] of examples){
     const response=decide(message);
