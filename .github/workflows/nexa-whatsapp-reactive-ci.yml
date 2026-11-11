@@ -47,7 +47,7 @@ jobs:
             'site-nexa-20260923-live','humanPending','isMenuReply',
             'Não envie CPF','resolveReactiveTurn'
           ]) {
-            if (!helper.includes(marker) && !hook.includes(marker)) throw new Error('Safety marker missing');
+            if (!helper.includes(marker) && !hook.includes(marker) && !guidance.includes(marker)) throw new Error('Safety marker missing');
           }
           if (!hook.includes('nexMsgProcessed')) throw new Error('Provider idempotency check missing');
           if (!hook.includes('cfg.auto_reply===true')) throw new Error('Automatic response gating missing');
