@@ -95,9 +95,9 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
 
   // Always intercept accidentally submitted personal identifiers before
   // calling the generic AI or persisting chat content. No account lookup.
-  if (/\\b\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}\\b/.test(input) ||
-      /\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b/i.test(input) ||
-      /\\b(?:senha|password|codigo de verificacao|codigo de acesso|otp)\\s*(?:[:=]|(?:e|é)\\s*)\\s*\\S+/i.test(input)) {
+  if (/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/.test(input) ||
+      /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(input) ||
+      /\b(?:senha|password|codigo de verificacao|codigo de acesso|otp)\s*(?:[:=]|(?:e|é)\s*)\s*\S+/i.test(input)) {
     return {
       handled:true,intent:'duvida',handoffRequested:false,reason:'unsafe_identifier',
       reply:'Por segurança, não envie CPF, e-mail, senha, código ou documento por aqui. Use a conta autenticada em '+PORTAL+'. Se precisar, escreva "atendente" para receber orientação segura.'
