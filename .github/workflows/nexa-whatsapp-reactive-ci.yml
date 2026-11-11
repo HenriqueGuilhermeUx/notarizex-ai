@@ -42,6 +42,7 @@ jobs:
           const fs=require('node:fs');
           const helper=fs.readFileSync('notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js','utf8');
           const hook=fs.readFileSync('notarizex-ai/netlify/functions/kapso-webhook.js','utf8');
+          const guidance=fs.readFileSync('notarizex-ai/netlify/functions/lib/nexa-kyc-assistance.js','utf8');
           for (const marker of [
             'site-nexa-20260923-live','humanPending','isMenuReply',
             'Não envie CPF','resolveReactiveTurn'
