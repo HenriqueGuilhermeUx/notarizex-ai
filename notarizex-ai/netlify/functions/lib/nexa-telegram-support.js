@@ -3,7 +3,7 @@
 // Nexa-only Telegram support. Telegram chat IDs are NOT Nexa account identity.
 // Never request personal documents, passwords, codes or payment credentials here.
 const BOT_ID = 'site-nexa-20260923-live';
-const PORTAL = 'https://trynexa.com.br/portal/';
+const {PORTAL,FEEDBACK,GENERAL,classifyKycDifficulty,kycFrictionReply}=require('./nexa-kyc-assistance');
 
 const MENU = [
   'Olá! Eu sou o Theo, assistente de atendimento da Nexa. 👋',
@@ -15,13 +15,13 @@ const MENU = [
   '3 — Entender a conta Nexa',
   '4 — Ajuda com saldo ou uma operação',
   '5 — Falar com a equipe',
+  '6 — Minha verificação não funcionou',
   '',
-  'Comandos: /ajuda, /avisos, /parar.',
+  'Comandos: /kyc, /problema_kyc, /humano, /avisos, /parar.',
   'Não envie CPF, selfie, documentos, senha ou código por aqui.'
 ].join('\n');
 
-const KYC = 'Para verificar sua identidade ou consultar o andamento, entre somente no portal autenticado: '+PORTAL+
-  ' e siga a etapa Didit. Não envie documentos, CPF, selfies ou códigos neste chat. Se sua aprovação estiver travada ou a sessão expirada, escreva “preciso de análise” para registrar um pedido de suporte.';
+const KYC = GENERAL;
 const HUMAN = 'Registrei seu pedido de atendimento para acompanhamento no SmartBots. A equipe precisa verificar sua identidade pelo portal oficial antes de consultar qualquer dado da conta. Não envie CPF, documentos, selfies ou senhas aqui.';
 const PRIVACY = 'Registrei seu pedido relacionado à privacidade para acompanhamento humano. Não envie dados pessoais neste chat. A equipe deverá orientar uma validação segura pelo portal Nexa.';
 const STOP = 'Você não receberá avisos proativos da Nexa pelo Telegram. Se precisar de ajuda, pode continuar conversando comigo. Para reativar apenas avisos de serviço, envie /avisos.';
@@ -36,7 +36,9 @@ function normalize(value) {
 function containsSensitive(value) {
   const t=String(value||'');
   return /\b\d{3}[.\s]?\d{3}[.\s]?\d{3}[-\s]?\d{2}\b/.test(t) ||
-    /\b(?:senha|password|codigo de acesso|token otp)\s*[:=]\s*\S+/i.test(t);
+    /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(t) ||
+    /\b(?:senha|password|codigo de acesso|codigo de verificacao|token otp|otp)\s*(?:[:=]|(?:e|é)\s*)\s*\S+/i.test(t) ||
+    /\b(?:\+?55\s?)?\(?\d{2}\)?\s?9?\d{4}[-\s]?\d{4}\b/.test(t);
 }
 function resolveTelegramTurn({message, humanPending=false}) {
   const input=String(message||'').trim();
@@ -60,6 +62,15 @@ function resolveTelegramTurn({message, humanPending=false}) {
      (/\b(?:kyc|didit|identidade|cadastro|verificacao)\b/.test(m) &&
       /\b(?:aprov|rejeit|recus|trav|erro|expir|demor|pendente|nao consigo)\b/.test(m)))
     return {reason:'kyc_handoff',reply:KYC+'\n\n'+HUMAN,kind:'handoff',category:'kyc'};
+  if (/^(?:6|\/problema_kyc|\/pesquisa_kyc)$/.test(m))
+    return {reason:'kyc_difficulty_menu',reply:'Sua verificação não avançou? Você pode contar onde parou, sem dados pessoais: '+FEEDBACK+
+      '\nSe preferir ajuda individual, escreva /humano. Para retomar, use: '+PORTAL,kind:'answer'};
+  // Classify general KYC difficulties deterministically instead of inventing
+  // a customer status: neither this chat nor WhatsApp authenticates identity.
+  const topic=classifyKycDifficulty(input);
+  if (topic) return topic==='review'
+    ? {reason:'kyc_review_handoff',reply:kycFrictionReply(topic)+'\n\n'+HUMAN,kind:'handoff',category:'kyc'}
+    : {reason:'kyc_difficulty_'+topic,reply:kycFrictionReply(topic),kind:'answer'};
   if (/^(?:1|\/conta|\/login)$/.test(m))
     return {reason:'account_help',reply:'Para cadastro, acesso e recuperação de senha, utilize exclusivamente o portal: '+PORTAL+'. Se encontrar um erro, descreva apenas a mensagem geral (sem dados pessoais).',kind:'answer'};
   if (/^(?:2|\/kyc|\/didit)$/.test(m))
