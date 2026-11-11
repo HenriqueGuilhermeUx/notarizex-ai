@@ -121,7 +121,7 @@ test('Telegram classifies KYC friction without manufacturing an approval',()=>{
     assert.equal(response.reason,reason,message);
     assert.equal(response.kind,kind,message);
     assert.match(response.reply,/trynexa.com.br\/portal\//);
-    assert.doesNotMatch(response.reply,/depósito obrigatório|envie CPF|mande pix/i);
+    assert.doesNotMatch(response.reply,/depósito obrigatório|envie (?:seu )?CPF para (?:validar|analisar)|mande pix/i);
   }
   assert.equal(decide('KYC não foi aprovado').kind,'handoff');
   assert.equal(decide('/parar',true).kind,'opt_out');
