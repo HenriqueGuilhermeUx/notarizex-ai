@@ -21,6 +21,17 @@ const MENU = [
   'Não envie CPF, selfie, documentos, senha ou código por aqui.'
 ].join('\n');
 
+// Explicit commands prevent numeric answers being confused with the main menu.
+const KYC_GUIDED = [
+  'Vamos identificar a dificuldade na verificação de identidade:',
+  '/kyc_botao — Não encontro a opção de verificar',
+  '/kyc_abertura — Clico e a Didit não abre',
+  '/kyc_camera — Problema de câmera ou documento',
+  '/kyc_analise — Já concluí e aguardo análise',
+  'A verificação começa dentro do portal autenticado: '+PORTAL,
+  'Não envie CPF, foto, senha ou código por aqui.'
+].join('\\n');
+
 const KYC = GENERAL;
 const HUMAN = 'Registrei seu pedido de atendimento para acompanhamento no SmartBots. A equipe precisa verificar sua identidade pelo portal oficial antes de consultar qualquer dado da conta. Não envie CPF, documentos, selfies ou senhas aqui.';
 const PRIVACY = 'Registrei seu pedido relacionado à privacidade para acompanhamento humano. Não envie dados pessoais neste chat. A equipe deverá orientar uma validação segura pelo portal Nexa.';
@@ -62,6 +73,10 @@ function resolveTelegramTurn({message, humanPending=false}) {
      (/\b(?:kyc|didit|identidade|cadastro|verificacao)\b/.test(m) &&
       /\b(?:aprov|rejeit|recus|trav|erro|expir|demor|pendente|nao consigo)\b/.test(m)))
     return {reason:'kyc_handoff',reply:KYC+'\n\n'+HUMAN,kind:'handoff',category:'kyc'};
+  if (m==='/kyc_botao') return {reason:'kyc_locate',reply:kycFrictionReply('locate'),kind:'answer'};
+  if (m==='/kyc_abertura') return {reason:'kyc_opening_handoff',reply:'Entendi. Se você clica e a Didit não abre, registrei a dificuldade para atendimento da equipe. Não tente várias vezes nem envie links de sessão ou documentos. Para verificar o status, use '+PORTAL,kind:'handoff',category:'kyc'};
+  if (m==='/kyc_camera') return {reason:'kyc_camera',reply:kycFrictionReply('camera'),kind:'answer'};
+  if (m==='/kyc_analise') return {reason:'kyc_review_handoff',reply:kycFrictionReply('review')+'\\n\\n'+HUMAN,kind:'handoff',category:'kyc'};
   if (/^(?:6|\/problema_kyc|\/pesquisa_kyc)$/.test(m))
     return {reason:'kyc_difficulty_menu',reply:'Sua verificação não avançou? Você pode contar onde parou, sem dados pessoais: '+FEEDBACK+
       '\nSe preferir ajuda individual, escreva /humano. Para retomar, use: '+PORTAL,kind:'answer'};
@@ -74,7 +89,7 @@ function resolveTelegramTurn({message, humanPending=false}) {
   if (/^(?:1|\/conta|\/login)$/.test(m))
     return {reason:'account_help',reply:'Para cadastro, acesso e recuperação de senha, utilize exclusivamente o portal: '+PORTAL+'. Se encontrar um erro, descreva apenas a mensagem geral (sem dados pessoais).',kind:'answer'};
   if (/^(?:2|\/kyc|\/didit)$/.test(m))
-    return {reason:'kyc_help',reply:KYC,kind:'answer'};
+    return {reason:'kyc_help',reply:KYC_GUIDED,kind:'answer'};
   if (/^(?:3|\/sobre)$/.test(m))
     return {reason:'about_nexa',reply:'A Nexa disponibiliza uma experiência digital para consultar sua carteira e serviços habilitados. Consulte o que está disponível para você no portal oficial: '+PORTAL+'.',kind:'answer'};
   if (/^(?:4|\/operacao|\/saldo)$/.test(m) ||
@@ -88,5 +103,5 @@ function resolveTelegramTurn({message, humanPending=false}) {
   return {reason:'unresolved_to_human',reply:'Para ajudar com segurança, vou registrar sua dúvida para atendimento. Você também pode consultar sua conta no portal: '+PORTAL+'. Não envie dados pessoais aqui.',
     kind:'handoff',category:'general_support'};
 }
-module.exports={BOT_ID,PORTAL,MENU,KYC,HUMAN,PRIVACY,STOP,SERVICE_OPTIN,
+module.exports={BOT_ID,PORTAL,MENU,KYC,KYC_GUIDED,HUMAN,PRIVACY,STOP,SERVICE_OPTIN,
   normalize,containsSensitive,resolveTelegramTurn};
