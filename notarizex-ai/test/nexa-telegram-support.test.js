@@ -81,6 +81,18 @@ test('KYC and a delayed approval issue get different answers',()=>{
   assert.equal(decide('Minha aprovação do cadastro está pendente').reason,'kyc_handoff');
   assert.match(decide('/kyc').reply,/Didit/);
 });
+test('Telegram offers explicit KYC troubleshooting commands and safe escalation',()=>{
+  const prompt=decide('/kyc');
+  assert.match(prompt.reply,/\\/kyc_botao/);
+  assert.match(prompt.reply,/\\/kyc_abertura/);
+  assert.match(prompt.reply,/não é necessário fazer depósito/i);
+  assert.match(prompt.reply,/trynexa.com.br\\/portal\\//);
+  assert.equal(decide('/kyc_botao').kind,'answer');
+  assert.equal(decide('/kyc_abertura').kind,'handoff');
+  assert.equal(decide('/kyc_camera').kind,'answer');
+  assert.equal(decide('/kyc_analise').kind,'handoff');
+  assert.equal(decide('/parar',true).kind,'opt_out');
+});
 test('privacy complaints and financial problems require a human request',()=>{
   assert.equal(decide('Fala sobre dados não apagados').category,'privacy');
   assert.equal(decide('Meu depósito não caiu').category,'financial_support');
