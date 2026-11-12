@@ -132,7 +132,7 @@ test('Didit problems are answered immediately without unsolicited offers',()=>{
     else assert.match(r.reply,/trynexa.com.br\/portal\//);
     assert.doesNotMatch(r.reply,/mande um pix|rendimento garantido/i);
   }
-  assert.match(decide('2',{hasExistingInbox:true,latestOutbound:MENU}).reply,/ajuda-verificacao.html/);
+  assert.equal(decide('2',{hasExistingInbox:true,latestOutbound:MENU}).reply,KYC_STEP_PROMPT);
   assert.equal(decide('Minha verificação não abriu',{humanPending:true,hasExistingInbox:true}).reply,null);
 });
 
