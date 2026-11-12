@@ -28,7 +28,7 @@ const KYC_GUIDED = [
   '/kyc_abertura — Clico e a Didit não abre',
   '/kyc_camera — Problema de câmera ou documento',
   '/kyc_analise — Já concluí e aguardo análise',
-  'A verificação começa dentro do portal autenticado: '+PORTAL,
+  'A verificação começa dentro do portal autenticado: '+PORTAL,\n  'Não é necessário fazer depósito para iniciar.',
   'Não envie CPF, foto, senha ou código por aqui.'
 ].join('\\n');
 
