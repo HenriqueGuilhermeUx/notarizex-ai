@@ -86,7 +86,7 @@ test('Telegram offers explicit KYC troubleshooting commands and safe escalation'
   assert.ok(prompt.reply.includes('/kyc_botao'));
   assert.ok(prompt.reply.includes('/kyc_abertura'));
   assert.ok(prompt.reply.includes('https://trynexa.com.br/portal/'));
-  assert.ok(prompt.reply.includes('Não é necessário fazer depósito'));
+  assert.ok(prompt.reply.includes('não precisa depositar'));
   assert.equal(decide('/kyc_botao').kind,'answer');
   assert.equal(decide('/kyc_abertura').kind,'handoff');
   assert.equal(decide('/kyc_camera').kind,'answer');
