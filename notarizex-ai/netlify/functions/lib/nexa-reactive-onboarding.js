@@ -32,7 +32,7 @@ const KYC_STEP_PROMPT = [
   '*3* — A Didit abre, mas ocorre um erro de câmera/documento',
   '*4* — Já fiz e estou aguardando análise',
   'Responda só com o número. Não envie CPF, documentos, fotos ou códigos.'
-].join('\\n');
+].join('\n');
 
 function isKycStepPrompt(value) {
   const text=String(value||'');
