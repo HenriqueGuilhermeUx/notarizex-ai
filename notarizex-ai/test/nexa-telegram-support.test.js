@@ -83,10 +83,10 @@ test('KYC and a delayed approval issue get different answers',()=>{
 });
 test('Telegram offers explicit KYC troubleshooting commands and safe escalation',()=>{
   const prompt=decide('/kyc');
-  assert.match(prompt.reply,/\\/kyc_botao/);
-  assert.match(prompt.reply,/\\/kyc_abertura/);
-  assert.match(prompt.reply,/não é necessário fazer depósito/i);
-  assert.match(prompt.reply,/trynexa.com.br\\/portal\\//);
+  assert.ok(prompt.reply.includes('/kyc_botao'));
+  assert.ok(prompt.reply.includes('/kyc_abertura'));
+  assert.ok(prompt.reply.includes('https://trynexa.com.br/portal/'));
+  assert.ok(prompt.reply.includes('Não é necessário fazer depósito'));
   assert.equal(decide('/kyc_botao').kind,'answer');
   assert.equal(decide('/kyc_abertura').kind,'handoff');
   assert.equal(decide('/kyc_camera').kind,'answer');
