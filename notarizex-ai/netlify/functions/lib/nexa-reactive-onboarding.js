@@ -23,6 +23,31 @@ const MENU = [
   'Por segurança, não envie CPF, documentos, senhas ou códigos por aqui.'
 ].join('\n');
 
+// Short, reactive troubleshooting. The last outbound prompt is the only
+// conversation context: never interpret an arbitrary digit as a KYC answer.
+const KYC_STEP_PROMPT = [
+  'Vou ajudar a identificar onde a verificação parou. Qual situação descreve melhor o problema?',
+  '*1* — Não encontro a verificação',
+  '*2* — Clico, mas a Didit não abre',
+  '*3* — A Didit abre, mas ocorre um erro de câmera/documento',
+  '*4* — Já fiz e estou aguardando análise',
+  'Responda só com o número. Não envie CPF, documentos, fotos ou códigos.'
+].join('\\n');
+
+function isKycStepPrompt(value) {
+  const text=String(value||'');
+  return text.includes('Qual situação descreve melhor o problema?') &&
+    text.includes('*1* — Não encontro a verificação') &&
+    text.includes('*4* — Já fiz e estou aguardando análise');
+}
+
+const KYC_STEPS = Object.freeze({
+  '1': {intent:'duvida',reply:'Entendi. Entre em '+PORTAL+' com sua conta e procure a etapa de verificação de identidade. Não precisa depositar para iniciar. Se o botão continuar ausente, escreva "atendente" para registrarmos a falha. Não envie dados pessoais aqui.'},
+  '2': {intent:'handoff',handoffRequested:true,reply:'Obrigado por explicar. Se você clica e a Didit não abre, pode ser uma falha técnica. Registrei a dificuldade para acompanhamento da equipe. Por enquanto, não tente repetidamente e não envie documentos ou links de verificação neste chat.'},
+  '3': {intent:'duvida',reply:'Se a Didit abre, mas a câmera não funciona, confira a permissão de câmera do navegador ou aplicativo e tente somente pelo fluxo oficial em '+PORTAL+'. Se aparecer um erro diferente ou persistir, escreva "atendente". Não envie fotos ou documentos por WhatsApp.'},
+  '4': {intent:'handoff',handoffRequested:true,reply:'Obrigado. Se já concluiu a verificação, acompanhe o status no portal '+PORTAL+'. Registrei seu pedido para a equipe verificar o andamento pelos canais internos. Não repita o procedimento nem envie seus documentos por mensagem.'}
+});
+
 const ANSWERS = Object.freeze({
   '1': {
     intent: 'duvida',
@@ -30,7 +55,7 @@ const ANSWERS = Object.freeze({
   },
   '2': {
     intent: 'duvida',
-    reply: GENERAL
+    reply: KYC_STEP_PROMPT
   },
   '3': {
     intent: 'duvida',
@@ -116,6 +141,12 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
     return {handled:true,reply:MENU,intent:'duvida',handoffRequested:false,reason:'requested_menu'};
   }
 
+  // Resolve digits only after our specific KYC question. The main menu
+  // has precedence only when it was actually the latest outbound message.
+  if (isKycStepPrompt(latestOutbound) && /^[1-4]$/.test(normalized)) {
+    return {handled:true,...KYC_STEPS[normalized],reason:'selected_kyc_step'};
+  }
+
   if (isMenuReply(latestOutbound) && /^[1-6]$/.test(normalized)) {
     return {handled:true, ...ANSWERS[normalized], reason:'selected_menu_option'};
   }
@@ -127,6 +158,13 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
   // Frequent KYC problems are answered consistently on both channels.
   // Human review is routed to an agent and no KYC status is invented.
   const topic=classifyKycDifficulty(input);
+  // A vague error should trigger one focused question, not another long
+  // generic explanation. A concrete camera/review/access issue keeps its
+  // established safe reply and escalation semantics.
+  if (topic==='didit_error') return {
+    handled:true,reply:KYC_STEP_PROMPT,intent:'duvida',
+    handoffRequested:false,reason:'kyc_difficulty_didit_error'
+  };
   if (topic) return {
     handled:true,
     reply:kycFrictionReply(topic),
@@ -139,5 +177,5 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
   return null;
 }
 
-module.exports = { NEXA_BOT_ID, MENU, ANSWERS, STOP_REPLY, isNexa, isGenericGreeting,
-  isMenuReply, isStopRequest, resolveReactiveTurn };
+module.exports = { NEXA_BOT_ID, MENU, ANSWERS, STOP_REPLY, KYC_STEP_PROMPT, KYC_STEPS,
+  isNexa, isGenericGreeting, isKycStepPrompt, isMenuReply, isStopRequest, resolveReactiveTurn };
