@@ -29,7 +29,7 @@ const KYC_GUIDED = [
   '/kyc_camera — Problema de câmera ou documento',
   '/kyc_analise — Já concluí e aguardo análise',
   'A verificação começa dentro do portal autenticado: '+PORTAL,
-  'Não é necessário fazer depósito para iniciar.',
+  'Você não precisa depositar para iniciar a verificação.',
   'Não envie CPF, foto, senha ou código por aqui.'
 ].join('\\n');
 
