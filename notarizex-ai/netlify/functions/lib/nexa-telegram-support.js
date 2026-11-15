@@ -3,6 +3,7 @@
 // Nexa-only Telegram support. Telegram chat IDs are NOT Nexa account identity.
 // Never request personal documents, passwords, codes or payment credentials here.
 const BOT_ID = 'site-nexa-20260923-live';
+const guided=require('./nexa-guided-menu');
 const {PORTAL,FEEDBACK,GENERAL,classifyKycDifficulty,kycFrictionReply}=require('./nexa-kyc-assistance');
 
 const MENU = [
@@ -99,6 +100,10 @@ function resolveTelegramTurn({message, humanPending=false}) {
     return {reason:'financial_support_handoff',
       reply:'Vou registrar sua dificuldade para acompanhamento humano. Consulte o histórico no portal: '+PORTAL+'. Não envie Pix, chaves, extratos, documentos ou códigos aqui.',
       kind:'handoff',category:'financial_support'};
+  if (/^(?:\/primeiro_deposito|primeiro deposito|como depositar)$/.test(m))
+    return {reason:'first_deposit_guidance',reply:guided.firstDepositGuidance(),kind:'answer'};
+  if (/^(?:\/problema_deposito)$/.test(m))
+    return {reason:'deposit_problem_handoff',reply:'Vou encaminhar a dificuldade para atendimento. Confira o histórico exclusivamente na conta autenticada: '+PORTAL+'. Não envie comprovantes ou dados financeiros neste chat.',kind:'handoff',category:'financial_support'};
   if (/^(?:\/status|status)$/.test(m) || /\b(?:meu saldo|minha conta|meu kyc|meus dados)\b/.test(m))
     return {reason:'not_authenticated',reply:NO_IDENTITY,kind:'answer'};
   return {reason:'unresolved_to_human',reply:'Para ajudar com segurança, vou registrar sua dúvida para atendimento. Você também pode consultar sua conta no portal: '+PORTAL+'. Não envie dados pessoais aqui.',
