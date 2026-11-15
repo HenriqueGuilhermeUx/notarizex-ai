@@ -6,6 +6,7 @@
  * collect a CPF or initiate a purchase, Pix payment or deposit.
  */
 const NEXA_BOT_ID = 'site-nexa-20260923-live';
+const guided=require('./nexa-guided-menu');
 const {PORTAL,FEEDBACK,GENERAL,classifyKycDifficulty,kycFrictionReply}=require('./nexa-kyc-assistance');
 
 const MENU = [
@@ -153,6 +154,11 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
 
   if (/\b(?:atendente humano|falar com humano|falar com atendente|pessoa da equipe|quero atendente)\b/.test(normalized)) {
     return {handled:true,...ANSWERS['6'],reason:'requested_human'};
+  }
+
+  // An explicit first-deposit request is educational only, not a payment instruction.
+  if (/^(?:primeiro deposito|como depositar|quero conhecer deposito|\/primeiro_deposito)$/.test(normalized)) {
+    return {handled:true,reply:guided.firstDepositGuidance(),intent:'duvida',handoffRequested:false,reason:'first_deposit_guidance'};
   }
 
   // Frequent KYC problems are answered consistently on both channels.
