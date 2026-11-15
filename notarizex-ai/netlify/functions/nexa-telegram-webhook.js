@@ -2,6 +2,7 @@
 const crypto=require('node:crypto');
 const fetch=require('node-fetch');
 const {BOT_ID,resolveTelegramTurn}=require('./lib/nexa-telegram-support');
+const guided=require('./lib/nexa-guided-menu');
 
 function json(statusCode,payload) {
   return {statusCode,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)};
@@ -172,11 +173,12 @@ function createHandler({fetchImpl=fetch,env=process.env}={}) {
       console.error('telegram_crm_mirror_failed');
     }
   }
-  async function sendTelegram(chatId,body,token) {
+  async function sendTelegram(chatId,body,token,keyboard=null) {
     const response=await fetchImpl('https://api.telegram.org/bot'+token+'/sendMessage',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({chat_id:chatId,text:body,
-        disable_web_page_preview:true,protect_content:false})
+        disable_web_page_preview:true,protect_content:false,
+        ...(keyboard?{reply_markup:keyboard}:{})})
     });
     if(!response.ok)throw new Error('telegram_provider_http_'+response.status);
     const json=await response.json();
@@ -196,15 +198,19 @@ function createHandler({fetchImpl=fetch,env=process.env}={}) {
     let update;
     try {update=JSON.parse(String(event.body||'{}'));}
     catch(_error){return json(400,{success:false,error:'invalid_json'});}
-    // No groups, channel broadcasting, phone sharing, files or callback writes.
-    const msg=update?.message;
+    // Only explicitly allowlisted callback actions from private, owner-matched chats.
+    // No callback grants consent or performs an account/financial mutation.
+    const callback=update?.callback_query;
+    const msg=callback?callback.message:update?.message;
     const chatId=numberId(msg?.chat?.id);
-    const userId=numberId(msg?.from?.id);
+    const userId=numberId(callback?callback.from?.id:msg?.from?.id);
+    const action=callback?guided.resolveButtonPayload(callback.data):null;
+    const inbound=callback?action:msg?.text;
     const updateId=Number(update?.update_id);
     if(!Number.isSafeInteger(updateId)||updateId<0)
       return json(400,{success:false,error:'invalid_update'});
     if(!msg||msg.chat?.type!=='private'||!chatId||chatId!==userId||
-       typeof msg.text!=='string'||msg.text.length>1800)
+       typeof inbound!=='string'||inbound.length>1800)
       return json(200,{success:true,ignored:true});
     let reserved=false;
     try {
@@ -212,19 +218,30 @@ function createHandler({fetchImpl=fetch,env=process.env}={}) {
       if(!reserved)return json(200,{success:true,duplicate:true});
       const name=String(msg.from?.first_name||'').replace(/[<>]/g,'').slice(0,80);
       const contact=await currentContact(userId,chatId,name);
-      const plan=resolveTelegramTurn({message:msg.text,humanPending:contact.status==='human_needed'});
-      await saveMessage(updateId,chatId,'inbound',scrub(msg.text,plan.sensitive),
-        numberId(msg.message_id),'received');
+      const plan=resolveTelegramTurn({message:inbound,humanPending:contact.status==='human_needed'});
+      await saveMessage(updateId,chatId,'inbound',scrub(inbound,plan.sensitive),
+        callback?null:numberId(msg.message_id),'received');
       if(plan.kind==='opt_out')await setServicePreference(userId,false);
       if(plan.kind==='service_opt_in')await setServicePreference(userId,true);
       if(plan.kind==='handoff')
-        await createHandoff(chatId,plan.category,name,scrub(msg.text,plan.sensitive));
+        await createHandoff(chatId,plan.category,name,scrub(inbound,plan.sensitive));
       if(plan.reply) {
-        const sentId=await sendTelegram(chatId,plan.reply,String(env.NEXA_TELEGRAM_BOT_TOKEN));
+        const keyboard=(plan.kind==='menu'||plan.reason==='telegram_menu')
+          ? guided.telegramKeyboard('home')
+          : (plan.reason==='kyc_help' ? guided.telegramKeyboard('kyc') : null);
+        const sentId=await sendTelegram(chatId,plan.reply,String(env.NEXA_TELEGRAM_BOT_TOKEN),keyboard);
         await saveMessage(updateId,chatId,'outbound',plan.reply,sentId,'sent');
       }
       if(plan.kind!=='handoff'&&plan.kind!=='opt_out'&&plan.kind!=='ignore'&&!plan.sensitive)
         await mirrorServiceContact(chatId,name);
+      if(callback&&typeof callback.id==='string'&&callback.id.length<=128){
+        // Best-effort UI acknowledgment, after durable processing. No callback is
+        // acknowledged as 'saved consent' or a financial action.
+        await fetchImpl('https://api.telegram.org/bot'+String(env.NEXA_TELEGRAM_BOT_TOKEN)+'/answerCallbackQuery',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({callback_query_id:callback.id})
+        }).catch(()=>null);
+      }
       await markUpdate(updateId,{status:'processed',processed_at:new Date().toISOString()});
       return json(200,{success:true,handled:true});
     }catch(error){
