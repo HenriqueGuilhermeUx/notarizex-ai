@@ -1,0 +1,38 @@
+name: SmartBots Nexa CRM operator shortcut safety
+on:
+  push:
+    branches:
+      - feat/nexa-crm-communications-operator-link-20261116
+  pull_request:
+    paths:
+      - 'notarizex-ai/crm-smartbots.html'
+      - 'notarizex-ai/crm-smartbots.js'
+      - 'notarizex-ai/test/nexa-crm-operator-link.test.js'
+      - '.github/workflows/nexa-crm-operator-link-ci.yml'
+permissions:
+  contents: read
+jobs:
+  static-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preserve unrelated SmartBots integrations
+        run: |
+          git diff --name-only origin/main...HEAD > /tmp/changed.txt
+          node - <<'NODE'
+          const assert=require('node:assert/strict'),fs=require('node:fs');
+          const names=fs.readFileSync('/tmp/changed.txt','utf8').trim().split('\n').filter(Boolean);
+          const allow=['notarizex-ai/crm-smartbots.html','notarizex-ai/crm-smartbots.js',
+            'notarizex-ai/test/nexa-crm-operator-link.test.js',
+            '.github/workflows/nexa-crm-operator-link-ci.yml'];
+          assert.deepEqual(names.filter(p=>!allow.includes(p)),[]);
+          NODE
+      - name: Check Nexa-only integration
+        run: node notarizex-ai/test/nexa-crm-operator-link.test.js
+      - name: No deployment, no outbound customer messages
+        run: echo 'QA only — no Netlify publish, WhatsApp sends, Telegram sends or CRM mutations.'

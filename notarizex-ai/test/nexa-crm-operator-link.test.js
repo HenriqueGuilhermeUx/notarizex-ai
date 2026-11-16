@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const html=fs.readFileSync('notarizex-ai/crm-smartbots.html','utf8');
+const js=fs.readFileSync('notarizex-ai/crm-smartbots.js','utf8');
+assert.doesNotThrow(()=>new vm.Script(js,{filename:'crm-smartbots.js'}));
+assert.match(html,/id="nexaComms"[^>]*hidden/);
+assert.match(html,/rel="noopener noreferrer"/);
+assert.match(html,/https:\/\/nexa-backend-p2u0\.onrender\.com\/api\/v1\/admin\/portal/);
+assert.match(js,/nex\.hidden=true/);
+assert.match(js,/if\(!j\.success\).*?return\}if\(nex\)nex\.hidden=s\.botId!=='site-nexa-20260923-live'/s);
+assert.match(js,/function wa\(phone,msg\)\{if\(sess\(\)\.botId==='site-nexa-20260923-live'\)return '';/);
+assert.doesNotMatch(js,/Authorization:\s*['"]Bearer .*?['"]/);
+console.log('PASS: Nexa operator link only after successful SmartBots auth, generic bots unchanged, Nexa WhatsApp CTA suppressed');
