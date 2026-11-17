@@ -78,12 +78,6 @@ function resolveTelegramTurn({message, humanPending=false}) {
     return {reason:'kyc_help',reply:KYC,kind:'answer'};
   if (/^(?:3|\/sobre)$/.test(m))
     return {reason:'about_nexa',reply:'A Nexa disponibiliza uma experiência digital para consultar sua carteira e serviços habilitados. Consulte o que está disponível para você no portal oficial: '+PORTAL+'.',kind:'answer'};
-  if (/^(?:4|\/operacao|\/saldo)$/.test(m) ||
-      (/\b(?:deposito|saldo|transferencia|pix|operacao)\b/.test(m) &&
-       /\b(?:problema|nao caiu|nao recebi|erro|sumiu|travou|nao chegou)\b/.test(m)))
-    return {reason:'financial_support_handoff',
-      reply:'Vou registrar sua dificuldade para acompanhamento humano. Consulte o histórico no portal: '+PORTAL+'. Não envie Pix, chaves, extratos, documentos ou códigos aqui.',
-      kind:'handoff',category:'financial_support'};
   // Shared high-confidence, public Nexa guidance. Never treat chat ID
   // as account identity. Escalations use the existing durable handoff queue.
   const support=resolveNexaSupport(input);
@@ -91,6 +85,12 @@ function resolveTelegramTurn({message, humanPending=false}) {
     reason:support.reason,reply:support.reply,kind:support.kind,
     ...(support.kind==='handoff'?{category:support.category}:{}),
   };
+  if (/^(?:4|\/operacao|\/saldo)$/.test(m) ||
+      (/\b(?:deposito|saldo|transferencia|pix|operacao)\b/.test(m) &&
+       /\b(?:problema|nao caiu|nao recebi|erro|sumiu|travou|nao chegou)\b/.test(m)))
+    return {reason:'financial_support_handoff',
+      reply:'Vou registrar sua dificuldade para acompanhamento humano. Consulte o histórico no portal: '+PORTAL+'. Não envie Pix, chaves, extratos, documentos ou códigos aqui.',
+      kind:'handoff',category:'financial_support'};
   if (/^(?:\/status|status)$/.test(m) || /\b(?:meu saldo|minha conta|meu kyc|meus dados)\b/.test(m))
     return {reason:'not_authenticated',reply:NO_IDENTITY,kind:'answer'};
   return {reason:'unresolved_to_human',reply:'Para ajudar com segurança, vou registrar sua dúvida para atendimento. Você também pode consultar sua conta no portal: '+PORTAL+'. Não envie dados pessoais aqui.',
