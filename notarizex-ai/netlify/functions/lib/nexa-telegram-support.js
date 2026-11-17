@@ -4,6 +4,7 @@
 // Never request personal documents, passwords, codes or payment credentials here.
 const BOT_ID = 'site-nexa-20260923-live';
 const {PORTAL,FEEDBACK,GENERAL,classifyKycDifficulty,kycFrictionReply}=require('./nexa-kyc-assistance');
+const {answer:resolveNexaSupport}=require('./nexa-resolutive-support');
 
 const MENU = [
   'Olá! Eu sou o Theo, assistente de atendimento da Nexa. 👋',
@@ -77,6 +78,13 @@ function resolveTelegramTurn({message, humanPending=false}) {
     return {reason:'kyc_help',reply:KYC,kind:'answer'};
   if (/^(?:3|\/sobre)$/.test(m))
     return {reason:'about_nexa',reply:'A Nexa disponibiliza uma experiência digital para consultar sua carteira e serviços habilitados. Consulte o que está disponível para você no portal oficial: '+PORTAL+'.',kind:'answer'};
+  // Shared high-confidence, public Nexa guidance. Never treat chat ID
+  // as account identity. Escalations use the existing durable handoff queue.
+  const support=resolveNexaSupport(input);
+  if (support) return {
+    reason:support.reason,reply:support.reply,kind:support.kind,
+    ...(support.kind==='handoff'?{category:support.category}:{}),
+  };
   if (/^(?:4|\/operacao|\/saldo)$/.test(m) ||
       (/\b(?:deposito|saldo|transferencia|pix|operacao)\b/.test(m) &&
        /\b(?:problema|nao caiu|nao recebi|erro|sumiu|travou|nao chegou)\b/.test(m)))

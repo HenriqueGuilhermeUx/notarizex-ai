@@ -7,6 +7,7 @@
  */
 const NEXA_BOT_ID = 'site-nexa-20260923-live';
 const {PORTAL,FEEDBACK,GENERAL,classifyKycDifficulty,kycFrictionReply}=require('./nexa-kyc-assistance');
+const {answer:resolveNexaSupport}=require('./nexa-resolutive-support');
 
 const MENU = [
   'Olá! Sou o *Theo*, assistente virtual da Nexa. 👋',
@@ -133,6 +134,16 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
     intent:topic==='review'?'handoff':'duvida',
     handoffRequested:topic==='review',
     reason:'kyc_difficulty_'+topic
+  };
+
+  // High-confidence Nexa support is answered before the generic commercial AI.
+  // Existing opt-out, sensitive text, human queue, menu and KYC take precedence.
+  const support=resolveNexaSupport(input);
+  if (support) return {
+    handled:true,reply:support.reply,
+    intent:support.kind==='handoff'?'handoff':'duvida',
+    handoffRequested:support.kind==='handoff',
+    reason:support.reason,
   };
 
   // Free-form non-KYC messages continue to the existing AI and human escalation path.

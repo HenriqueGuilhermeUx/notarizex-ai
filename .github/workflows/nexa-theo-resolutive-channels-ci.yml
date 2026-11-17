@@ -1,0 +1,51 @@
+name: Nexa Theo WhatsApp Telegram resolutive support CI
+on:
+  push:
+    branches:
+      - feat/nexa-theo-resolutive-channels-20261117
+  pull_request:
+    paths:
+      - 'notarizex-ai/netlify/functions/lib/nexa-resolutive-support.js'
+      - 'notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js'
+      - 'notarizex-ai/netlify/functions/lib/nexa-telegram-support.js'
+      - 'notarizex-ai/test/nexa-resolutive-support.test.js'
+      - '.github/workflows/nexa-theo-resolutive-channels-ci.yml'
+permissions:
+  contents: read
+jobs:
+  cross-channel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Protect operational webhook and all financial code
+        run: |
+          node - <<'NODE'
+          const cp=require('node:child_process'),assert=require('node:assert/strict');
+          const changed=cp.execFileSync('git',['diff','--name-only','origin/main...HEAD'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+          const allow=new Set([
+            'notarizex-ai/netlify/functions/lib/nexa-resolutive-support.js',
+            'notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js',
+            'notarizex-ai/netlify/functions/lib/nexa-telegram-support.js',
+            'notarizex-ai/test/nexa-resolutive-support.test.js',
+            '.github/workflows/nexa-theo-resolutive-channels-ci.yml'
+          ]);
+          assert.deepEqual(changed.filter(p=>!allow.has(p)),[]);
+          NODE
+      - name: Validate support helpers
+        run: |
+          node --check notarizex-ai/netlify/functions/lib/nexa-resolutive-support.js
+          node --check notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js
+          node --check notarizex-ai/netlify/functions/lib/nexa-telegram-support.js
+          node --test notarizex-ai/test/nexa-resolutive-support.test.js notarizex-ai/test/nexa-reactive-onboarding.test.js notarizex-ai/test/nexa-kyc-assistance.test.js
+      - name: Verify Telegram webhook regression
+        working-directory: notarizex-ai
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          node --test test/nexa-telegram-support.test.js
+      - run: echo 'No deploy, no campaign, no Pix, no provider configuration changes'
