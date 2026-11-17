@@ -37,7 +37,7 @@ test('customer opt out, privacy, KYC and pending human support still take preced
   assert.equal(whatsapp('Meu CPF é 123.456.789-01').reason,'unsafe_identifier');
   assert.equal(resolveTelegramTurn({message:'Meu CPF é 123.456.789-01'}).reason,'unsafe_identifier');
   assert.equal(whatsapp('Minha verificação Didit travou').reason,'kyc_difficulty_didit_error');
-  assert.equal(resolveTelegramTurn({message:'Minha verificação Didit travou'}).kind,'handoff');
+  assert.equal(resolveTelegramTurn({message:'Minha verificação Didit travou'}).kind,'answer');
   assert.equal(whatsapp('Meu Pix não caiu',{humanPending:true}).reason,'human_pending');
   assert.equal(resolveTelegramTurn({message:'Meu Pix não caiu',humanPending:true}).reason,'human_pending');
 });
