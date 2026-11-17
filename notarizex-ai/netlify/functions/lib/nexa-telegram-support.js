@@ -4,6 +4,7 @@
 // Never request personal documents, passwords, codes or payment credentials here.
 const BOT_ID = 'site-nexa-20260923-live';
 const {PORTAL,FEEDBACK,GENERAL,classifyKycDifficulty,kycFrictionReply}=require('./nexa-kyc-assistance');
+const {answer:resolveNexaSupport}=require('./nexa-resolutive-support');
 
 const MENU = [
   'Olá! Eu sou o Theo, assistente de atendimento da Nexa. 👋',
@@ -83,6 +84,13 @@ function resolveTelegramTurn({message, humanPending=false}) {
     return {reason:'financial_support_handoff',
       reply:'Vou registrar sua dificuldade para acompanhamento humano. Consulte o histórico no portal: '+PORTAL+'. Não envie Pix, chaves, extratos, documentos ou códigos aqui.',
       kind:'handoff',category:'financial_support'};
+  // Shared high-confidence, public Nexa guidance. Never treat chat ID
+  // as account identity. Escalations use the existing durable handoff queue.
+  const support=resolveNexaSupport(input);
+  if (support) return {
+    reason:support.reason,reply:support.reply,kind:support.kind,
+    ...(support.kind==='handoff'?{category:support.category}:{}),
+  };
   if (/^(?:\/status|status)$/.test(m) || /\b(?:meu saldo|minha conta|meu kyc|meus dados)\b/.test(m))
     return {reason:'not_authenticated',reply:NO_IDENTITY,kind:'answer'};
   return {reason:'unresolved_to_human',reply:'Para ajudar com segurança, vou registrar sua dúvida para atendimento. Você também pode consultar sua conta no portal: '+PORTAL+'. Não envie dados pessoais aqui.',
