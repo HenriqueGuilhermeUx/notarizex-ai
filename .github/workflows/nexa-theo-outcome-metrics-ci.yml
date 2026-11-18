@@ -1,0 +1,35 @@
+name: Nexa Theo outcome metrics CI
+on:
+  push:
+    branches: [feat/nexa-theo-outcome-metrics-20261118]
+  pull_request:
+    paths:
+      - 'notarizex-ai/netlify/functions/kapso-webhook.js'
+      - 'notarizex-ai/test/nexa-theo-outcome-metrics.test.js'
+      - '.github/workflows/nexa-theo-outcome-metrics-ci.yml'
+permissions:
+  contents: read
+jobs:
+  support-observability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guard only webhook instrumentation and tests changed
+        run: |
+          node - <<'NODE'
+          const cp=require('node:child_process'),assert=require('node:assert/strict');
+          const changed=cp.execFileSync('git',['diff','--name-only','origin/main','HEAD'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+          const allowed=new Set(['notarizex-ai/netlify/functions/kapso-webhook.js','notarizex-ai/test/nexa-theo-outcome-metrics.test.js','.github/workflows/nexa-theo-outcome-metrics-ci.yml']);
+          assert.deepEqual(changed.filter(x=>!allowed.has(x)),[]);
+          NODE
+      - name: Syntax and regression
+        run: |
+          node --check notarizex-ai/netlify/functions/kapso-webhook.js
+          node --test notarizex-ai/test/nexa-theo-outcome-metrics.test.js notarizex-ai/test/nexa-biometric-assistance.test.js notarizex-ai/test/nexa-reactive-onboarding.test.js notarizex-ai/test/nexa-kyc-assistance.test.js
+      - run: echo 'No sends, no provider changes, no deployment from CI'
