@@ -33,6 +33,7 @@ jobs:
             'notarizex-ai/netlify/functions/lib/nexa-reactive-onboarding.js',
             'notarizex-ai/netlify/functions/lib/nexa-telegram-support.js',
             'notarizex-ai/test/nexa-biometric-assistance.test.js',
+            '.github/workflows/nexa-theo-resolutive-channels-ci.yml',
             '.github/workflows/nexa-biometric-assistance-ci.yml',
           ]);
           assert.deepEqual(changed.filter(p=>!allowed.has(p)),[]);
