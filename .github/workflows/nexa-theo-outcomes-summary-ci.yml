@@ -32,6 +32,9 @@ jobs:
           ]);
           assert.deepEqual(changed.filter(x=>!allow.has(x)),[]);
           NODE
+      - name: Install existing function dependencies
+        working-directory: notarizex-ai
+        run: npm install --ignore-scripts --no-audit --no-fund
       - name: Node syntax and existing CRM operator regression
         run: |
           node --check notarizex-ai/netlify/functions/nexa-crm-inbox-bridge.js
