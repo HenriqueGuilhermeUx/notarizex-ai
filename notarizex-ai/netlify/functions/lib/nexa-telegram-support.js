@@ -59,6 +59,8 @@ function resolveTelegramTurn({message, humanPending=false}) {
     return {reason:'privacy_handoff',reply:PRIVACY,kind:'handoff',category:'privacy'};
   if (/^(?:5|\/humano|\/atendente|\/suporte)$/.test(m) || /\b(?:atendente humano|falar com (?:atendente|pessoa|humano)|preciso de analise|quero um atendente)\b/.test(m))
     return {reason:'human_handoff',reply:HUMAN,kind:'handoff',category:'support'};
+  const biometric=classifyKycDifficulty(input);
+  if (biometric==='biometric_setup') return {reason:'kyc_difficulty_biometric_setup',reply:kycFrictionReply(biometric),kind:'handoff',category:'kyc'};
   if (/\b(?:preciso da provacao|preciso de aprovacao|aprovacao (?:do cadastro|da conta|do kyc|da identidade)|kyc nao aprova|didit expirou|sessao expirada|kyc travado)\b/.test(m) ||
      (/\b(?:kyc|didit|identidade|cadastro|verificacao)\b/.test(m) &&
       /\b(?:aprov|rejeit|recus|trav|erro|expir|demor|pendente|nao consigo)\b/.test(m)))

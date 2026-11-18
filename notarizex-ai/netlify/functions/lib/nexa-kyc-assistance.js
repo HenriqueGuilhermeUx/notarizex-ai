@@ -32,6 +32,8 @@ const REPLIES=Object.freeze({
   didit_error: 'Se a Didit não abriu, travou ou informou erro, volte ao portal '+PORTAL+
     ' e consulte sua etapa de identidade. Não compartilhe link de sessão, foto, documento nem código no chat. Conte o problema em '+FEEDBACK+
     ' ou escreva "atendente" para solicitar acompanhamento.',
+  biometric_setup: 'Vamos identificar onde a biometria parou. Primeiro, abra '+PORTAL+
+    ' no navegador do celular e entre na MESMA conta Nexa. Verifique se o portal mostra o botão de iniciar/continuar a identidade Didit. Se a página de verificação abrir, permita a câmera apenas no site oficial e siga as instruções na tela, em local iluminado. Se não abrir ou mostrar erro, não repita sessões indiscriminadamente: responda apenas com a etapa: (1) não consigo entrar na conta; (2) não aparece verificar; (3) Didit não abre; (4) câmera/rosto não funciona; (5) já enviei e estou aguardando. Nunca envie selfie, CPF, documento, link de sessão ou código aqui. Posso encaminhar sua dificuldade à equipe, mas este chat não confirma seu cadastro nem aprova o KYC. Ajuda geral: '+FEEDBACK+'.',
   camera: 'Se encontrou dificuldade com câmera, documento ou selfie na Didit, revise as permissões da câmera no dispositivo e tente novamente somente pelo fluxo oficial iniciado em '+PORTAL+
     '. Não envie fotos ou documentos aqui. Informe apenas a categoria do problema em '+FEEDBACK+
     ' ou peça "atendente".',
@@ -42,7 +44,7 @@ const REPLIES=Object.freeze({
 function classifyKycDifficulty(value) {
   const m=normalize(value);
   if(!m) return null;
-  const context=/\b(?:kyc|didit|identidade|identificacao|verificacao|verificar|biometria|selfie|cadastro|aprovacao)\b/.test(m);
+  const context=/\b(?:kyc|didit|identidade|identificacao|verificacao|verificar|biometria|reconhecimento facial|identificacao facial|selfie|cadastro|aprovacao)\b/.test(m);
   // Account-login difficulty is relevant even when the client doesn't know
   // the term "KYC" or "Didit". Give generic guidance, never account data.
   if(!context && /\b(?:nao consigo entrar|nao consegui entrar|login nao funciona|acesso bloqueado)\b/.test(m))
@@ -50,6 +52,11 @@ function classifyKycDifficulty(value) {
   if(!context) return null;
   if(/\b(?:aprovacao|aprovad\w*|reprovad\w*|rejeitad\w*|recusad\w*|em analise|aguardando analise|status pendente|demora para aprovar)\b/.test(m))
     return 'review';
+  // A user can say "cadastrar biometria para entrar no aplicativo" without
+  // knowing the words Didit/KYC. Distinguish setup failure from password reset.
+  if(/\b(?:biometria|biometrico|biometrica|reconhecimento facial|identificacao facial)\b/.test(m) &&
+     /\b(?:cadastr\w*|nao consig\w*|nao consegu\w*|nao funciona|nao funcion\w*|falha|erro|entrar|acessar|trav\w*|fazer|concluir)\b/.test(m))
+    return 'biometric_setup';
   if(/\b(?:camera|selfie|foto|imagem|documento|permissao da camera)\b/.test(m))
     return 'camera';
   if(/\b(?:nao consigo entrar|nao entro|nao consegui entrar|login|acesso|senha esquecida|esqueci a senha)\b/.test(m))

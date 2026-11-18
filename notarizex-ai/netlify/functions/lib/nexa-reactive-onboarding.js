@@ -131,8 +131,8 @@ function resolveReactiveTurn({botId, message, hasExistingInbox, latestOutbound, 
   if (topic) return {
     handled:true,
     reply:kycFrictionReply(topic),
-    intent:topic==='review'?'handoff':'duvida',
-    handoffRequested:topic==='review',
+    intent:(topic==='review'||topic==='biometric_setup')?'handoff':'duvida',
+    handoffRequested:topic==='review'||topic==='biometric_setup',
     reason:'kyc_difficulty_'+topic
   };
 
