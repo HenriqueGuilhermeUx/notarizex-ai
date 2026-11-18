@@ -33,7 +33,7 @@ Responda o mais rápido possível!
             },
             body: JSON.stringify({
                 from: 'SmartBots <noreply@smartbots.club>',
-                to: 'henriquecampos66@gmail.com',
+                to: 'corporate@alternativeventures.com.br',
                 subject: `Solicitação Empresarial: ${name}`,
                 text: emailContent
             })
