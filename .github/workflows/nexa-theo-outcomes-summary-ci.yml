@@ -1,0 +1,43 @@
+name: Nexa Theo outcomes summary safety CI
+on:
+  push:
+    branches: [feat/nexa-theo-aggregate-outcomes-20261118]
+  pull_request:
+    paths:
+      - 'notarizex-ai/netlify/functions/nexa-crm-inbox-bridge.js'
+      - 'notarizex-ai/test/nexa-crm-outcomes-summary.test.js'
+      - '.github/workflows/nexa-theo-outcomes-summary-ci.yml'
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Protect inbound, webhook, financial and outbound code
+        run: |
+          node - <<'NODE'
+          const cp=require('node:child_process'),assert=require('node:assert/strict');
+          const changed=cp.execFileSync('git',['diff','--name-only','origin/main','HEAD'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+          const allow=new Set([
+            'notarizex-ai/netlify/functions/nexa-crm-inbox-bridge.js',
+            'notarizex-ai/test/nexa-crm-outcomes-summary.test.js',
+            '.github/workflows/nexa-theo-outcomes-summary-ci.yml'
+          ]);
+          assert.deepEqual(changed.filter(x=>!allow.has(x)),[]);
+          NODE
+      - name: Install existing function dependencies
+        working-directory: notarizex-ai
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Node syntax and existing CRM operator regression
+        run: |
+          node --check notarizex-ai/netlify/functions/nexa-crm-inbox-bridge.js
+          node --test notarizex-ai/test/nexa-crm-outcomes-summary.test.js
+          node notarizex-ai/test/nexa-crm-operator-link.test.js
+      - run: echo 'Read-only reporting; no live send, no DB writes'
