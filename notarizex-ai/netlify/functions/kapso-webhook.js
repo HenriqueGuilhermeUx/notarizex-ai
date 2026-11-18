@@ -118,6 +118,14 @@ async function handleInbound(item,raw) {
   await saveInbound(cfg.bot_id,inbox,item.phone,item.name,safeInbound,item.message,safeRaw);
   await recordUsage(cfg.bot_id,'whatsapp_message_received','inbound',
     {providerMessageId:clean(item.message&&item.message.id)||null,intent});
+  // Privacy-safe operational funnel. A webhook HTTP 200 is not evidence
+  // of a delivered answer, a resolved case, or a completed human handoff.
+  if (isNexa) await recordUsage(cfg.bot_id,'nexa_support_routed','inbound',{
+    reason:plan?.reason||'general_ai',
+    humanHandoffRequested:Boolean(brain.handoffRequested),
+    aiResponseAvailable:Boolean(brain.success&&brain.reply),
+    humanPendingBefore:Boolean(originalInbox?.status==='human_needed'),
+  });
   if(cfg.auto_reply===true&&brain.success&&brain.reply) {
     const sent=await sendReply(item.phoneNumberId,item.phone,brain.reply);
     const providerMessageId=clean(sent&&sent.messages&&sent.messages[0]&&sent.messages[0].id)||null;
@@ -131,7 +139,13 @@ async function handleInbound(item,raw) {
         status_updated_at:new Date().toISOString()
       })
     }).catch(()=>null);
-    await recordUsage(cfg.bot_id,'whatsapp_message_sent','outbound',{providerMessageId,intent});
+    // Distinguish provider-accepted messages from unconfirmed submissions.
+    // Never count a missing provider ID as a successful outbound delivery.
+    if(providerMessageId) {
+      await recordUsage(cfg.bot_id,'whatsapp_message_sent','outbound',{providerMessageId,intent});
+    } else if(isNexa) {
+      await recordUsage(cfg.bot_id,'nexa_support_reply_unconfirmed','outbound',{reason:plan?.reason||'general_ai'});
+    }
   }
   return {
     handled:true,inboxId:inbox.id,intent,leadId:brain.leadId||null,
