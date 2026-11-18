@@ -54,12 +54,50 @@ function projectMessage(row) {
   };
 }
 
+/**
+ * A read-only operational count. A sent/delivered message or pending ticket
+ * is NOT evidence that a user's KYC was completed or their case resolved.
+ * No customer identifiers, raw messages, preview or PII leave this function.
+ */
+function aggregateSupportOutcomes(inboxes, messages, since) {
+  const active = inboxes.filter(row => Date.parse(String(row.updated_at || '')) >= since);
+  const statuses = {human_needed:0,new:0,commercial_ready:0,other:0};
+  const intents = {handoff:0,duvida:0,other:0};
+  for (const row of active) {
+    const status=String(row.status||'');
+    statuses[Object.prototype.hasOwnProperty.call(statuses,status)?status:'other']++;
+    const intent=String(row.intent||'');
+    intents[Object.prototype.hasOwnProperty.call(intents,intent)?intent:'other']++;
+  }
+  const counts={inbound:0,outbound:0,providerSent:0,providerDelivered:0,providerRead:0,
+    providerFailed:0,providerUnconfirmed:0};
+  for(const row of messages) {
+    if(Date.parse(String(row.created_at||''))<since) continue;
+    if(row.direction==='inbound') {counts.inbound++;continue;}
+    if(row.direction!=='outbound') continue;
+    counts.outbound++;
+    const delivery=String(row.delivery_status||'').toLowerCase();
+    if(delivery==='sent') counts.providerSent++;
+    else if(delivery==='delivered') counts.providerDelivered++;
+    else if(delivery==='read') counts.providerRead++;
+    else if(delivery==='failed') counts.providerFailed++;
+    else counts.providerUnconfirmed++;
+  }
+  return {activeConversations:active.length,queue:statuses,intents,messages:counts,
+    confirmedByProvider:counts.providerSent+counts.providerDelivered+counts.providerRead,
+    resolutionRate:null,kycCompletionRate:null,
+    limitations:['A fila registra necessidade de atendimento, nao resolucao.',
+      'Mensagens confirmadas pelo provedor nao comprovam leitura ou conversao.',
+      'Janela de sete dias e dados limitados a 500 registros recentes por consulta.']};
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'GET') return json(405, {error:'method_not_allowed'});
   const token = process.env.NEXA_CRM_INBOX_BRIDGE_TOKEN;
   const bearer = String(event.headers?.authorization || event.headers?.Authorization || '').replace(/^Bearer\s+/i, '');
   if (!authorized(bearer, token)) return json(401, {error:'unauthorized'});
 
+  const isSummary = event.queryStringParameters?.summary === '7d';
   const inboxId = String(event.queryStringParameters?.inbox_id || '').trim();
   if (inboxId && !UUID.test(inboxId)) return json(400, {error:'invalid_inbox_id'});
 
@@ -82,6 +120,21 @@ exports.handler = async (event) => {
 
   try {
     const filter = 'bot_id=eq.' + encodeURIComponent(BOT_ID);
+    if (isSummary && !inboxId) {
+      const since=Date.now()-7*24*60*60*1000;
+      const threshold=new Date(since).toISOString();
+      const [inboxes,messages]=await Promise.all([
+        getRows('smartbot_whatsapp_inbox?' + filter +
+          '&updated_at=gte.'+encodeURIComponent(threshold)+
+          '&select=status,intent,updated_at&order=updated_at.desc&limit=500'),
+        getRows('smartbot_whatsapp_messages?' + filter +
+          '&created_at=gte.'+encodeURIComponent(threshold)+
+          '&select=direction,delivery_status,created_at&order=created_at.desc&limit=500')
+      ]);
+      return json(200,{success:true,mode:'aggregate_read_only',period:'last_7_days',
+        channel:'whatsapp',noPersonalData:true,canSend:false,
+        outcomes:aggregateSupportOutcomes(inboxes,messages,since)});
+    }
     if (!inboxId) {
       const rows = await getRows('smartbot_whatsapp_inbox?' + filter +
         '&select=id,contact_name,contact_phone,last_message,intent,status,source,created_at,updated_at' +
@@ -108,3 +161,5 @@ exports.handler = async (event) => {
     clearTimeout(timeout);
   }
 };
+
+module.exports.aggregateSupportOutcomes=aggregateSupportOutcomes;
