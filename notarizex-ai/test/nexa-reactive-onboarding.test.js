@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  MENU, ANSWERS, STOP_REPLY, isNexa, isGenericGreeting,
+  MENU, ANSWERS, STOP_REPLY, KYC_STEP_PROMPT, isNexa, isGenericGreeting,
   isMenuReply, isStopRequest, resolveReactiveTurn
 } = require('../netlify/functions/lib/nexa-reactive-onboarding');
 
@@ -35,8 +35,8 @@ test('non-KYC issue goes to existing AI, but Didit errors receive safe instructi
   const kyc=decide('Minha sessão de identificação expirou');
   assert.equal(kyc.handled,true);
   assert.equal(kyc.reason,'kyc_difficulty_didit_error');
-  assert.match(kyc.reply,/https:\/\/trynexa.com.br\/portal\//);
-  assert.match(kyc.reply,/ajuda-verificacao.html/);
+  assert.equal(kyc.reply,KYC_STEP_PROMPT);
+  assert.match(kyc.reply,/Qual situação descreve melhor o problema/);
   assert.equal(kyc.handoffRequested,false);
 });
 
@@ -128,10 +128,11 @@ test('Didit problems are answered immediately without unsolicited offers',()=>{
     const r=decide(phrase,{hasExistingInbox:true});
     assert.equal(r.reason,'kyc_difficulty_'+topic,phrase);
     assert.equal(r.handoffRequested,human);
-    assert.match(r.reply,/trynexa.com.br\/portal\//);
+    if(topic==='didit_error') assert.equal(r.reply,KYC_STEP_PROMPT);
+    else assert.match(r.reply,/trynexa.com.br\/portal\//);
     assert.doesNotMatch(r.reply,/mande um pix|rendimento garantido/i);
   }
-  assert.match(decide('2',{hasExistingInbox:true,latestOutbound:MENU}).reply,/ajuda-verificacao.html/);
+  assert.equal(decide('2',{hasExistingInbox:true,latestOutbound:MENU}).reply,KYC_STEP_PROMPT);
   assert.equal(decide('Minha verificação não abriu',{humanPending:true,hasExistingInbox:true}).reply,null);
 });
 
@@ -182,4 +183,20 @@ test('no menu reply contains exchange solicitations, promises or payment instruc
   for (const msg of [MENU,...Object.values(ANSWERS).map(item=>item.reply)]){
     assert.doesNotMatch(msg,/rendimento garantido|mande um pix|depositar agora|transfira valores|ganho certo|chave pix:/i);
   }
+});
+
+test('KYC stage follow-up continues without repeating the menu or demanding private data',()=>{
+  const first=decide('Não consigo verificar minha identidade',{hasExistingInbox:true});
+  assert.equal(first.reply,KYC_STEP_PROMPT);
+  for (const [number,handoff] of [['1',false],['2',true],['3',false],['4',true]]) {
+    const r=decide(number,{hasExistingInbox:true,latestOutbound:KYC_STEP_PROMPT});
+    assert.equal(r.reason,'selected_kyc_step');
+    assert.equal(Boolean(r.handoffRequested),handoff);
+    assert.ok(r.reply.length>60);
+    assert.doesNotMatch(r.reply,/envie seu cpf|mande sua selfie|depósito obrigatório/i);
+  }
+  // Digits without the expected preceding prompt must never guess a stage.
+  assert.equal(decide('2',{hasExistingInbox:true}),null);
+  assert.equal(decide('2',{hasExistingInbox:true,latestOutbound:MENU}).reason,'selected_menu_option');
+  assert.equal(decide('2',{hasExistingInbox:true,latestOutbound:KYC_STEP_PROMPT,humanPending:true}).reply,null);
 });
